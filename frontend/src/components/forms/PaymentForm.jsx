@@ -1,16 +1,7 @@
 // src/components/forms/PaymentForm.jsx
 import { useState, useEffect } from 'react';
-import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
     Select,
     SelectContent,
@@ -20,45 +11,30 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/datepicker";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { toast } from "sonner";
 import { format } from 'date-fns';
 import { Loader2, Image as ImageIcon } from "lucide-react";
 
 import { paymentService, scheduleService, mediaService } from '@/services/api';
 
-// Schéma de validation
-const paymentSchema = z.object({
-    scheduleId: z.string().min(1, { message: "Sélectionnez un planning" }),
-    amount: z.number().min(0, { message: "Le montant doit être positif" }),
-    paymentDate: z.date({ required_error: "La date de paiement est requise" }),
-    paymentType: z.string().min(1, { message: "Sélectionnez un type de paiement" }),
-    mediaId: z.string().optional(),
-    comments: z.string().optional(),
-});
-
 const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
+    const [formData, setFormData] = useState({
+        scheduleId: payment?.schedule?._id || '',
+        amount: payment?.amount || 0,
+        paymentDate: payment?.paymentDate ? new Date(payment.paymentDate) : new Date(),
+        paymentType: payment?.paymentType || 'cash',
+        mediaId: payment?.media?._id || '',
+        comments: payment?.comments || '',
+        status: payment?.status || 'pending'
+    });
+
     const [schedules, setSchedules] = useState([]);
     const [loading, setLoading] = useState(false);
     const [fetchingSchedules, setFetchingSchedules] = useState(true);
     const [selectedSchedule, setSelectedSchedule] = useState(null);
     const [medias, setMedias] = useState([]);
     const [fetchingMedias, setFetchingMedias] = useState(false);
-
-    // Initialiser le formulaire
-    const form = useForm({
-        resolver: zodResolver(paymentSchema),
-        defaultValues: {
-            scheduleId: payment?.schedule?._id || '',
-            amount: payment?.amount || 0,
-            paymentDate: payment?.paymentDate ? new Date(payment.paymentDate) : new Date(),
-            paymentType: payment?.paymentType || 'cash',
-            mediaId: payment?.media?._id || '',
-            comments: payment?.comments || '',
-        },
-    });
+    const [errors, setErrors] = useState({});
 
     // Charger les plannings disponibles
     const fetchSchedules = async () => {
@@ -78,6 +54,7 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
                         }
                     } catch (error) {
                         console.error('Erreur lors du chargement du planning spécifique:', error);
+                        toast.error('Impossible de charger le planning spécifique');
                     }
                 }
             }
@@ -97,7 +74,8 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
             setMedias(res.data);
 
             // Si on modifie un paiement avec un média qui n'est pas dans la liste
-            if (payment && payment.media && !res.data.some(m => m._id === payment.media._id)) {
+            if (payment && payment.media && payment.media._id &&
+                !res.data.some(m => m._id === payment.media._id)) {
                 try {
                     const mediaRes = await mediaService.getById(payment.media._id);
                     if (mediaRes.data) {
@@ -105,6 +83,7 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
                     }
                 } catch (error) {
                     console.error('Erreur lors du chargement du média spécifique:', error);
+                    toast.error('Impossible de charger le média spécifique');
                 }
             }
         } catch (error) {
@@ -116,29 +95,132 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
     };
 
     // Mettre à jour les informations du planning sélectionné
-    const handleScheduleChange = (scheduleId) => {
-        const schedule = schedules.find(s => s._id === scheduleId);
-        setSelectedSchedule(schedule);
+    const handleScheduleChange = async (scheduleId) => {
+        if (!scheduleId) return;
 
-        // Si le planning a un objectif de revenu, pré-remplir le montant
-        if (schedule?.vehicle?.dailyIncomeTarget > 0) {
-            form.setValue('amount', schedule.vehicle.dailyIncomeTarget);
+        const schedule = schedules.find(s => s._id === scheduleId);
+        if (schedule) {
+            setSelectedSchedule(schedule);
+
+            // Si le planning a un objectif de revenu, pré-remplir le montant
+            if (schedule?.vehicle?.dailyIncomeTarget > 0) {
+                setFormData(prev => ({ ...prev, amount: schedule.vehicle.dailyIncomeTarget }));
+            }
+        } else {
+            // Si le planning n'est pas dans la liste, essayer de le récupérer
+            try {
+                setFetchingSchedules(true);
+                const scheduleRes = await scheduleService.getById(scheduleId);
+                if (scheduleRes.data) {
+                    setSelectedSchedule(scheduleRes.data);
+                    setSchedules(prev => [...prev, scheduleRes.data]);
+
+                    if (scheduleRes.data?.vehicle?.dailyIncomeTarget > 0) {
+                        setFormData(prev => ({
+                            ...prev,
+                            amount: scheduleRes.data.vehicle.dailyIncomeTarget
+                        }));
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement du planning:', error);
+                toast.error('Impossible de charger les informations du planning');
+            } finally {
+                setFetchingSchedules(false);
+            }
+        }
+    };
+
+    // Validation du formulaire
+    const validateForm = () => {
+        const newErrors = {};
+
+        if (!formData.scheduleId) {
+            newErrors.scheduleId = "Sélectionnez un planning";
+        }
+
+        if (formData.amount <= 0) {
+            newErrors.amount = "Le montant doit être positif";
+        }
+
+        if (!formData.paymentDate) {
+            newErrors.paymentDate = "La date de paiement est requise";
+        }
+
+        if (!formData.paymentType) {
+            newErrors.paymentType = "Sélectionnez un type de paiement";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    // Gérer les changements de champs
+    const handleChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+
+        // Si on change le planning, mettre à jour le planning sélectionné
+        if (field === 'scheduleId') {
+            handleScheduleChange(value);
+        }
+
+        // Effacer l'erreur associée au champ modifié
+        if (errors[field]) {
+            setErrors(prev => {
+                const updated = { ...prev };
+                delete updated[field];
+                return updated;
+            });
         }
     };
 
     // Soumettre le formulaire
-    const onSubmit = async (data) => {
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!validateForm()) {
+            return;
+        }
+
         setLoading(true);
         try {
+            let response;
+
             if (payment) {
                 // Mise à jour d'un paiement existant
-                await paymentService.update(payment._id, data);
+                response = await paymentService.update(payment._id, formData);
                 toast.success('Paiement mis à jour avec succès');
             } else {
                 // Création d'un nouveau paiement
-                await paymentService.create(data);
+                response = await paymentService.create(formData);
                 toast.success('Paiement créé avec succès');
             }
+
+            // Si le paiement a un statut spécifique à définir (pour un paiement existant)
+            if (payment && formData.status !== payment.status) {
+                await paymentService.changeStatus(payment._id, formData.status);
+            }
+
+            // Si un média a été associé au paiement et que ce n'est pas l'ancien
+            if (formData.mediaId && (!payment || formData.mediaId !== payment?.media?._id)) {
+                // Vérifier si le média est déjà associé au paiement
+                if (response.data && response.data._id && formData.mediaId !== "none") {
+                    try {
+                        // Récupérer les données du média
+                        const mediaResponse = await mediaService.getById(formData.mediaId);
+                        if (mediaResponse.data) {
+                            // Associer le média au paiement
+                            await paymentService.addMedia(response.data._id, {
+                                mediaUrl: mediaResponse.data.mediaUrl
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Erreur lors de l'association du média:", error);
+                        toast.error("Le paiement a été créé mais le justificatif n'a pas pu être associé");
+                    }
+                }
+            }
+
             onSubmitSuccess();
         } catch (error) {
             console.error('Erreur lors de la soumission:', error);
@@ -159,209 +241,190 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
         }
     }, [payment]);
 
+    // Formatter la date pour l'affichage
+    const formatScheduleDate = (dateString) => {
+        try {
+            return format(new Date(dateString), 'dd/MM/yyyy');
+        } catch (error) {
+            return 'Date invalide';
+        }
+    };
+
     return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {/* Sélection du planning */}
-                <FormField
-                    control={form.control}
-                    name="scheduleId"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Planning</FormLabel>
-                            <Select
-                                disabled={fetchingSchedules}
-                                onValueChange={(value) => {
-                                    field.onChange(value);
-                                    handleScheduleChange(value);
-                                }}
-                                value={field.value}
-                            >
-                                <FormControl>
-                                    <SelectTrigger>
-                                        {fetchingSchedules ? (
-                                            <div className="flex items-center">
-                                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                                Chargement...
-                                            </div>
-                                        ) : (
-                                            <SelectValue placeholder="Sélectionner un planning" />
-                                        )}
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {schedules.map((schedule) => (
-                                        <SelectItem key={schedule._id} value={schedule._id}>
-                                            {schedule.driver?.firstName} {schedule.driver?.lastName} -
-                                            {schedule.vehicle?.licensePlate}
-                                            ({format(new Date(schedule.scheduleDate), 'dd/MM/yyyy')})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormDescription>
-                                {selectedSchedule?.vehicle?.dailyIncomeTarget > 0 && (
-                                    <span>
-                                        Objectif journalier: {new Intl.NumberFormat('fr-FR').format(selectedSchedule.vehicle.dailyIncomeTarget)} FCFA
-                                    </span>
-                                )}
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {/* Montant du paiement */}
-                <FormField
-                    control={form.control}
-                    name="amount"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Montant</FormLabel>
-                            <FormControl>
-                                <Input
-                                    type="number"
-                                    placeholder="Montant en FCFA"
-                                    {...field}
-                                    onChange={(e) => field.onChange(Number(e.target.value))}
-                                />
-                            </FormControl>
-                            <FormDescription>
-                                Montant du paiement en FCFA
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {/* Date de paiement */}
-                <FormField
-                    control={form.control}
-                    name="paymentDate"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                            <FormLabel>Date de paiement</FormLabel>
-                            <DatePicker
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                dateFormat="dd/MM/yyyy"
-                            />
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {/* Type de paiement */}
-                <FormField
-                    control={form.control}
-                    name="paymentType"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Méthode de paiement</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Sélectionner un type de paiement" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="cash">Espèces</SelectItem>
-                                    <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {/* Sélection du média (justificatif) */}
-                <FormField
-                    control={form.control}
-                    name="mediaId"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Justificatif de paiement</FormLabel>
-                            <Select
-                                onValueChange={field.onChange}
-                                value={field.value || ""}
-                            >
-                                <FormControl>
-                                    <SelectTrigger>
-                                        {fetchingMedias ? (
-                                            <div className="flex items-center">
-                                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                                Chargement...
-                                            </div>
-                                        ) : (
-                                            <SelectValue placeholder="Sélectionner un justificatif (optionnel)" />
-                                        )}
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="">Aucun justificatif</SelectItem>
-                                    {medias.map((media) => (
-                                        <SelectItem key={media._id} value={media._id}>
-                                            <div className="flex items-center">
-                                                <ImageIcon className="h-4 w-4 mr-2" />
-                                                {new Date(media.createdAt).toLocaleDateString()}
-                                                {media.uploadedBy && ` - ${media.uploadedBy.firstName}`}
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormDescription>
-                                Sélectionnez un justificatif de paiement (optionnel)
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {/* Commentaires */}
-                <FormField
-                    control={form.control}
-                    name="comments"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Commentaires</FormLabel>
-                            <FormControl>
-                                <Textarea
-                                    placeholder="Commentaires ou notes additionnelles"
-                                    {...field}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {/* Boutons d'action */}
-                <div className="flex justify-end space-x-4">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={onCancel}
-                        disabled={loading}
-                    >
-                        Annuler
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                {payment ? 'Mise à jour...' : 'Création...'}
-                            </>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+            {/* Sélection du planning */}
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Planning</label>
+                <Select
+                    disabled={fetchingSchedules || (payment && payment._id)}
+                    onValueChange={(value) => handleChange('scheduleId', value)}
+                    value={formData.scheduleId}
+                >
+                    <SelectTrigger>
+                        {fetchingSchedules ? (
+                            <div className="flex items-center">
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Chargement...
+                            </div>
                         ) : (
-                            payment ? 'Mettre à jour' : 'Créer'
+                            <SelectValue placeholder="Sélectionner un planning" />
                         )}
-                    </Button>
+                    </SelectTrigger>
+                    <SelectContent>
+                        {schedules.map((schedule) => (
+                            <SelectItem key={schedule._id} value={schedule._id}>
+                                {schedule.driver?.firstName} {schedule.driver?.lastName} -
+                                {schedule.vehicle?.licensePlate} (
+                                {formatScheduleDate(schedule.scheduleDate)})
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                {selectedSchedule?.vehicle?.dailyIncomeTarget > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                        Objectif journalier: {new Intl.NumberFormat('fr-FR').format(selectedSchedule.vehicle.dailyIncomeTarget)} FCFA
+                    </p>
+                )}
+                {errors.scheduleId && <p className="text-sm text-red-500 mt-1">{errors.scheduleId}</p>}
+            </div>
+
+            {/* Montant du paiement */}
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Montant</label>
+                <Input
+                    type="number"
+                    placeholder="Montant en FCFA"
+                    value={formData.amount}
+                    onChange={(e) => handleChange('amount', Number(e.target.value))}
+                />
+                <p className="text-sm text-muted-foreground">
+                    Montant du paiement en FCFA
+                </p>
+                {errors.amount && <p className="text-sm text-red-500 mt-1">{errors.amount}</p>}
+            </div>
+
+            {/* Date de paiement */}
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Date de paiement</label>
+                <DatePicker
+                    selected={formData.paymentDate}
+                    onSelect={(date) => handleChange('paymentDate', date)}
+                    dateFormat="dd/MM/yyyy"
+                />
+                {errors.paymentDate && <p className="text-sm text-red-500 mt-1">{errors.paymentDate}</p>}
+            </div>
+
+            {/* Type de paiement */}
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Méthode de paiement</label>
+                <Select
+                    onValueChange={(value) => handleChange('paymentType', value)}
+                    value={formData.paymentType}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un type de paiement" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="cash">Espèces</SelectItem>
+                        <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                    </SelectContent>
+                </Select>
+                {errors.paymentType && <p className="text-sm text-red-500 mt-1">{errors.paymentType}</p>}
+            </div>
+
+            {/* Sélection du média (justificatif) */}
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Justificatif de paiement</label>
+                <Select
+                    onValueChange={(value) => handleChange('mediaId', value)}
+                    value={formData.mediaId || "none"}
+                >
+                    <SelectTrigger disabled={fetchingMedias}>
+                        {fetchingMedias ? (
+                            <div className="flex items-center">
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Chargement...
+                            </div>
+                        ) : (
+                            <SelectValue placeholder="Sélectionner un justificatif (optionnel)" />
+                        )}
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="none">Aucun justificatif</SelectItem>
+                        {medias.map((media) => {
+                            if (!media._id) return null; // Skip if no _id
+                            return (
+                                <SelectItem key={media._id} value={media._id}>
+                                    <div className="flex items-center">
+                                        <ImageIcon className="h-4 w-4 mr-2" />
+                                        {media.createdAt ? format(new Date(media.createdAt), 'dd/MM/yyyy HH:mm') : 'Date inconnue'}
+                                        {media.uploadedBy && ` - ${media.uploadedBy.firstName || 'Utilisateur'}`}
+                                    </div>
+                                </SelectItem>
+                            );
+                        })}
+                    </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                    Sélectionnez un justificatif de paiement (optionnel)
+                </p>
+            </div>
+
+            {/* Statut (uniquement pour la modification) */}
+            {payment && (
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Statut du paiement</label>
+                    <Select
+                        onValueChange={(value) => handleChange('status', value)}
+                        value={formData.status}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner un statut" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="pending">En attente</SelectItem>
+                            <SelectItem value="confirmed">Confirmé</SelectItem>
+                            <SelectItem value="rejected">Rejeté</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
-            </form>
-        </Form>
+            )}
+
+            {/* Commentaires */}
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Commentaires</label>
+                <Textarea
+                    placeholder="Commentaires ou notes additionnelles"
+                    value={formData.comments}
+                    onChange={(e) => handleChange('comments', e.target.value)}
+                />
+            </div>
+
+            {/* Boutons d'action */}
+            <div className="flex justify-end space-x-4">
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onCancel}
+                    disabled={loading}
+                >
+                    Annuler
+                </Button>
+                <Button
+                    type="submit"
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {payment ? 'Mise à jour...' : 'Création...'}
+                        </>
+                    ) : (
+                        payment ? 'Mettre à jour' : 'Créer'
+                    )}
+                </Button>
+            </div>
+        </form>
     );
 };
 

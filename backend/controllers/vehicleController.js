@@ -5,7 +5,9 @@ const Driver = require('../models/driverModel');
 // Récupérer tous les véhicules
 exports.getAll = async (req, res) => {
     try {
-        const vehicles = await Vehicle.find().populate('currentDriver', 'firstName lastName');
+        const vehicles = await Vehicle.find()
+            .populate('currentDriver', 'firstName lastName')
+            .populate('media');
         res.json(vehicles);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -16,7 +18,8 @@ exports.getAll = async (req, res) => {
 exports.getById = async (req, res) => {
     try {
         const vehicle = await Vehicle.findById(req.params.id)
-            .populate('currentDriver', 'firstName lastName');
+            .populate('currentDriver', 'firstName lastName')
+            .populate('media');
 
         if (!vehicle) {
             return res.status(404).json({ message: 'Véhicule non trouvé' });
@@ -72,7 +75,8 @@ exports.update = async (req, res) => {
             req.params.id,
             req.body,
             { new: true, runValidators: true }
-        ).populate('currentDriver', 'firstName lastName');
+        ).populate('currentDriver', 'firstName lastName')
+            .populate('media');
 
         if (!vehicle) {
             return res.status(404).json({ message: 'Véhicule non trouvé' });
@@ -108,7 +112,8 @@ exports.delete = async (req, res) => {
 exports.getAvailable = async (req, res) => {
     try {
         const vehicles = await Vehicle.find({ status: 'active' })
-            .populate('currentDriver', 'firstName lastName');
+            .populate('currentDriver', 'firstName lastName')
+            .populate('media');
         res.json(vehicles);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -125,7 +130,8 @@ exports.getByStatus = async (req, res) => {
         }
 
         const vehicles = await Vehicle.find({ status })
-            .populate('currentDriver', 'firstName lastName');
+            .populate('currentDriver', 'firstName lastName')
+            .populate('media');
         res.json(vehicles);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -249,6 +255,7 @@ exports.assignDriver = async (req, res) => {
         res.json({
             message: 'Chauffeur assigné avec succès',
             vehicle: await Vehicle.findById(vehicle._id).populate('currentDriver', 'firstName lastName')
+                .populate('media'),
         });
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -282,5 +289,42 @@ exports.releaseDriver = async (req, res) => {
         res.json({ message: 'Chauffeur libéré avec succès', vehicle });
     } catch (error) {
         res.status(400).json({ message: error.message });
+    }
+};
+
+exports.uploadMedia = async (req, res) => {
+    try {
+        const vehicle = await Vehicle.findById(req.params.id);
+
+        if (!vehicle) {
+            return res.status(404).json({ message: 'Véhicule non trouvé' });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ message: 'Aucun fichier téléchargé' });
+        }
+
+        // Créer un nouveau document Media
+        const media = new Media({
+            entityType: 'vehicle',
+            entityId: vehicle._id,
+            mediaUrl: req.body.mediaUrl,
+            uploadedBy: req.user._id
+        });
+
+        const savedMedia = await media.save();
+
+        // Associer le media au véhicule
+        vehicle.media = savedMedia._id;
+        await vehicle.save();
+
+        res.json({
+            message: 'Media du véhicule mis à jour avec succès',
+            vehicle: await Vehicle.findById(vehicle._id)
+                .populate('currentDriver', 'firstName lastName')
+                .populate('media')
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 };

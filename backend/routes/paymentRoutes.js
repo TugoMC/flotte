@@ -4,27 +4,34 @@ const paymentController = require('../controllers/paymentController');
 const { protect } = require('../middlewares/authMiddleware');
 const { manager } = require('../middlewares/roleMiddleware');
 
-// Routes pour les statistiques
-router.get('/stats', protect, manager, paymentController.getStats);
-router.get('/daily-stats', protect, manager, paymentController.getDailyStats);
-router.get('/driver-stats', protect, manager, paymentController.getDriverStats);
-router.get('/vehicle-stats', protect, manager, paymentController.getVehicleStats);
-
-// Routes de filtrage
+// Routes GET
+router.get('/', protect, manager, paymentController.getAll);
+router.get('/pending', protect, manager, paymentController.getPendingPayments);
+router.get('/:id', protect, manager, paymentController.getById);
+router.get('/schedule/:scheduleId', protect, manager, paymentController.getBySchedule);
+router.get('/schedule/:scheduleId/pending', protect, manager, paymentController.getPendingPaymentsBySchedule);
+router.get('/schedule/:scheduleId/missing', protect, manager, paymentController.getMissingPaymentsForSchedule);
 router.get('/driver/:driverId', protect, manager, paymentController.getByDriver);
 router.get('/vehicle/:vehicleId', protect, manager, paymentController.getByVehicle);
 router.get('/date/:date', protect, manager, paymentController.getByDate);
 router.get('/period', protect, manager, paymentController.getByPeriod);
-router.get('/schedule/:scheduleId/missing', protect, manager, paymentController.getMissingPaymentsForSchedule);
 
-// Routes CRUD standard
-router.get('/', protect, manager, paymentController.getAll);
-router.get('/:id', protect, manager, paymentController.getById);
+// Routes statistiques
+router.get('/stats/general', protect, manager, paymentController.getStats);
+router.get('/stats/daily', protect, manager, paymentController.getDailyStats);
+router.get('/stats/drivers', protect, manager, paymentController.getDriverStats);
+router.get('/stats/vehicles', protect, manager, paymentController.getVehicleStats);
+
+// Routes POST
 router.post('/', protect, manager, paymentController.create);
-router.put('/:id', protect, manager, paymentController.update);
-router.delete('/:id', protect, manager, paymentController.delete);
+router.post('/confirm-multiple', protect, manager, paymentController.confirmMultiplePayments);
+router.post('/:id/media', protect, manager, paymentController.addMedia);
+router.post('/:id/status', protect, manager, paymentController.changeStatus);
 
-// Route spéciale pour changement de statut
-router.patch('/:id/status', protect, manager, paymentController.changeStatus);
+// Routes PUT
+router.put('/:id', protect, manager, paymentController.update);
+
+// Routes DELETE
+router.delete('/:id', protect, manager, paymentController.delete);
 
 module.exports = router;

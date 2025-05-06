@@ -86,27 +86,15 @@ const PaymentsList = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [paymentsRes, driversRes, vehiclesRes] = await Promise.all([
-                    paymentService.getAll(),
-                    driverService.getAll(),
-                    vehicleService.getAll()
-                ]);
-
+                const paymentsRes = await paymentService.getAll();
                 setPayments(paymentsRes.data);
-                setDrivers(driversRes.data);
-                setVehicles(vehiclesRes.data);
             } catch (error) {
-                console.error('Erreur lors du chargement des données:', error);
-                toast({
-                    variant: "destructive",
-                    title: "Erreur",
-                    description: "Impossible de charger les paiements"
-                });
+                console.error('Erreur:', error);
+                toast.error("Erreur de chargement des paiements");
             } finally {
                 setLoading(false);
             }
         };
-
         fetchData();
     }, []);
 
@@ -118,8 +106,12 @@ const PaymentsList = () => {
         if (activeTab === 'rejected' && payment.status !== 'rejected') return false;
 
         // Filtrer par terme de recherche
-        const driverName = `${payment.schedule?.driver?.firstName || ''} ${payment.schedule?.driver?.lastName || ''}`.toLowerCase();
-        const vehicleInfo = `${payment.schedule?.vehicle?.brand || ''} ${payment.schedule?.vehicle?.model || ''} ${payment.schedule?.vehicle?.licensePlate || ''}`.toLowerCase();
+        const driverName = payment.schedule?.driver
+            ? `${payment.schedule.driver.firstName || ''} ${payment.schedule.driver.lastName || ''}`.toLowerCase()
+            : '';
+        const vehicleInfo = payment.schedule?.vehicle
+            ? `${payment.schedule.vehicle.brand || ''} ${payment.schedule.vehicle.model || ''} ${payment.schedule.vehicle.licensePlate || ''}`.toLowerCase()
+            : '';
         const searchLower = searchTerm.toLowerCase();
 
         if (searchTerm && !driverName.includes(searchLower) && !vehicleInfo.includes(searchLower)) {
@@ -140,12 +132,12 @@ const PaymentsList = () => {
         }
 
         // Filtrer par chauffeur
-        if (filterDriver !== 'all' && payment.schedule?.driver?._id !== filterDriver) {
+        if (filterDriver !== 'all' && (!payment.schedule?.driver || payment.schedule.driver._id !== filterDriver)) {
             return false;
         }
 
         // Filtrer par véhicule
-        if (filterVehicle !== 'all' && payment.schedule?.vehicle?._id !== filterVehicle) {
+        if (filterVehicle !== 'all' && (!payment.schedule?.vehicle || payment.schedule.vehicle._id !== filterVehicle)) {
             return false;
         }
 
@@ -161,6 +153,16 @@ const PaymentsList = () => {
     const formatPaymentDate = (dateString) => {
         if (!dateString) return 'N/A';
         return format(new Date(dateString), 'dd MMM yyyy', { locale: fr });
+    };
+
+    const getDriverInfo = (payment) => {
+        if (!payment.schedule?.driver) return 'Non spécifié';
+        return `${payment.schedule.driver.firstName || ''} ${payment.schedule.driver.lastName || ''}`.trim();
+    };
+
+    const getVehicleInfo = (payment) => {
+        if (!payment.schedule?.vehicle) return 'Non spécifié';
+        return `${payment.schedule.vehicle.brand || ''} ${payment.schedule.vehicle.model || ''} ${payment.schedule.vehicle.licensePlate ? `(${payment.schedule.vehicle.licensePlate})` : ''}`.trim();
     };
 
     // Statut du paiement avec couleur
@@ -229,19 +231,41 @@ const PaymentsList = () => {
     };
 
     // Gérer le succès du formulaire (création/mise à jour)
-    const handleFormSuccess = (updatedPayment) => {
-        if (selectedPayment) {
-            // Mise à jour d'un paiement existant
-            setPayments(payments.map(p =>
-                p._id === updatedPayment._id ? updatedPayment : p
-            ));
-        } else {
-            // Ajout d'un nouveau paiement
-            setPayments([...payments, updatedPayment]);
-        }
+    const handleFormSuccess = () => {
+        // Recharger tous les paiements pour être sûr d'avoir les données à jour
+        paymentService.getAll()
+            .then(response => {
+                // Enrichir les données de paiement avec les détails de driver et vehicle
+                const processedPayments = response.data.map(payment => {
+                    if (payment.schedule) {
+                        const driverId = payment.schedule.driver?._id || payment.schedule.driver;
+                        const vehicleId = payment.schedule.vehicle?._id || payment.schedule.vehicle;
 
-        setIsFormOpen(false);
-        setSelectedPayment(null);
+                        const driver = drivers.find(d => d._id === driverId);
+                        const vehicle = vehicles.find(v => v._id === vehicleId);
+
+                        return {
+                            ...payment,
+                            schedule: {
+                                ...payment.schedule,
+                                driver: driver || null,
+                                vehicle: vehicle || null
+                            }
+                        };
+                    }
+                    return payment;
+                });
+
+                setPayments(processedPayments);
+                setIsFormOpen(false);
+                setSelectedPayment(null);
+            })
+            .catch(error => {
+                console.error('Erreur lors du rechargement des paiements:', error);
+                // Fermer quand même la modale en cas d'erreur
+                setIsFormOpen(false);
+                setSelectedPayment(null);
+            });
     };
 
     // Réinitialiser les filtres
@@ -379,16 +403,8 @@ const PaymentsList = () => {
                                 {filteredPayments.map((payment) => (
                                     <TableRow key={payment._id}>
                                         <TableCell>{formatPaymentDate(payment.paymentDate)}</TableCell>
-                                        <TableCell className="font-medium">
-                                            {payment.schedule?.driver
-                                                ? `${payment.schedule.driver.firstName} ${payment.schedule.driver.lastName}`
-                                                : 'Non spécifié'}
-                                        </TableCell>
-                                        <TableCell>
-                                            {payment.schedule?.vehicle
-                                                ? `${payment.schedule.vehicle.brand} ${payment.schedule.vehicle.model} (${payment.schedule.vehicle.licensePlate})`
-                                                : 'Non spécifié'}
-                                        </TableCell>
+                                        <TableCell className="font-medium">{getDriverInfo(payment)}</TableCell>
+                                        <TableCell>{getVehicleInfo(payment)}</TableCell>
                                         <TableCell>{formatAmount(payment.amount)}</TableCell>
                                         <TableCell>
                                             {payment.paymentType === 'cash' ? 'Espèces' :
@@ -465,9 +481,7 @@ const PaymentsList = () => {
                     </DialogHeader>
                     <PaymentForm
                         payment={selectedPayment}
-                        drivers={drivers}
-                        vehicles={vehicles}
-                        onSuccess={handleFormSuccess}
+                        onSubmitSuccess={handleFormSuccess}
                         onCancel={() => setIsFormOpen(false)}
                     />
                 </DialogContent>
@@ -501,7 +515,10 @@ const PaymentsList = () => {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
 
-                    <Select value={newStatus} onValueChange={setNewStatus}>
+                    <Select
+                        value={newStatus || "pending"}
+                        onValueChange={(value) => setNewStatus(value || "pending")}
+                    >
                         <SelectTrigger className="mt-2">
                             <SelectValue placeholder="Sélectionner un statut" />
                         </SelectTrigger>

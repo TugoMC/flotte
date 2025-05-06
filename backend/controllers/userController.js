@@ -229,3 +229,29 @@ exports.verifyToken = async (req, res) => {
     // Si on arrive ici, c'est que le middleware protect a déjà vérifié le token
     res.json({ valid: true, user: req.user });
 };
+
+// Changer le mot de passe d'un utilisateur
+exports.changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const user = await User.findById(req.user._id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
+        }
+
+        // Vérifier si le mot de passe actuel est correct
+        const isMatch = await user.matchPassword(currentPassword);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Mot de passe actuel incorrect' });
+        }
+
+        // Changer le mot de passe (le hachage sera fait automatiquement via le middleware pre-save)
+        user.password = newPassword;
+        await user.save();
+
+        res.json({ message: 'Mot de passe modifié avec succès' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

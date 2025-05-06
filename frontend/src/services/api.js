@@ -110,7 +110,8 @@ export const authService = {
         userRequestsCache.verifyToken.timestamp = now;
 
         return response;
-    }
+    },
+    changePassword: (passwordData) => api.post('/users/change-password', passwordData),
 };
 
 export const vehicleService = {
@@ -124,7 +125,16 @@ export const vehicleService = {
     setDailyTarget: (id, target) => api.put(`/vehicles/${id}/target`, { dailyIncomeTarget: target }),
     changeStatus: (id, status) => api.put(`/vehicles/${id}/status`, { status }),
     assignDriver: (id, driverId) => api.put(`/vehicles/${id}/assign-driver`, { driverId }),
-    releaseDriver: (id) => api.put(`/vehicles/${id}/release-driver`)
+    releaseDriver: (id) => api.put(`/vehicles/${id}/release-driver`),
+    uploadMedia: (id, file) => {
+        const formData = new FormData();
+        formData.append('media', file);
+        return api.post(`/vehicles/${id}/media`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    }
 };
 
 export const driverService = {
@@ -171,7 +181,23 @@ export const paymentService = {
     create: (data) => api.post('/payments', data),
     update: (id, data) => api.put(`/payments/${id}`, data),
     delete: (id) => api.delete(`/payments/${id}`),
-    changeStatus: (id, status) => api.patch(`/payments/${id}/status`, { status }),
+
+    // Méthode corrigée pour correspondre à la route POST du backend
+    changeStatus: (id, status) => api.post(`/payments/${id}/status`, { status }),
+
+    // Paiements en attente
+    getPendingPayments: () => api.get('/payments/pending'),
+
+    // Paiements liés à un planning
+    getBySchedule: (scheduleId) => api.get(`/payments/schedule/${scheduleId}`),
+    getPendingPaymentsBySchedule: (scheduleId) => api.get(`/payments/schedule/${scheduleId}/pending`),
+    getMissingPaymentsForSchedule: (scheduleId) => api.get(`/payments/schedule/${scheduleId}/missing`),
+
+    // Confirmation de plusieurs paiements
+    confirmMultiplePayments: (paymentIds) => api.post('/payments/confirm-multiple', { paymentIds }),
+
+    // Ajout de média à un paiement
+    addMedia: (id, mediaData) => api.post(`/payments/${id}/media`, mediaData),
 
     // Récupération par chauffeur, véhicule, date
     getByDriver: (driverId) => api.get(`/payments/driver/${driverId}`),
@@ -180,41 +206,10 @@ export const paymentService = {
     getByPeriod: (start, end) => api.get(`/payments/period?start=${start}&end=${end}`),
 
     // Statistiques
-    getStats: (params = {}) => {
-        const queryParams = new URLSearchParams();
-        if (params.start) queryParams.append('start', params.start);
-        if (params.end) queryParams.append('end', params.end);
-        if (params.driverId) queryParams.append('driverId', params.driverId);
-        if (params.vehicleId) queryParams.append('vehicleId', params.vehicleId);
-
-        return api.get(`/payments/stats?${queryParams.toString()}`);
-    },
-
-    getDailyStats: (start, end, params = {}) => {
-        const queryParams = new URLSearchParams();
-        queryParams.append('start', start);
-        queryParams.append('end', end);
-        if (params.driverId) queryParams.append('driverId', params.driverId);
-        if (params.vehicleId) queryParams.append('vehicleId', params.vehicleId);
-
-        return api.get(`/payments/daily-stats?${queryParams.toString()}`);
-    },
-
-    getDriverStats: (params = {}) => {
-        const queryParams = new URLSearchParams();
-        if (params.start) queryParams.append('start', params.start);
-        if (params.end) queryParams.append('end', params.end);
-
-        return api.get(`/payments/driver-stats?${queryParams.toString()}`);
-    },
-
-    getVehicleStats: (params = {}) => {
-        const queryParams = new URLSearchParams();
-        if (params.start) queryParams.append('start', params.start);
-        if (params.end) queryParams.append('end', params.end);
-
-        return api.get(`/payments/vehicle-stats?${queryParams.toString()}`);
-    }
+    getStats: () => api.get('/payments/stats/general'),
+    getDailyStats: () => api.get('/payments/stats/daily'),
+    getDriverStats: () => api.get('/payments/stats/drivers'),
+    getVehicleStats: () => api.get('/payments/stats/vehicles')
 };
 
 export const mediaService = {

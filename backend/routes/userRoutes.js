@@ -17,6 +17,7 @@ router.route('/me')
     .get(protect, userController.getUserProfile)
     .put(protect, userController.updateUserProfile);
 
+router.post('/change-password', protect, userController.changePassword);
 // Routes admin uniquement
 router.route('/')
     .get(protect, admin, userController.getUsers);

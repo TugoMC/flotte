@@ -1,4 +1,5 @@
 // src/pages/VehiclesList.jsx
+import { Camera, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -79,6 +80,10 @@ const VehiclesList = () => {
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterType, setFilterType] = useState('all');
 
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [uploadingMedia, setUploadingMedia] = useState(false);
+    const [vehicleForMedia, setVehicleForMedia] = useState(null);
+
     // États pour les modales
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -100,6 +105,45 @@ const VehiclesList = () => {
             notes: ''
         }
     });
+
+    const handleFileChange = async (e, vehicle) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            setUploadingMedia(true);
+            await vehicleService.uploadMedia(vehicle._id, file);
+            toast.success('Photo du véhicule mise à jour avec succès');
+            fetchData();
+        } catch (error) {
+            console.error('Erreur lors de l\'upload:', error);
+            toast.error("Impossible de mettre à jour la photo du véhicule");
+        } finally {
+            setUploadingMedia(false);
+        }
+    };
+
+    useEffect(() => {
+        if (selectedFile && vehicleForMedia) {
+            const uploadMedia = async () => {
+                try {
+                    setUploadingMedia(true);
+                    await vehicleService.uploadMedia(vehicleForMedia._id, selectedFile);
+                    toast.success('Media du véhicule mis à jour avec succès');
+                    fetchData();
+                } catch (error) {
+                    console.error('Erreur lors de l\'upload:', error);
+                    toast.error("Impossible de mettre à jour le media du véhicule");
+                } finally {
+                    setUploadingMedia(false);
+                    setSelectedFile(null);
+                    setVehicleForMedia(null);
+                }
+            };
+
+            uploadMedia();
+        }
+    }, [selectedFile, vehicleForMedia]);
 
     useEffect(() => {
         fetchData();
@@ -412,6 +456,22 @@ const VehiclesList = () => {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end space-x-2">
+                                                <label className="cursor-pointer">
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept="image/*"
+                                                        onChange={(e) => handleFileChange(e, vehicle)}
+                                                        disabled={uploadingMedia}
+                                                    />
+                                                    <Button variant="outline" size="icon" disabled={uploadingMedia}>
+                                                        {uploadingMedia && vehicleForMedia?._id === vehicle._id ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <Camera className="h-4 w-4" />  // Changé de CameraIcon à Camera
+                                                        )}
+                                                    </Button>
+                                                </label>
                                                 <Button
                                                     variant="outline"
                                                     size="icon"
@@ -429,6 +489,7 @@ const VehiclesList = () => {
                                                 </Button>
                                             </div>
                                         </TableCell>
+
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -558,6 +619,33 @@ const VehiclesList = () => {
                             <Input
                                 placeholder="Informations supplémentaires..."
                                 {...form.register('notes')}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Photo du véhicule</label>
+                            {form.watch('media')?.mediaUrl && (
+                                <div className="mb-2">
+                                    <img
+                                        src={form.watch('media').mediaUrl}
+                                        alt="Photo du véhicule"
+                                        className="h-32 object-contain border rounded"
+                                    />
+                                </div>
+                            )}
+                            <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    if (e.target.files[0]) {
+                                        const file = e.target.files[0];
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => {
+                                            // Vous pouvez aussi gérer l'upload direct ici si nécessaire
+                                        };
+                                        reader.readAsDataURL(file);
+                                    }
+                                }}
                             />
                         </div>
 
