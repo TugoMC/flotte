@@ -2,7 +2,7 @@
 const Driver = require('../models/driverModel');
 const Vehicle = require('../models/vehicleModel');
 const User = require('../models/userModel');
-const Schedule = require('../models/scheduleModel'); // Ajout de l'import du modèle Schedule
+const Schedule = require('../models/scheduleModel');
 
 // Récupérer tous les chauffeurs
 exports.getAll = async (req, res) => {
@@ -275,6 +275,66 @@ exports.getFormer = async (req, res) => {
             .populate('user', 'username email');
 
         res.json(drivers);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Télécharger et ajouter des photos à un chauffeur
+exports.uploadPhotos = async (req, res) => {
+    try {
+        const driver = await Driver.findById(req.params.id);
+
+        if (!driver) {
+            return res.status(404).json({ message: 'Chauffeur non trouvé' });
+        }
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'Aucun fichier téléchargé' });
+        }
+
+        // Créer un tableau de chemins d'accès aux photos
+        const photoPaths = req.files.map(file => file.path);
+
+        // Ajouter les nouveaux chemins au tableau existant
+        driver.photos = [...driver.photos, ...photoPaths];
+        await driver.save();
+
+        res.json({
+            message: 'Photos du chauffeur ajoutées avec succès',
+            driver: await Driver.findById(driver._id)
+                .populate('currentVehicle', 'type brand model licensePlate')
+                .populate('user', 'username email')
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Supprimer une photo d'un chauffeur
+exports.deletePhoto = async (req, res) => {
+    try {
+        const { photoIndex } = req.params;
+        const driver = await Driver.findById(req.params.id);
+
+        if (!driver) {
+            return res.status(404).json({ message: 'Chauffeur non trouvé' });
+        }
+
+        if (photoIndex < 0 || photoIndex >= driver.photos.length) {
+            return res.status(400).json({ message: 'Index de photo invalide' });
+        }
+
+        // Supprimer la photo à l'index spécifié
+        driver.photos.splice(photoIndex, 1);
+        await driver.save();
+
+        res.json({
+            message: 'Photo supprimée avec succès',
+            driver: await Driver.findById(driver._id)
+                .populate('currentVehicle', 'type brand model licensePlate')
+                .populate('user', 'username email')
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

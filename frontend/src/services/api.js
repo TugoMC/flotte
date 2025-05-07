@@ -149,11 +149,29 @@ export const driverService = {
     create: (data) => api.post('/drivers', data),
     update: (id, data) => api.put(`/drivers/${id}`, data),
     delete: (id) => api.delete(`/drivers/${id}`),
-    // Méthodes corrigées pour correspondre aux routes du backend
+
+    // Méthodes pour obtenir les chauffeurs par statut
     getAvailable: () => api.get('/drivers/available'),
     getActive: () => api.get('/drivers/active'),
-    getFormer: () => api.get('/drivers/former')
-};
+    getFormer: () => api.get('/drivers/former'),
+
+    // Méthodes pour la gestion des photos
+    uploadPhotos: (id, files) => {
+        const formData = new FormData();
+        // Ajouter chaque fichier à formData sous le nom "photos" (comme attendu par le backend)
+        if (Array.isArray(files)) {
+            files.forEach(file => formData.append('photos', file));
+        } else {
+            formData.append('photos', files);
+        }
+        return api.post(`/drivers/${id}/photos`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    },
+    deletePhoto: (id, photoIndex) => api.delete(`/drivers/${id}/photos/${photoIndex}`)
+}
 
 export const scheduleService = {
     getAll: () => api.get('/schedules'),

@@ -2,6 +2,7 @@
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState, useEffect } from 'react';
 import {
     Form,
     FormControl,
@@ -14,6 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { driverService } from '@/services/api';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { ImageIcon, XIcon, InfoIcon } from 'lucide-react';
 
 // Schéma de validation pour le formulaire de chauffeur
 const driverSchema = z.object({
@@ -26,6 +29,10 @@ const driverSchema = z.object({
 });
 
 const DriverForm = ({ driver, vehicles, onSuccess, onCancel }) => {
+    // État pour la gestion des photos
+    const [selectedFiles, setSelectedFiles] = useState([]);
+    const [photosPreviews, setPhotosPreviews] = useState([]);
+
     // Initialiser le formulaire avec react-hook-form et zod
     const form = useForm({
         resolver: zodResolver(driverSchema),
@@ -43,6 +50,49 @@ const DriverForm = ({ driver, vehicles, onSuccess, onCancel }) => {
         }
     });
 
+    // Créer des URL d'aperçu lorsque les fichiers sont sélectionnés
+    useEffect(() => {
+        if (!selectedFiles.length) {
+            setPhotosPreviews([]);
+            return;
+        }
+
+        const newPreviews = [];
+        selectedFiles.forEach(file => {
+            const preview = URL.createObjectURL(file);
+            newPreviews.push({ file, preview });
+        });
+
+        setPhotosPreviews(newPreviews);
+
+        // Nettoyer les URL d'objet lors du démontage
+        return () => {
+            newPreviews.forEach(item => URL.revokeObjectURL(item.preview));
+        };
+    }, [selectedFiles]);
+
+    const handleFileSelect = (e) => {
+        if (e.target.files.length === 0) return;
+
+        // Vérifier la taille des fichiers (max 5MB)
+        const filesArray = Array.from(e.target.files);
+        const validFiles = filesArray.filter(file => file.size <= 5 * 1024 * 1024);
+
+        if (validFiles.length < filesArray.length) {
+            toast.warning("Certains fichiers dépassent la taille maximale de 5 MB et ont été ignorés", {
+                description: "Veuillez sélectionner des fichiers plus petits",
+            });
+        }
+
+        setSelectedFiles(validFiles);
+    };
+
+    const removePhoto = (index) => {
+        const newFiles = [...selectedFiles];
+        newFiles.splice(index, 1);
+        setSelectedFiles(newFiles);
+    };
+
     const onSubmit = async (data) => {
         try {
             // Si departureDate est une chaîne vide, la définir à null
@@ -51,16 +101,28 @@ const DriverForm = ({ driver, vehicles, onSuccess, onCancel }) => {
                 departureDate: data.departureDate === '' ? null : data.departureDate
             };
 
+            let savedDriver;
+
             if (driver?._id) {
                 // Mise à jour d'un chauffeur existant
-                await driverService.update(driver._id, formattedData);
+                const response = await driverService.update(driver._id, formattedData);
+                savedDriver = response.data;
             } else {
                 // Création d'un nouveau chauffeur
-                await driverService.create(formattedData);
+                const response = await driverService.create(formattedData);
+                savedDriver = response.data;
             }
+
+            // Upload des photos si des fichiers ont été sélectionnés
+            if (selectedFiles.length > 0 && savedDriver._id) {
+                await driverService.uploadPhotos(savedDriver._id, selectedFiles);
+                toast.success(`${selectedFiles.length} photo(s) ajoutée(s) avec succès`);
+            }
+
             onSuccess();
         } catch (error) {
             console.error('Erreur lors de la sauvegarde du chauffeur:', error);
+            toast.error(error.response?.data?.message || "Une erreur est survenue lors de l'enregistrement");
         }
     };
 
@@ -150,6 +212,69 @@ const DriverForm = ({ driver, vehicles, onSuccess, onCancel }) => {
                             </FormItem>
                         )}
                     />
+                </div>
+
+                {/* Section de gestion des photos */}
+                <div className="space-y-4 mt-4">
+                    <div className="flex items-center justify-between">
+                        <label className="text-base font-medium">Photos du chauffeur</label>
+                        <Button variant="outline" asChild>
+                            <label className="cursor-pointer">
+                                <ImageIcon className="mr-2 h-4 w-4" />
+                                Ajouter des photos
+                                <input
+                                    type="file"
+                                    accept="image/jpeg, image/png"
+                                    multiple
+                                    hidden
+                                    onChange={handleFileSelect}
+                                />
+                            </label>
+                        </Button>
+                    </div>
+
+                    {/* Message d'information pour les photos */}
+                    <div className="bg-blue-50 p-3 rounded-md text-sm flex items-start gap-2">
+                        <InfoIcon className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-medium text-blue-800 mb-1">Conseils pour les photos</p>
+                            <p className="text-blue-700">
+                                Pour une qualité optimale, utilisez des images d'une résolution minimale de 1200×800 pixels
+                                et d'un rapport 3:2. Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Prévisualisation des photos */}
+                    {photosPreviews.length > 0 && (
+                        <div className="mt-3">
+                            <p className="text-sm text-gray-500 mb-2">
+                                {photosPreviews.length} photo(s) sélectionnée(s)
+                            </p>
+                            <div className="grid grid-cols-3 gap-3">
+                                {photosPreviews.map((item, index) => (
+                                    <div
+                                        key={index}
+                                        className="relative aspect-[3/2] bg-gray-100 rounded-md overflow-hidden group"
+                                    >
+                                        <img
+                                            src={item.preview}
+                                            alt={`Aperçu ${index + 1}`}
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removePhoto(index)}
+                                            className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="Supprimer"
+                                        >
+                                            <XIcon className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex justify-end gap-2 mt-4">

@@ -6,6 +6,8 @@ import { driverService, vehicleService } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { SearchIcon, PlusIcon, EditIcon, TrashIcon, PhoneIcon, CarIcon, BikeIcon, Eye } from 'lucide-react';
 import {
     Card,
     CardContent,
@@ -18,6 +20,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import {
     Select,
@@ -51,6 +54,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+
 import {
     Popover,
     PopoverContent,
@@ -58,7 +62,6 @@ import {
 } from '@/components/ui/popover';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import DriverForm from '@/components/forms/DriverForm';
-import { SearchIcon, PlusIcon, EditIcon, TrashIcon, PhoneIcon, CarIcon, BikeIcon } from 'lucide-react';
 
 const DriversList = () => {
     // États
@@ -74,6 +77,11 @@ const DriversList = () => {
     const [selectedDriver, setSelectedDriver] = useState(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [driverToDelete, setDriverToDelete] = useState(null);
+
+    const navigate = useNavigate();
+    const handleViewDetails = (driverId) => {
+        navigate(`/drivers/${driverId}`);
+    };
 
     useEffect(() => {
         fetchData();
@@ -102,10 +110,7 @@ const DriversList = () => {
             setVehicles(vehiclesRes.data);
         } catch (error) {
             console.error('Erreur lors de la récupération des données:', error);
-            toast({
-                title: "Erreur",
-                description: "Impossible de charger les données des chauffeurs"
-            });
+            toast.error("Impossible de charger les données des chauffeurs");
             // En cas d'erreur, utiliser des données simulées pour le développement
             setDrivers([
                 { _id: '1', firstName: 'Amadou', lastName: 'Diallo', phoneNumber: '+221 77 123 4567', licenseNumber: 'A123456', hireDate: '2023-01-15', departureDate: null, currentVehicle: '1' },
@@ -159,17 +164,11 @@ const DriversList = () => {
 
         try {
             await driverService.delete(driverToDelete._id);
-            toast({
-                title: "Succès",
-                description: "Chauffeur supprimé avec succès"
-            });
+            toast.success("Chauffeur supprimé avec succès");
             fetchData();
         } catch (error) {
             console.error('Erreur lors de la suppression:', error);
-            toast({
-                title: "Erreur",
-                description: "Impossible de supprimer le chauffeur"
-            });
+            toast.error("Impossible de supprimer le chauffeur");
         } finally {
             setDeleteDialogOpen(false);
             setDriverToDelete(null);
@@ -178,10 +177,7 @@ const DriversList = () => {
 
     const handleSubmitSuccess = () => {
         setIsFormOpen(false);
-        toast({
-            title: "Succès",
-            description: selectedDriver ? "Chauffeur mis à jour avec succès" : "Chauffeur ajouté avec succès"
-        });
+        toast.success(selectedDriver ? "Chauffeur mis à jour avec succès" : "Chauffeur ajouté avec succès");
         fetchData();
     };
 
@@ -446,6 +442,14 @@ const DriversList = () => {
                                                 <Button
                                                     variant="outline"
                                                     size="icon"
+                                                    onClick={() => handleViewDetails(driver._id)}
+                                                    className="text-muted-foreground hover:text-primary"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
                                                     onClick={() => handleAddEdit(driver)}
                                                 >
                                                     <EditIcon className="h-4 w-4" />
@@ -475,6 +479,9 @@ const DriversList = () => {
                         <DialogTitle>
                             {selectedDriver ? 'Modifier un chauffeur' : 'Ajouter un chauffeur'}
                         </DialogTitle>
+                        <DialogDescription>
+                            Remplissez le formulaire pour ajouter ou modifier un chauffeur.
+                        </DialogDescription>
                     </DialogHeader>
                     <DriverForm
                         driver={selectedDriver}

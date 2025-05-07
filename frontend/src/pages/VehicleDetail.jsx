@@ -168,17 +168,7 @@ const VehicleDetail = () => {
         }
     };
 
-    const handleDriverRelease = async () => {
-        if (window.confirm("Êtes-vous sûr de vouloir libérer le chauffeur de ce véhicule ?")) {
-            try {
-                await vehicleService.releaseDriver(id);
-                setRefreshKey(oldKey => oldKey + 1);
-            } catch (err) {
-                alert("Erreur lors de la libération du chauffeur: " + (err.response?.data?.message || err.message));
-                console.error("Erreur:", err);
-            }
-        }
-    };
+
 
     const handleSetDailyTarget = async () => {
         try {
@@ -547,16 +537,7 @@ const VehicleDetail = () => {
                                     </Badge>
                                 )}
                             </div>
-                            {vehicle.currentDriver && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleDriverRelease}
-                                >
-                                    <UserMinus className="w-4 h-4 mr-2" />
-                                    Libérer
-                                </Button>
-                            )}
+
                         </div>
                     </div>
                     <Separator />

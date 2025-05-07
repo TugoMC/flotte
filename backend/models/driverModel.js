@@ -27,9 +27,9 @@ const driverSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
-    media: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Media'
+    photos: {
+        type: [String],  // Tableau de chemins/URLs vers les photos
+        default: []
     },
     currentVehicle: {
         type: mongoose.Schema.Types.ObjectId,

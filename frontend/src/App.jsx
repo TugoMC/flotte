@@ -14,6 +14,7 @@ import PaymentsList from '@/pages/PaymentsList';
 import Profile from '@/pages/Profile';
 import NotFound from '@/pages/NotFound';
 import VehicleDetail from '@/pages/VehicleDetail';
+import DriverDetail from '@/pages/DriverDetail';
 
 function App() {
   return (
@@ -51,6 +52,12 @@ function App() {
           <Route path="drivers" element={
             <ProtectedRoute requiredRole="manager">
               <DriversList />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/drivers/:id" element={
+            <ProtectedRoute requiredRole="manager">
+              <DriverDetail />
             </ProtectedRoute>
           } />
 
