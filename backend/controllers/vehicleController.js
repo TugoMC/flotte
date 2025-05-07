@@ -6,8 +6,7 @@ const Driver = require('../models/driverModel');
 exports.getAll = async (req, res) => {
     try {
         const vehicles = await Vehicle.find()
-            .populate('currentDriver', 'firstName lastName')
-            .populate('media');
+            .populate('currentDriver', 'firstName lastName');
         res.json(vehicles);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -18,8 +17,7 @@ exports.getAll = async (req, res) => {
 exports.getById = async (req, res) => {
     try {
         const vehicle = await Vehicle.findById(req.params.id)
-            .populate('currentDriver', 'firstName lastName')
-            .populate('media');
+            .populate('currentDriver', 'firstName lastName');
 
         if (!vehicle) {
             return res.status(404).json({ message: 'Véhicule non trouvé' });
@@ -75,8 +73,7 @@ exports.update = async (req, res) => {
             req.params.id,
             req.body,
             { new: true, runValidators: true }
-        ).populate('currentDriver', 'firstName lastName')
-            .populate('media');
+        ).populate('currentDriver', 'firstName lastName');
 
         if (!vehicle) {
             return res.status(404).json({ message: 'Véhicule non trouvé' });
@@ -112,8 +109,7 @@ exports.delete = async (req, res) => {
 exports.getAvailable = async (req, res) => {
     try {
         const vehicles = await Vehicle.find({ status: 'active' })
-            .populate('currentDriver', 'firstName lastName')
-            .populate('media');
+            .populate('currentDriver', 'firstName lastName');
         res.json(vehicles);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -130,8 +126,7 @@ exports.getByStatus = async (req, res) => {
         }
 
         const vehicles = await Vehicle.find({ status })
-            .populate('currentDriver', 'firstName lastName')
-            .populate('media');
+            .populate('currentDriver', 'firstName lastName');
         res.json(vehicles);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -255,7 +250,6 @@ exports.assignDriver = async (req, res) => {
         res.json({
             message: 'Chauffeur assigné avec succès',
             vehicle: await Vehicle.findById(vehicle._id).populate('currentDriver', 'firstName lastName')
-                .populate('media'),
         });
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -292,7 +286,8 @@ exports.releaseDriver = async (req, res) => {
     }
 };
 
-exports.uploadMedia = async (req, res) => {
+// Télécharger et ajouter des photos à un véhicule
+exports.uploadPhotos = async (req, res) => {
     try {
         const vehicle = await Vehicle.findById(req.params.id);
 
@@ -300,29 +295,49 @@ exports.uploadMedia = async (req, res) => {
             return res.status(404).json({ message: 'Véhicule non trouvé' });
         }
 
-        if (!req.file) {
+        if (!req.files || req.files.length === 0) {
             return res.status(400).json({ message: 'Aucun fichier téléchargé' });
         }
 
-        // Créer un nouveau document Media
-        const media = new Media({
-            entityType: 'vehicle',
-            entityId: vehicle._id,
-            mediaUrl: req.body.mediaUrl,
-            uploadedBy: req.user._id
-        });
+        // Créer un tableau de chemins d'accès aux photos
+        const photoPaths = req.files.map(file => file.path);
 
-        const savedMedia = await media.save();
-
-        // Associer le media au véhicule
-        vehicle.media = savedMedia._id;
+        // Ajouter les nouveaux chemins au tableau existant
+        vehicle.photos = [...vehicle.photos, ...photoPaths];
         await vehicle.save();
 
         res.json({
-            message: 'Media du véhicule mis à jour avec succès',
+            message: 'Photos du véhicule ajoutées avec succès',
             vehicle: await Vehicle.findById(vehicle._id)
                 .populate('currentDriver', 'firstName lastName')
-                .populate('media')
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Supprimer une photo d'un véhicule
+exports.deletePhoto = async (req, res) => {
+    try {
+        const { photoIndex } = req.params;
+        const vehicle = await Vehicle.findById(req.params.id);
+
+        if (!vehicle) {
+            return res.status(404).json({ message: 'Véhicule non trouvé' });
+        }
+
+        if (photoIndex < 0 || photoIndex >= vehicle.photos.length) {
+            return res.status(400).json({ message: 'Index de photo invalide' });
+        }
+
+        // Supprimer la photo à l'index spécifié
+        vehicle.photos.splice(photoIndex, 1);
+        await vehicle.save();
+
+        res.json({
+            message: 'Photo supprimée avec succès',
+            vehicle: await Vehicle.findById(vehicle._id)
+                .populate('currentDriver', 'firstName lastName')
         });
     } catch (error) {
         res.status(500).json({ message: error.message });

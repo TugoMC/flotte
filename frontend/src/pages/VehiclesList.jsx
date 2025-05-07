@@ -1,12 +1,13 @@
 // src/pages/VehiclesList.jsx
-import { Camera, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { vehicleService } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { Eye } from "lucide-react";
 import {
     Card,
     CardContent,
@@ -19,6 +20,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import {
     Select,
@@ -52,37 +54,29 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Car, Bike, PlusIcon, EditIcon, TrashIcon, SearchIcon, AlertCircle } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-
-// Schéma de validation
-const vehicleSchema = z.object({
-    type: z.enum(['taxi', 'moto']),
-    licensePlate: z.string().min(3, { message: 'La plaque doit comporter au moins 3 caractères' }),
-    brand: z.string().min(2, { message: 'La marque doit comporter au moins 2 caractères' }),
-    model: z.string().min(2, { message: 'Le modèle doit comporter au moins 2 caractères' }),
-    registrationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Format de date invalide (AAAA-MM-JJ)' }),
-    serviceEntryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Format de date invalide (AAAA-MM-JJ)' }),
-    status: z.enum(['active', 'inactive', 'maintenance']),
-    dailyIncomeTarget: z.string().transform((val) => val === '' ? 0 : Number(val))
-        .refine((val) => !isNaN(val) && val >= 0, { message: "L'objectif journalier doit être un nombre positif" }),
-    notes: z.string().optional()
-});
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+    CarIcon,
+    BikeIcon,
+    PlusIcon,
+    EditIcon,
+    TrashIcon,
+    SearchIcon,
+    ImageIcon,
+    XIcon,
+    AlertCircleIcon,
+    InfoIcon
+} from 'lucide-react';
 
 const VehiclesList = () => {
+    const navigate = useNavigate();
+
     // États
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
     const [filterType, setFilterType] = useState('all');
-
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [uploadingMedia, setUploadingMedia] = useState(false);
-    const [vehicleForMedia, setVehicleForMedia] = useState(null);
 
     // États pour les modales
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -90,85 +84,76 @@ const VehiclesList = () => {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [vehicleToDelete, setVehicleToDelete] = useState(null);
 
-    // Formulaire
-    const form = useForm({
-        resolver: zodResolver(vehicleSchema),
-        defaultValues: {
-            type: 'taxi',
-            licensePlate: '',
-            brand: '',
-            model: '',
-            registrationDate: new Date().toISOString().split('T')[0],
-            serviceEntryDate: new Date().toISOString().split('T')[0],
-            status: 'active',
-            dailyIncomeTarget: '',
-            notes: ''
-        }
+    // État du formulaire
+    const [formData, setFormData] = useState({
+        type: 'taxi',
+        licensePlate: '',
+        brand: '',
+        model: '',
+        registrationDate: '',
+        serviceEntryDate: '',
+        status: 'active',
+        notes: '',
+        dailyIncomeTarget: ''
     });
 
-    const handleFileChange = async (e, vehicle) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        try {
-            setUploadingMedia(true);
-            await vehicleService.uploadMedia(vehicle._id, file);
-            toast.success('Photo du véhicule mise à jour avec succès');
-            fetchData();
-        } catch (error) {
-            console.error('Erreur lors de l\'upload:', error);
-            toast.error("Impossible de mettre à jour la photo du véhicule");
-        } finally {
-            setUploadingMedia(false);
-        }
-    };
-
-    useEffect(() => {
-        if (selectedFile && vehicleForMedia) {
-            const uploadMedia = async () => {
-                try {
-                    setUploadingMedia(true);
-                    await vehicleService.uploadMedia(vehicleForMedia._id, selectedFile);
-                    toast.success('Media du véhicule mis à jour avec succès');
-                    fetchData();
-                } catch (error) {
-                    console.error('Erreur lors de l\'upload:', error);
-                    toast.error("Impossible de mettre à jour le media du véhicule");
-                } finally {
-                    setUploadingMedia(false);
-                    setSelectedFile(null);
-                    setVehicleForMedia(null);
-                }
-            };
-
-            uploadMedia();
-        }
-    }, [selectedFile, vehicleForMedia]);
+    // État pour la gestion des photos
+    const [selectedFiles, setSelectedFiles] = useState([]);
+    const [photosPreviews, setPhotosPreviews] = useState([]);
 
     useEffect(() => {
         fetchData();
     }, [activeTab]);
 
+    // Créer des URL d'aperçu lorsque les fichiers sont sélectionnés
+    useEffect(() => {
+        if (!selectedFiles.length) {
+            setPhotosPreviews([]);
+            return;
+        }
+
+        const newPreviews = [];
+        selectedFiles.forEach(file => {
+            const preview = URL.createObjectURL(file);
+            newPreviews.push({ file, preview });
+        });
+
+        setPhotosPreviews(newPreviews);
+
+        // Nettoyer les URL d'objet lors du démontage
+        return () => {
+            newPreviews.forEach(item => URL.revokeObjectURL(item.preview));
+        };
+    }, [selectedFiles]);
+
     const fetchData = async () => {
         try {
             setLoading(true);
-            const response = await vehicleService.getAll();
+            let vehiclesRes;
 
-            // Filtrer selon l'onglet actif
-            let filteredVehicles = response.data;
-            if (activeTab !== 'all') {
-                filteredVehicles = response.data.filter(vehicle =>
-                    activeTab === 'active' ? vehicle.status === 'active' : vehicle.status !== 'active'
-                );
+            // Charger les véhicules selon l'onglet actif
+            switch (activeTab) {
+                case 'active':
+                    vehiclesRes = await vehicleService.getByStatus('active');
+                    break;
+                case 'inactive':
+                    vehiclesRes = await vehicleService.getByStatus('inactive');
+                    break;
+                case 'maintenance':
+                    vehiclesRes = await vehicleService.getByStatus('maintenance');
+                    break;
+                default:
+                    vehiclesRes = await vehicleService.getAll();
             }
 
-            setVehicles(filteredVehicles);
+            setVehicles(vehiclesRes.data);
         } catch (error) {
-            console.error('Erreur lors du chargement des véhicules:', error);
-            toast.error("Impossible de charger la liste des véhicules", {
-                description: "Une erreur s'est produite lors du chargement des données"
+            console.error('Erreur lors de la récupération des données:', error);
+            toast({
+                title: "Erreur",
+                description: "Impossible de charger les données des véhicules"
             });
-            // Données simulées pour le développement
+            // En cas d'erreur, utiliser des données simulées pour le développement
             setVehicles([
                 {
                     _id: '1',
@@ -176,10 +161,10 @@ const VehiclesList = () => {
                     licensePlate: 'ABC-123',
                     brand: 'Toyota',
                     model: 'Corolla',
-                    registrationDate: '2023-01-15',
-                    serviceEntryDate: '2023-01-20',
-                    dailyIncomeTarget: 25000,
-                    status: 'active'
+                    registrationDate: '2022-01-15',
+                    serviceEntryDate: '2022-02-01',
+                    status: 'active',
+                    currentDriver: { _id: '1', firstName: 'Amadou', lastName: 'Diallo' }
                 },
                 {
                     _id: '2',
@@ -187,10 +172,10 @@ const VehiclesList = () => {
                     licensePlate: 'DEF-456',
                     brand: 'Peugeot',
                     model: '308',
-                    registrationDate: '2023-03-20',
-                    serviceEntryDate: '2023-04-01',
-                    dailyIncomeTarget: 20000,
-                    status: 'active'
+                    registrationDate: '2022-03-20',
+                    serviceEntryDate: '2022-04-05',
+                    status: 'active',
+                    currentDriver: null
                 },
                 {
                     _id: '3',
@@ -198,10 +183,10 @@ const VehiclesList = () => {
                     licensePlate: 'GHI-789',
                     brand: 'Honda',
                     model: 'CBR',
-                    registrationDate: '2023-05-10',
-                    serviceEntryDate: '2023-05-15',
-                    dailyIncomeTarget: 15000,
-                    status: 'maintenance'
+                    registrationDate: '2022-05-10',
+                    serviceEntryDate: '2022-05-15',
+                    status: 'maintenance',
+                    currentDriver: null
                 }
             ]);
         } finally {
@@ -212,54 +197,56 @@ const VehiclesList = () => {
     // Filtrer les véhicules
     const filteredVehicles = vehicles.filter(vehicle => {
         // Filtrer par terme de recherche
-        const vehicleInfo = `${vehicle.brand} ${vehicle.model} ${vehicle.licensePlate}`.toLowerCase();
+        const vehicleInfo = `${vehicle.brand || ''} ${vehicle.model || ''} ${vehicle.licensePlate || ''}`.toLowerCase();
         const searchLower = searchTerm.toLowerCase();
 
         if (searchTerm && !vehicleInfo.includes(searchLower)) {
             return false;
         }
 
-        // Filtrer par statut
-        if (filterStatus !== 'all' && vehicle.status !== filterStatus) {
-            return false;
-        }
-
         // Filtrer par type
-        if (filterType !== 'all' && vehicle.type !== filterType) {
+        if (filterType && filterType !== 'all' && vehicle.type !== filterType) {
             return false;
         }
 
         return true;
     });
 
-    const handleAddEdit = (vehicle = null) => {
-        setSelectedVehicle(vehicle);
+    const handleOpenForm = (vehicle = null) => {
         if (vehicle) {
-            form.reset({
+            setSelectedVehicle(vehicle);
+            setFormData({
                 ...vehicle,
-                registrationDate: vehicle.registrationDate.split('T')[0],
-                serviceEntryDate: vehicle.serviceEntryDate?.split('T')[0] || new Date().toISOString().split('T')[0],
-                dailyIncomeTarget: vehicle.dailyIncomeTarget ? vehicle.dailyIncomeTarget.toString() : '',
+                registrationDate: format(new Date(vehicle.registrationDate), 'yyyy-MM-dd'),
+                serviceEntryDate: format(new Date(vehicle.serviceEntryDate), 'yyyy-MM-dd')
             });
         } else {
-            form.reset({
+            setSelectedVehicle(null);
+            setFormData({
                 type: 'taxi',
                 licensePlate: '',
                 brand: '',
                 model: '',
-                registrationDate: new Date().toISOString().split('T')[0],
-                serviceEntryDate: new Date().toISOString().split('T')[0],
+                registrationDate: '',
+                serviceEntryDate: '',
                 status: 'active',
-                dailyIncomeTarget: '',
-                notes: ''
+                notes: '',
+                dailyIncomeTarget: ''
             });
         }
+        setSelectedFiles([]);
+        setPhotosPreviews([]);
         setIsFormOpen(true);
     };
 
     const confirmDelete = (vehicle) => {
         setVehicleToDelete(vehicle);
         setDeleteDialogOpen(true);
+    };
+
+    // Naviguer vers la page de détail
+    const handleViewDetails = (id) => {
+        navigate(`/vehicles/${id}`);
     };
 
     const handleDelete = async () => {
@@ -274,47 +261,79 @@ const VehiclesList = () => {
             fetchData();
         } catch (error) {
             console.error('Erreur lors de la suppression:', error);
-            toast.error("Impossible de supprimer le véhicule");
+            toast({
+                title: "Erreur",
+                description: "Impossible de supprimer le véhicule"
+            });
         } finally {
             setDeleteDialogOpen(false);
             setVehicleToDelete(null);
         }
     };
 
-    const handleSubmit = async (data) => {
+    const handleSubmit = async () => {
         try {
             if (selectedVehicle) {
-                await vehicleService.update(selectedVehicle._id, data);
-                toast.success(selectedVehicle
-                    ? "Véhicule mis à jour avec succès"
-                    : "Véhicule ajouté avec succès");
+                await vehicleService.update(selectedVehicle._id, formData);
+                toast({
+                    title: "Succès",
+                    description: "Véhicule mis à jour avec succès"
+                });
             } else {
-                await vehicleService.create(data);
+                await vehicleService.create(formData);
                 toast({
                     title: "Succès",
                     description: "Véhicule ajouté avec succès"
                 });
             }
+
+            // Upload des photos si des fichiers ont été sélectionnés
+            if (selectedFiles.length > 0 && selectedVehicle) {
+                await vehicleService.uploadPhotos(selectedVehicle._id, selectedFiles);
+                toast({
+                    title: "Photos",
+                    description: `${selectedFiles.length} photo(s) ajoutée(s) avec succès`
+                });
+            }
+
             setIsFormOpen(false);
             fetchData();
         } catch (error) {
-            console.error('Erreur lors de la sauvegarde:', error);
-            toast.error(selectedVehicle
-                ? "Impossible de mettre à jour le véhicule"
-                : "Impossible d'ajouter le véhicule");
+            console.error('Erreur lors de l\'enregistrement:', error);
+            toast({
+                title: "Erreur",
+                description: error.response?.data?.message || "Une erreur est survenue"
+            });
         }
     };
 
-    const resetFilters = () => {
-        setSearchTerm('');
-        setFilterStatus('all');
-        setFilterType('all');
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
     };
 
-    const getVehicleIcon = (type) => {
-        return type === 'moto'
-            ? <Bike className="h-4 w-4 text-blue-500" />
-            : <Car className="h-4 w-4 text-gray-500" />;
+    const handleFileSelect = (e) => {
+        if (e.target.files.length === 0) return;
+
+        // Vérifier la taille des fichiers (max 5MB)
+        const filesArray = Array.from(e.target.files);
+        const validFiles = filesArray.filter(file => file.size <= 5 * 1024 * 1024);
+
+        if (validFiles.length < filesArray.length) {
+            toast({
+                title: "Attention",
+                description: "Certains fichiers dépassent la taille maximale de 5 MB et ont été ignorés",
+                icon: <AlertCircleIcon className="h-5 w-5 text-yellow-500" />
+            });
+        }
+
+        setSelectedFiles(validFiles);
+    };
+
+    const removePhoto = (index) => {
+        const newFiles = [...selectedFiles];
+        newFiles.splice(index, 1);
+        setSelectedFiles(newFiles);
     };
 
     const getStatusBadge = (status) => {
@@ -330,14 +349,23 @@ const VehiclesList = () => {
         }
     };
 
-    // Formater le montant en FCFA
-    const formatMoney = (amount) => {
-        if (amount === undefined || amount === null) return '—';
-        return new Intl.NumberFormat('fr-FR', {
-            style: 'currency',
-            currency: 'XOF',
-            maximumFractionDigits: 0
-        }).format(amount);
+    const getVehicleIcon = (type) => {
+        if (type === 'moto') {
+            return <BikeIcon className="h-4 w-4 text-blue-500" />;
+        } else {
+            return <CarIcon className="h-4 w-4 text-gray-500" />;
+        }
+    };
+
+    const getDriverInfo = (driver) => {
+        if (!driver) return 'Non assigné';
+        return `${driver.firstName} ${driver.lastName}`;
+    };
+
+    // Réinitialiser les filtres
+    const resetFilters = () => {
+        setSearchTerm('');
+        setFilterType('all');
     };
 
     return (
@@ -347,38 +375,26 @@ const VehiclesList = () => {
                     <div>
                         <CardTitle>Gestion des Véhicules</CardTitle>
                         <CardDescription>
-                            Visualisez et gérez les informations des véhicules de votre flotte
+                            Visualisez et gérez les informations des véhicules
                         </CardDescription>
                     </div>
-                    <Button onClick={() => handleAddEdit()}>
+                    <Button onClick={() => handleOpenForm()}>
                         <PlusIcon className="mr-2 h-4 w-4" />
                         Ajouter un véhicule
                     </Button>
                 </CardHeader>
                 <CardContent>
                     {/* Filtres */}
-                    <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="relative">
                             <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                                placeholder="Rechercher par marque, modèle ou plaque..."
+                                placeholder="Rechercher par marque, modèle ou immatriculation..."
                                 className="pl-10"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-
-                        <Select value={filterStatus} onValueChange={setFilterStatus}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Filtrer par statut" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Tous les statuts</SelectItem>
-                                <SelectItem value="active">Actif</SelectItem>
-                                <SelectItem value="inactive">Inactif</SelectItem>
-                                <SelectItem value="maintenance">Maintenance</SelectItem>
-                            </SelectContent>
-                        </Select>
 
                         <Select value={filterType} onValueChange={setFilterType}>
                             <SelectTrigger>
@@ -393,7 +409,7 @@ const VehiclesList = () => {
                     </div>
 
                     {/* Bouton pour réinitialiser les filtres */}
-                    {(searchTerm || filterStatus !== 'all' || filterType !== 'all') && (
+                    {(searchTerm || filterType !== 'all') && (
                         <div className="flex justify-end mb-4">
                             <Button variant="ghost" onClick={resetFilters}>
                                 Réinitialiser les filtres
@@ -401,12 +417,13 @@ const VehiclesList = () => {
                         </div>
                     )}
 
-                    {/* Onglets pour filtrer */}
+                    {/* Onglets pour filtrer par statut */}
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-                        <TabsList className="grid grid-cols-3">
+                        <TabsList className="grid grid-cols-4">
                             <TabsTrigger value="all">Tous les véhicules</TabsTrigger>
-                            <TabsTrigger value="active">Véhicules actifs</TabsTrigger>
-                            <TabsTrigger value="inactive">Véhicules inactifs</TabsTrigger>
+                            <TabsTrigger value="active">Actifs</TabsTrigger>
+                            <TabsTrigger value="inactive">Inactifs</TabsTrigger>
+                            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
                         </TabsList>
                     </Tabs>
 
@@ -424,11 +441,11 @@ const VehiclesList = () => {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Type</TableHead>
-                                    <TableHead>Plaque</TableHead>
-                                    <TableHead>Marque/Modèle</TableHead>
-                                    <TableHead>Date d'enregistrement</TableHead>
-                                    <TableHead>Objectif journalier</TableHead>
+                                    <TableHead>Immatriculation</TableHead>
+                                    <TableHead>Marque / Modèle</TableHead>
+                                    <TableHead>Mise en service</TableHead>
                                     <TableHead>Statut</TableHead>
+                                    <TableHead>Chauffeur</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -446,36 +463,28 @@ const VehiclesList = () => {
                                             {vehicle.brand} {vehicle.model}
                                         </TableCell>
                                         <TableCell>
-                                            {format(new Date(vehicle.registrationDate), 'dd MMM yyyy', { locale: fr })}
-                                        </TableCell>
-                                        <TableCell>
-                                            {formatMoney(vehicle.dailyIncomeTarget)}
+                                            {vehicle.serviceEntryDate ? format(new Date(vehicle.serviceEntryDate), 'dd MMM yyyy', { locale: fr }) : '-'}
                                         </TableCell>
                                         <TableCell>
                                             {getStatusBadge(vehicle.status)}
                                         </TableCell>
+                                        <TableCell>
+                                            {getDriverInfo(vehicle.currentDriver)}
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end space-x-2">
-                                                <label className="cursor-pointer">
-                                                    <input
-                                                        type="file"
-                                                        className="hidden"
-                                                        accept="image/*"
-                                                        onChange={(e) => handleFileChange(e, vehicle)}
-                                                        disabled={uploadingMedia}
-                                                    />
-                                                    <Button variant="outline" size="icon" disabled={uploadingMedia}>
-                                                        {uploadingMedia && vehicleForMedia?._id === vehicle._id ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                                        ) : (
-                                                            <Camera className="h-4 w-4" />  // Changé de CameraIcon à Camera
-                                                        )}
-                                                    </Button>
-                                                </label>
                                                 <Button
                                                     variant="outline"
                                                     size="icon"
-                                                    onClick={() => handleAddEdit(vehicle)}
+                                                    onClick={() => handleViewDetails(vehicle._id)}
+                                                    className="text-muted-foreground hover:text-primary"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => handleOpenForm(vehicle)}
                                                 >
                                                     <EditIcon className="h-4 w-4" />
                                                 </Button>
@@ -489,7 +498,6 @@ const VehiclesList = () => {
                                                 </Button>
                                             </div>
                                         </TableCell>
-
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -498,21 +506,27 @@ const VehiclesList = () => {
                 </CardContent>
             </Card>
 
-            {/* Modale de formulaire */}
+            {/* Modale de formulaire (création/édition) */}
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-[550px]">
+                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>
                             {selectedVehicle ? 'Modifier un véhicule' : 'Ajouter un véhicule'}
                         </DialogTitle>
+                        <DialogDescription>
+                            {selectedVehicle
+                                ? 'Modifiez les détails de ce véhicule'
+                                : 'Remplissez les informations pour ajouter un nouveau véhicule'}
+                        </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                    <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Type de véhicule</label>
+                                <label htmlFor="type">Type de véhicule</label>
                                 <Select
-                                    value={form.watch('type')}
-                                    onValueChange={(value) => form.setValue('type', value)}
+                                    name="type"
+                                    value={formData.type}
+                                    onValueChange={(value) => setFormData({ ...formData, type: value })}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sélectionner un type" />
@@ -524,69 +538,59 @@ const VehiclesList = () => {
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Plaque d'immatriculation</label>
+                                <label htmlFor="licensePlate">Immatriculation</label>
                                 <Input
-                                    placeholder="ABC-123"
-                                    {...form.register('licensePlate')}
+                                    name="licensePlate"
+                                    value={formData.licensePlate}
+                                    onChange={handleInputChange}
                                 />
-                                {form.formState.errors.licensePlate && (
-                                    <p className="text-sm text-red-500">
-                                        {form.formState.errors.licensePlate.message}
-                                    </p>
-                                )}
                             </div>
                         </div>
-
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Marque</label>
+                                <label htmlFor="brand">Marque</label>
                                 <Input
-                                    placeholder="Toyota"
-                                    {...form.register('brand')}
+                                    name="brand"
+                                    value={formData.brand}
+                                    onChange={handleInputChange}
                                 />
-                                {form.formState.errors.brand && (
-                                    <p className="text-sm text-red-500">
-                                        {form.formState.errors.brand.message}
-                                    </p>
-                                )}
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Modèle</label>
+                                <label htmlFor="model">Modèle</label>
                                 <Input
-                                    placeholder="Corolla"
-                                    {...form.register('model')}
+                                    name="model"
+                                    value={formData.model}
+                                    onChange={handleInputChange}
                                 />
-                                {form.formState.errors.model && (
-                                    <p className="text-sm text-red-500">
-                                        {form.formState.errors.model.message}
-                                    </p>
-                                )}
                             </div>
                         </div>
-
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Date d'enregistrement</label>
+                                <label htmlFor="registrationDate">Date d'immatriculation</label>
                                 <Input
                                     type="date"
-                                    {...form.register('registrationDate')}
+                                    name="registrationDate"
+                                    value={formData.registrationDate}
+                                    onChange={handleInputChange}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Date d'entrée en service</label>
+                                <label htmlFor="serviceEntryDate">Date de mise en service</label>
                                 <Input
                                     type="date"
-                                    {...form.register('serviceEntryDate')}
+                                    name="serviceEntryDate"
+                                    value={formData.serviceEntryDate}
+                                    onChange={handleInputChange}
                                 />
                             </div>
                         </div>
-
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Statut</label>
+                                <label htmlFor="status">Statut</label>
                                 <Select
-                                    value={form.watch('status')}
-                                    onValueChange={(value) => form.setValue('status', value)}
+                                    name="status"
+                                    value={formData.status}
+                                    onValueChange={(value) => setFormData({ ...formData, status: value })}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sélectionner un statut" />
@@ -599,69 +603,98 @@ const VehiclesList = () => {
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Objectif journalier (FCFA)</label>
+                                <label htmlFor="dailyIncomeTarget">Objectif journalier (FCFA)</label>
                                 <Input
                                     type="number"
-                                    placeholder="25000"
-                                    min="0"
-                                    {...form.register('dailyIncomeTarget')}
+                                    name="dailyIncomeTarget"
+                                    value={formData.dailyIncomeTarget}
+                                    onChange={handleInputChange}
                                 />
-                                {form.formState.errors.dailyIncomeTarget && (
-                                    <p className="text-sm text-red-500">
-                                        {form.formState.errors.dailyIncomeTarget.message}
-                                    </p>
-                                )}
                             </div>
                         </div>
-
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Notes (optionnel)</label>
-                            <Input
-                                placeholder="Informations supplémentaires..."
-                                {...form.register('notes')}
+                            <label htmlFor="notes">Notes</label>
+                            <textarea
+                                name="notes"
+                                value={formData.notes}
+                                onChange={handleInputChange}
+                                rows={3}
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                placeholder="Ajouter une note..."
                             />
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Photo du véhicule</label>
-                            {form.watch('media')?.mediaUrl && (
-                                <div className="mb-2">
-                                    <img
-                                        src={form.watch('media').mediaUrl}
-                                        alt="Photo du véhicule"
-                                        className="h-32 object-contain border rounded"
-                                    />
+                        {/* Section de gestion des photos */}
+                        <div className="space-y-4 mt-2">
+                            <div className="flex items-center justify-between">
+                                <label className="text-base font-medium">Photos du véhicule</label>
+                                <Button variant="outline" asChild>
+                                    <label className="cursor-pointer">
+                                        <ImageIcon className="mr-2 h-4 w-4" />
+                                        Ajouter des photos
+                                        <input
+                                            type="file"
+                                            accept="image/jpeg, image/png"
+                                            multiple
+                                            hidden
+                                            onChange={handleFileSelect}
+                                        />
+                                    </label>
+                                </Button>
+                            </div>
+
+                            {/* Message d'information pour les photos */}
+                            <div className="bg-blue-50 p-3 rounded-md text-sm flex items-start gap-2">
+                                <InfoIcon className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="font-medium text-blue-800 mb-1">Conseils pour les photos</p>
+                                    <p className="text-blue-700">
+                                        Pour une qualité optimale, utilisez des images d'une résolution minimale de 1200×800 pixels
+                                        et d'un rapport 3:2. Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Prévisualisation des photos */}
+                            {photosPreviews.length > 0 && (
+                                <div className="mt-3">
+                                    <p className="text-sm text-gray-500 mb-2">
+                                        {photosPreviews.length} photo(s) sélectionnée(s)
+                                    </p>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {photosPreviews.map((item, index) => (
+                                            <div
+                                                key={index}
+                                                className="relative aspect-[3/2] bg-gray-100 rounded-md overflow-hidden group"
+                                            >
+                                                <img
+                                                    src={item.preview}
+                                                    alt={`Aperçu ${index + 1}`}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removePhoto(index)}
+                                                    className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    title="Supprimer"
+                                                >
+                                                    <XIcon className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
-                            <Input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                    if (e.target.files[0]) {
-                                        const file = e.target.files[0];
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => {
-                                            // Vous pouvez aussi gérer l'upload direct ici si nécessaire
-                                        };
-                                        reader.readAsDataURL(file);
-                                    }
-                                }}
-                            />
                         </div>
-
-                        <div className="flex justify-end gap-2 pt-4">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setIsFormOpen(false)}
-                            >
-                                Annuler
-                            </Button>
-                            <Button type="submit">
-                                {selectedVehicle ? 'Enregistrer' : 'Ajouter'}
-                            </Button>
-                        </div>
-                    </form>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setIsFormOpen(false)}>
+                            Annuler
+                        </Button>
+                        <Button onClick={handleSubmit}>
+                            {selectedVehicle ? 'Mettre à jour' : 'Créer'}
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
 
@@ -674,18 +707,9 @@ const VehiclesList = () => {
                             Êtes-vous sûr de vouloir supprimer ce véhicule ? Cette action est irréversible.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <div className="flex items-center p-4 bg-red-50 rounded-lg mt-2">
-                        <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-                        <span className="text-red-500">
-                            {vehicleToDelete && `${vehicleToDelete.brand} ${vehicleToDelete.model} (${vehicleToDelete.licensePlate})`}
-                        </span>
-                    </div>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleDelete}
-                            className="bg-red-500 hover:bg-red-600"
-                        >
+                        <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
                             Supprimer
                         </AlertDialogAction>
                     </AlertDialogFooter>

@@ -13,6 +13,7 @@ import SchedulesList from '@/pages/SchedulesList';
 import PaymentsList from '@/pages/PaymentsList';
 import Profile from '@/pages/Profile';
 import NotFound from '@/pages/NotFound';
+import VehicleDetail from '@/pages/VehicleDetail';
 
 function App() {
   return (
@@ -35,6 +36,15 @@ function App() {
           <Route path="vehicles" element={
             <ProtectedRoute requiredRole="manager">
               <VehiclesList />
+
+            </ProtectedRoute>
+          } />
+
+
+
+          <Route path="/vehicles/:id" element={
+            <ProtectedRoute requiredRole="manager">
+              <VehicleDetail />
             </ProtectedRoute>
           } />
 

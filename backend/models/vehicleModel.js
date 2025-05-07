@@ -33,9 +33,9 @@ const vehicleSchema = new mongoose.Schema({
         enum: ['active', 'inactive', 'maintenance'],
         default: 'active'
     },
-    media: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Media'
+    photos: {
+        type: [String],  // Tableau de chemins/URLs vers les photos
+        default: []
     },
     currentDriver: {  // Ajout d'une référence au chauffeur actuel
         type: mongoose.Schema.Types.ObjectId,

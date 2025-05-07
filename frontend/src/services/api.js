@@ -126,15 +126,21 @@ export const vehicleService = {
     changeStatus: (id, status) => api.put(`/vehicles/${id}/status`, { status }),
     assignDriver: (id, driverId) => api.put(`/vehicles/${id}/assign-driver`, { driverId }),
     releaseDriver: (id) => api.put(`/vehicles/${id}/release-driver`),
-    uploadMedia: (id, file) => {
+    uploadPhotos: (id, files) => {
         const formData = new FormData();
-        formData.append('media', file);
-        return api.post(`/vehicles/${id}/media`, formData, {
+        // Ajouter chaque fichier à formData sous le nom "photos" (comme attendu par le backend)
+        if (Array.isArray(files)) {
+            files.forEach(file => formData.append('photos', file));
+        } else {
+            formData.append('photos', files);
+        }
+        return api.post(`/vehicles/${id}/photos`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
         });
-    }
+    },
+    deletePhoto: (id, photoIndex) => api.delete(`/vehicles/${id}/photos/${photoIndex}`)
 };
 
 export const driverService = {
