@@ -94,7 +94,7 @@ const VehiclesList = () => {
         serviceEntryDate: '',
         status: 'active',
         notes: '',
-        dailyIncomeTarget: ''
+        dailyIncomeTarget: 0
     });
 
     // État pour la gestion des photos
@@ -149,10 +149,8 @@ const VehiclesList = () => {
             setVehicles(vehiclesRes.data);
         } catch (error) {
             console.error('Erreur lors de la récupération des données:', error);
-            toast({
-                title: "Erreur",
-                description: "Impossible de charger les données des véhicules"
-            });
+            toast.error("Impossible de charger les données des véhicules");
+
             // En cas d'erreur, utiliser des données simulées pour le développement
             setVehicles([
                 {
@@ -254,17 +252,11 @@ const VehiclesList = () => {
 
         try {
             await vehicleService.delete(vehicleToDelete._id);
-            toast({
-                title: "Succès",
-                description: "Véhicule supprimé avec succès"
-            });
+            toast.success("Véhicule supprimé avec succès");
             fetchData();
         } catch (error) {
             console.error('Erreur lors de la suppression:', error);
-            toast({
-                title: "Erreur",
-                description: "Impossible de supprimer le véhicule"
-            });
+            toast.error("Impossible de supprimer le véhicule");
         } finally {
             setDeleteDialogOpen(false);
             setVehicleToDelete(null);
@@ -273,37 +265,39 @@ const VehiclesList = () => {
 
     const handleSubmit = async () => {
         try {
-            if (selectedVehicle) {
-                await vehicleService.update(selectedVehicle._id, formData);
-                toast({
-                    title: "Succès",
-                    description: "Véhicule mis à jour avec succès"
-                });
-            } else {
-                await vehicleService.create(formData);
-                toast({
-                    title: "Succès",
-                    description: "Véhicule ajouté avec succès"
-                });
+            // Validation des champs obligatoires
+            const { type, licensePlate, brand, model, registrationDate, serviceEntryDate } = formData;
+
+            if (!type || !licensePlate || !brand || !model || !registrationDate || !serviceEntryDate) {
+                toast.error("Tous les champs obligatoires doivent être remplis");
+                return;
             }
 
-            // Upload des photos si des fichiers ont été sélectionnés
-            if (selectedFiles.length > 0 && selectedVehicle) {
-                await vehicleService.uploadPhotos(selectedVehicle._id, selectedFiles);
-                toast({
-                    title: "Photos",
-                    description: `${selectedFiles.length} photo(s) ajoutée(s) avec succès`
-                });
+            let vehicleId;
+
+            if (selectedVehicle) {
+                // Mise à jour du véhicule existant
+                await vehicleService.update(selectedVehicle._id, formData);
+                vehicleId = selectedVehicle._id;
+                toast.success("Véhicule mis à jour avec succès");
+            } else {
+                // Création d'un nouveau véhicule
+                const response = await vehicleService.create(formData);
+                vehicleId = response.data._id;
+                toast.success("Véhicule ajouté avec succès");
+            }
+
+            // Upload des photos seulement si un véhicule existe et que des fichiers sont sélectionnés
+            if (vehicleId && selectedFiles.length > 0) {
+                await vehicleService.uploadPhotos(vehicleId, selectedFiles);
+                toast.success(`${selectedFiles.length} photo(s) ajoutée(s) avec succès`);
             }
 
             setIsFormOpen(false);
             fetchData();
         } catch (error) {
             console.error('Erreur lors de l\'enregistrement:', error);
-            toast({
-                title: "Erreur",
-                description: error.response?.data?.message || "Une erreur est survenue"
-            });
+            toast.error(error.response?.data?.message || "Une erreur est survenue");
         }
     };
 
@@ -320,10 +314,8 @@ const VehiclesList = () => {
         const validFiles = filesArray.filter(file => file.size <= 5 * 1024 * 1024);
 
         if (validFiles.length < filesArray.length) {
-            toast({
-                title: "Attention",
-                description: "Certains fichiers dépassent la taille maximale de 5 MB et ont été ignorés",
-                icon: <AlertCircleIcon className="h-5 w-5 text-yellow-500" />
+            toast.warning("Certains fichiers dépassent la taille maximale de 5 MB et ont été ignorés", {
+                description: "Veuillez sélectionner des fichiers plus petits",
             });
         }
 
@@ -522,11 +514,12 @@ const VehiclesList = () => {
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label htmlFor="type">Type de véhicule</label>
+                                <label htmlFor="type" className='required'>Type de véhicule</label>
                                 <Select
                                     name="type"
                                     value={formData.type}
                                     onValueChange={(value) => setFormData({ ...formData, type: value })}
+
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sélectionner un type" />
@@ -538,59 +531,65 @@ const VehiclesList = () => {
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="licensePlate">Immatriculation</label>
+                                <label htmlFor="licensePlate" className='required'>Immatriculation</label>
                                 <Input
                                     name="licensePlate"
                                     value={formData.licensePlate}
                                     onChange={handleInputChange}
+                                    required
                                 />
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label htmlFor="brand">Marque</label>
+                                <label htmlFor="brand" className='required'>Marque</label>
                                 <Input
                                     name="brand"
                                     value={formData.brand}
                                     onChange={handleInputChange}
+                                    required
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="model">Modèle</label>
+                                <label htmlFor="model" className='required'>Modèle</label>
                                 <Input
                                     name="model"
                                     value={formData.model}
                                     onChange={handleInputChange}
+                                    required
                                 />
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label htmlFor="registrationDate">Date d'immatriculation</label>
+                                <label htmlFor="registrationDate" className='required'>Date d'immatriculation</label>
                                 <Input
                                     type="date"
                                     name="registrationDate"
                                     value={formData.registrationDate}
                                     onChange={handleInputChange}
+                                    required
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="serviceEntryDate">Date de mise en service</label>
+                                <label htmlFor="serviceEntryDate" className='required'>Date de mise en service</label>
                                 <Input
                                     type="date"
                                     name="serviceEntryDate"
                                     value={formData.serviceEntryDate}
                                     onChange={handleInputChange}
+                                    required
                                 />
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label htmlFor="status">Statut</label>
+                                <label htmlFor="status" className='required'>Statut</label>
                                 <Select
                                     name="status"
                                     value={formData.status}
                                     onValueChange={(value) => setFormData({ ...formData, status: value })}
+                                    required
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sélectionner un statut" />
@@ -603,12 +602,12 @@ const VehiclesList = () => {
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="dailyIncomeTarget">Objectif journalier (FCFA)</label>
+                                <label htmlFor="dailyIncomeTarget" className='required'>Objectif journalier (FCFA)</label>
                                 <Input
                                     type="number"
                                     name="dailyIncomeTarget"
                                     value={formData.dailyIncomeTarget}
-                                    onChange={handleInputChange}
+                                    onChange={(e) => setFormData({ ...formData, dailyIncomeTarget: Number(e.target.value) })}
                                 />
                             </div>
                         </div>

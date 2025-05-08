@@ -772,27 +772,31 @@ const VehicleDetail = () => {
             {/* Dialog pour modifier le véhicule */}
             <Dialog open={openEditDialog} onOpenChange={setOpenEditDialog}>
                 <DialogContent className="sm:max-w-[625px]">
+
                     <DialogHeader>
                         <DialogTitle>Modifier le véhicule</DialogTitle>
                     </DialogHeader>
+
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="dailyIncomeTarget">Objectif journalier (FCFA)</Label>
+                                <Label htmlFor="dailyIncomeTarget" className="required">Objectif journalier (FCFA)</Label>
                                 <Input
                                     id="dailyIncomeTarget"
                                     name="dailyIncomeTarget"
                                     type="number"
                                     value={editFormData.dailyIncomeTarget}
                                     onChange={handleEditInputChange}
+                                    required
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="type">Type de véhicule</Label>
+                                <Label htmlFor="type" className="required">Type de véhicule</Label>
                                 <Select
                                     name="type"
                                     value={editFormData.type}
                                     onValueChange={(value) => setEditFormData({ ...editFormData, type: value })}
+                                    required
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sélectionner un type" />
@@ -804,7 +808,7 @@ const VehicleDetail = () => {
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="licensePlate">Immatriculation</Label>
+                                <Label htmlFor="licensePlate" className="required">Immatriculation</Label>
                                 <Input
                                     id="licensePlate"
                                     name="licensePlate"
@@ -814,7 +818,7 @@ const VehicleDetail = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="brand">Marque</Label>
+                                <Label htmlFor="brand" className="required">Marque</Label>
                                 <Input
                                     id="brand"
                                     name="brand"
@@ -824,7 +828,7 @@ const VehicleDetail = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="model">Modèle</Label>
+                                <Label htmlFor="model" className="required">Modèle</Label>
                                 <Input
                                     id="model"
                                     name="model"
@@ -834,7 +838,7 @@ const VehicleDetail = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="registrationDate">Date d'immatriculation</Label>
+                                <Label htmlFor="registrationDate" className="required">Date d'immatriculation</Label>
                                 <Input
                                     id="registrationDate"
                                     name="registrationDate"
@@ -845,7 +849,7 @@ const VehicleDetail = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="serviceEntryDate">Date de mise en service</Label>
+                                <Label htmlFor="serviceEntryDate" className="required">Date de mise en service</Label>
                                 <Input
                                     id="serviceEntryDate"
                                     name="serviceEntryDate"
@@ -856,11 +860,12 @@ const VehicleDetail = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="status">Statut</Label>
+                                <Label htmlFor="status" className="required">Statut</Label>
                                 <Select
                                     name="status"
                                     value={editFormData.status}
                                     onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}
+                                    required
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sélectionner un statut" />
@@ -883,7 +888,7 @@ const VehicleDetail = () => {
                         >
                             Annuler
                         </Button>
-                        <Button onClick={handleEditInputChange}>Modifier</Button>
+                        <Button onClick={handleUpdateVehicle}>Modifier</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

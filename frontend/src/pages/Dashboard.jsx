@@ -1,253 +1,202 @@
 // src/pages/Dashboard.jsx
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { vehicleService, driverService } from '@/services/api';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CircleDollarSign, Users, Car, Calendar, AlertCircle } from 'lucide-react';
+import React from "react";
+import {
+    LayoutDashboard,
+    Users,
+    CalendarClock,
+    Wallet,
+    Car,
+    Wrench,
+    Bell,
+    UserCircle,
+    CreditCard,
+    LogOut
+} from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import {
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardContent,
+    CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+} from "@/components/ui/avatar";
+
+// Import the chart component
+import { ChartAreaInteractive } from "@/components/chart-area-interactive";
+
+// Assuming you have this component or similar
+import { SectionCards } from "@/components/section-cards";
 
 const Dashboard = () => {
-    const [stats, setStats] = useState({
-        totalVehicles: 0,
-        activeVehicles: 0,
-        totalDrivers: 0,
-        activeDrivers: 0,
-        todayRevenue: 0,
-        weekRevenue: 0,
-        monthRevenue: 0
-    });
-    const [loading, setLoading] = useState(true);
-    const [alerts, setAlerts] = useState([]);
-
-    useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                setLoading(true);
-
-                // Données simulées pour les véhicules et conducteurs
-                // (ces valeurs seront utilisées si les API retournent 404)
-                let vehiclesData = [];
-                let driversData = [];
-
-                try {
-                    const vehiclesRes = await vehicleService.getAll();
-                    vehiclesData = vehiclesRes.data;
-                } catch (error) {
-                    console.log('API véhicules pas encore implémentée, utilisation de données simulées');
-                    // Données simulées
-                    vehiclesData = [
-                        { id: 1, status: 'active' },
-                        { id: 2, status: 'active' },
-                        { id: 3, status: 'maintenance' }
-                    ];
-                }
-
-                try {
-                    const driversRes = await driverService.getAll();
-                    driversData = driversRes.data;
-                } catch (error) {
-                    console.log('API chauffeurs pas encore implémentée, utilisation de données simulées');
-                    // Données simulées
-                    driversData = [
-                        { id: 1, status: 'active' },
-                        { id: 2, status: 'active' },
-                        { id: 3, status: 'inactive' }
-                    ];
-                }
-
-                // Simulation de données de revenus
-                const mockRevenue = {
-                    today: Math.floor(Math.random() * 5000) + 1000,
-                    week: Math.floor(Math.random() * 25000) + 15000,
-                    month: Math.floor(Math.random() * 100000) + 50000
-                };
-
-                // Simulation d'alertes
-                const mockAlerts = [
-                    { id: 1, type: 'maintenance', message: 'Entretien du véhicule ABC-123 prévu demain', severity: 'info' },
-                    { id: 2, type: 'document', message: 'Assurance du véhicule XYZ-789 expire dans 5 jours', severity: 'warning' },
-                    { id: 3, type: 'payment', message: 'Objectif de recette non atteint hier pour le taxi TXI-456', severity: 'error' }
-                ];
-
-                setStats({
-                    totalVehicles: vehiclesData.length,
-                    activeVehicles: vehiclesData.filter(v => v.status === 'active').length,
-                    totalDrivers: driversData.length,
-                    activeDrivers: driversData.filter(d => d.status === 'active').length,
-                    todayRevenue: mockRevenue.today,
-                    weekRevenue: mockRevenue.week,
-                    monthRevenue: mockRevenue.month
-                });
-
-                setAlerts(mockAlerts);
-            } catch (error) {
-                console.error('Erreur lors du chargement des données du dashboard:', error);
-                // Configurer des données par défaut même en cas d'erreur
-                setStats({
-                    totalVehicles: 3,
-                    activeVehicles: 2,
-                    totalDrivers: 3,
-                    activeDrivers: 2,
-                    todayRevenue: 1500,
-                    weekRevenue: 18000,
-                    monthRevenue: 75000
-                });
-
-                setAlerts([
-                    { id: 1, type: 'system', message: 'APIs en cours d\'implémentation', severity: 'info' }
-                ]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDashboardData();
-    }, []);
-
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(amount);
+    // Mock user data
+    const user = {
+        name: "Jean Dupont",
+        email: "jean.dupont@example.com",
+        avatar: "/api/placeholder/32/32"
     };
 
+    // Quick nav items
+    const navItems = [
+        { title: "Dashboard", icon: LayoutDashboard, href: "/" },
+        { title: "Drivers", icon: Users, href: "/drivers" },
+        { title: "Schedules", icon: CalendarClock, href: "/schedules" },
+        { title: "Payments", icon: Wallet, href: "/payments" },
+        { title: "Vehicles", icon: Car, href: "/vehicles" },
+        { title: "Maintenance", icon: Wrench, href: "/maintenances" },
+    ];
+
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold">Tableau de bord</h1>
-                <p className="text-gray-500">Vue d'ensemble de votre flotte de véhicules</p>
-            </div>
+        <div className="flex flex-col min-h-screen bg-background">
 
-            {loading ? (
-                <div className="flex justify-center py-10">Chargement des données...</div>
-            ) : (
-                <>
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-sm font-medium">Véhicules</CardTitle>
-                                <Car className="h-4 w-4 text-gray-500" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{stats.activeVehicles} / {stats.totalVehicles}</div>
-                                <p className="text-xs text-gray-500">véhicules actifs</p>
-                            </CardContent>
-                        </Card>
+            {/* Main content */}
+            <main className="flex-1 overflow-auto">
 
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-sm font-medium">Chauffeurs</CardTitle>
-                                <Users className="h-4 w-4 text-gray-500" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{stats.activeDrivers} / {stats.totalDrivers}</div>
-                                <p className="text-xs text-gray-500">chauffeurs actifs</p>
-                            </CardContent>
-                        </Card>
 
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-sm font-medium">Recette du jour</CardTitle>
-                                <CircleDollarSign className="h-4 w-4 text-gray-500" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatCurrency(stats.todayRevenue)}</div>
-                                <p className="text-xs text-gray-500">aujourd'hui</p>
-                            </CardContent>
-                        </Card>
+                {/* Stats cards */}
+                <div className="px-4 py-6 lg:px-6">
+                    <h2 className="text-lg font-semibold mb-4">Overview</h2>
+                    <SectionCards />
+                </div>
 
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-sm font-medium">Recette mensuelle</CardTitle>
-                                <Calendar className="h-4 w-4 text-gray-500" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatCurrency(stats.monthRevenue)}</div>
-                                <p className="text-xs text-gray-500">ce mois-ci</p>
-                            </CardContent>
-                        </Card>
-                    </div>
+                {/* Charts section */}
+                <div className="grid gap-6 px-4 py-6 lg:grid-cols-2 lg:px-6">
+                    <ChartAreaInteractive />
 
-                    <Tabs defaultValue="revenue">
-                        <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="revenue">Recettes</TabsTrigger>
-                            <TabsTrigger value="alerts">Alertes</TabsTrigger>
-                            <TabsTrigger value="schedule">Planning du jour</TabsTrigger>
-                        </TabsList>
-
-                        <TabsContent value="revenue">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Recettes</CardTitle>
-                                    <CardDescription>Vue d'ensemble des recettes</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <span>Aujourd'hui</span>
-                                            <span className="font-bold">{formatCurrency(stats.todayRevenue)}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span>Cette semaine</span>
-                                            <span className="font-bold">{formatCurrency(stats.weekRevenue)}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span>Ce mois</span>
-                                            <span className="font-bold">{formatCurrency(stats.monthRevenue)}</span>
-                                        </div>
+                    {/* Activity card */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Recent Activity</CardTitle>
+                            <CardDescription>
+                                Latest actions from your fleet management system
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {[1, 2, 3, 4, 5].map((item) => (
+                                <div key={item} className="flex items-start gap-4 rounded-lg border p-3">
+                                    <div className="rounded-full bg-primary/10 p-2">
+                                        {item % 2 === 0 ?
+                                            <Car className="h-4 w-4 text-primary" /> :
+                                            <Users className="h-4 w-4 text-primary" />
+                                        }
                                     </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
+                                    <div className="flex-1 space-y-1">
+                                        <p className="text-sm font-medium leading-none">
+                                            {item % 2 === 0 ? "Vehicle maintenance completed" : "Driver assignment updated"}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {item % 2 === 0 ? "Vehicle #A-" + (item * 103) : "Driver #" + (item * 21)}
+                                        </p>
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                        {item} hour{item !== 1 ? "s" : ""} ago
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
+                        <CardFooter>
+                            <Button variant="outline" className="w-full">View all activity</Button>
+                        </CardFooter>
+                    </Card>
+                </div>
 
-                        <TabsContent value="alerts">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Alertes récentes</CardTitle>
-                                    <CardDescription>Notifications importantes nécessitant votre attention</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {alerts.length === 0 ? (
-                                        <p className="text-center py-4 text-gray-500">Aucune alerte pour le moment</p>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {alerts.map(alert => (
-                                                <div
-                                                    key={alert.id}
-                                                    className={`p-3 rounded-md flex items-start gap-3 ${alert.severity === 'error' ? 'bg-red-50 text-red-700' :
-                                                        alert.severity === 'warning' ? 'bg-yellow-50 text-yellow-700' :
-                                                            'bg-blue-50 text-blue-700'
-                                                        }`}
-                                                >
-                                                    <AlertCircle className="h-5 w-5 mt-0.5" />
-                                                    <div>
-                                                        <h4 className="font-medium">
-                                                            {alert.type === 'maintenance' ? 'Maintenance' :
-                                                                alert.type === 'document' ? 'Document' :
-                                                                    alert.type === 'payment' ? 'Paiement' : 'Système'}
-                                                        </h4>
-                                                        <p className="text-sm">{alert.message}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
+                {/* Tasks and upcoming section */}
+                <div className="grid gap-6 px-4 py-6 lg:grid-cols-2 lg:px-6">
+                    {/* Tasks */}
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Pending Tasks</CardTitle>
+                                <CardDescription>
+                                    Tasks requiring attention
+                                </CardDescription>
+                            </div>
+                            <Badge>{3}</Badge>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {[1, 2, 3].map((task) => (
+                                    <div key={task} className="flex items-center gap-4">
+                                        <input
+                                            type="checkbox"
+                                            className="h-4 w-4 rounded-sm border"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium">
+                                                {task === 1
+                                                    ? "Schedule maintenance for Vehicle #A-103"
+                                                    : task === 2
+                                                        ? "Review driver reports for the week"
+                                                        : "Process pending payment invoices"}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Due in {task} day{task !== 1 ? "s" : ""}
+                                            </p>
                                         </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
+                                        <Badge variant={task === 1 ? "destructive" : task === 2 ? "warning" : "outline"}>
+                                            {task === 1 ? "Urgent" : task === 2 ? "Medium" : "Low"}
+                                        </Badge>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button variant="outline" className="w-full">View all tasks</Button>
+                        </CardFooter>
+                    </Card>
 
-                        <TabsContent value="schedule">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Planning du jour</CardTitle>
-                                    <CardDescription>Affectations des chauffeurs pour aujourd'hui</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-center py-4 text-gray-500">
-                                        Fonctionnalité à implémenter - Planning des chauffeurs
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                    </Tabs>
-                </>
-            )}
+                    {/* Upcoming schedules */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Upcoming Schedules</CardTitle>
+                            <CardDescription>
+                                Next 7 days of scheduled trips
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {[1, 2, 3, 4].map((schedule) => (
+                                    <div key={schedule} className="flex items-center gap-4">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                                            <CalendarClock className="h-5 w-5 text-primary" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium">Route #{schedule}0{schedule}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {schedule === 1 ? "Today" : schedule === 2 ? "Tomorrow" : `In ${schedule} days`},
+                                                {schedule === 1 ? " 15:30" : schedule === 2 ? " 09:00" : schedule === 3 ? " 14:15" : " 11:45"}
+                                            </p>
+                                        </div>
+                                        <Button variant="ghost" size="sm">
+                                            View
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button variant="outline" className="w-full">View all schedules</Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            </main>
         </div>
     );
 };

@@ -257,11 +257,12 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-h-[80vh] overflow-y-auto p-1">
             {/* Sélection du planning */}
             <div className="space-y-2">
-                <label className="text-sm font-medium">Planning</label>
+                <label className="text-sm font-medium required">Planning</label>
                 <Select
                     disabled={fetchingSchedules || (payment && payment._id)}
                     onValueChange={(value) => handleChange('scheduleId', value)}
                     value={formData.scheduleId}
+                    required
                 >
                     <SelectTrigger>
                         {fetchingSchedules ? (
@@ -293,12 +294,13 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
 
             {/* Montant du paiement */}
             <div className="space-y-2">
-                <label className="text-sm font-medium">Montant</label>
+                <label className="text-sm font-medium required">Montant</label>
                 <Input
                     type="number"
                     placeholder="Montant en FCFA"
                     value={formData.amount}
                     onChange={(e) => handleChange('amount', Number(e.target.value))}
+                    required
                 />
                 <p className="text-sm text-muted-foreground">
                     Montant du paiement en FCFA
@@ -308,11 +310,12 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
 
             {/* Date de paiement */}
             <div className="space-y-2">
-                <label className="text-sm font-medium">Date de paiement</label>
+                <label className="text-sm font-medium required">Date de paiement</label>
                 <DatePicker
                     selected={formData.paymentDate}
                     onSelect={(date) => handleChange('paymentDate', date)}
                     dateFormat="dd/MM/yyyy"
+                    required
                 />
                 {errors.paymentDate && <p className="text-sm text-red-500 mt-1">{errors.paymentDate}</p>}
             </div>

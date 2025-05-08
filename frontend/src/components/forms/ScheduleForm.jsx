@@ -176,11 +176,12 @@ const ScheduleForm = ({ schedule, drivers, vehicles, onSuccess, onCancel }) => {
                     name="driverId"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Chauffeur</FormLabel>
+                            <FormLabel className="required">Chauffeur</FormLabel>
                             <Select
                                 onValueChange={field.onChange}
                                 value={field.value}
                                 disabled={loading}
+                                required
                             >
                                 <FormControl>
                                     <SelectTrigger>
@@ -205,11 +206,12 @@ const ScheduleForm = ({ schedule, drivers, vehicles, onSuccess, onCancel }) => {
                     name="vehicleId"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Véhicule</FormLabel>
+                            <FormLabel className="required">Véhicule</FormLabel>
                             <Select
                                 onValueChange={field.onChange}
                                 value={field.value}
                                 disabled={loading}
+                                required
                             >
                                 <FormControl>
                                     <SelectTrigger>
@@ -234,12 +236,13 @@ const ScheduleForm = ({ schedule, drivers, vehicles, onSuccess, onCancel }) => {
                     name="scheduleDate"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Date de début</FormLabel>
+                            <FormLabel className="required">Date de début</FormLabel>
                             <FormControl>
                                 <Input
                                     type="date"
                                     {...field}
                                     disabled={loading}
+                                    required
                                 />
                             </FormControl>
                             <FormMessage />

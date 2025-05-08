@@ -135,9 +135,9 @@ const DriverForm = ({ driver, vehicles, onSuccess, onCancel }) => {
                         name="firstName"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Prénom</FormLabel>
+                                <FormLabel className="required">Prénom</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="John" {...field} />
+                                    <Input placeholder="John" required {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -148,9 +148,9 @@ const DriverForm = ({ driver, vehicles, onSuccess, onCancel }) => {
                         name="lastName"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Nom</FormLabel>
+                                <FormLabel className="required">Nom</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Doe" {...field} />
+                                    <Input placeholder="Doe" required {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -163,9 +163,9 @@ const DriverForm = ({ driver, vehicles, onSuccess, onCancel }) => {
                         name="phoneNumber"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Téléphone</FormLabel>
+                                <FormLabel className="required">Téléphone</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="+221 77 123 45 67" {...field} />
+                                    <Input placeholder="+225 07 12 34 56 78" required {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -176,9 +176,9 @@ const DriverForm = ({ driver, vehicles, onSuccess, onCancel }) => {
                         name="licenseNumber"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Numéro de permis</FormLabel>
+                                <FormLabel className="required">Numéro de permis</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="A123456" {...field} />
+                                    <Input placeholder="A123456" required {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -191,9 +191,9 @@ const DriverForm = ({ driver, vehicles, onSuccess, onCancel }) => {
                         name="hireDate"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Date d'embauche</FormLabel>
+                                <FormLabel className="required">Date d'embauche</FormLabel>
                                 <FormControl>
-                                    <Input type="date" {...field} />
+                                    <Input type="date" required {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
