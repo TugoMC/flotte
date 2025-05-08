@@ -343,3 +343,58 @@ exports.deletePhoto = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+exports.startMaintenance = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { maintenanceType, maintenanceNature, description, duration, mileage } = req.body;
+
+        // Validation
+        if (!maintenanceType || !maintenanceNature) {
+            return res.status(400).json({
+                message: 'Le type et la nature de maintenance sont obligatoires'
+            });
+        }
+
+        // Trouver le véhicule
+        const vehicle = await Vehicle.findById(id);
+        if (!vehicle) {
+            return res.status(404).json({ message: 'Véhicule non trouvé' });
+        }
+
+        // Si le véhicule a un chauffeur assigné, le libérer
+        if (vehicle.currentDriver) {
+            await Driver.findByIdAndUpdate(
+                vehicle.currentDriver,
+                { currentVehicle: null }
+            );
+        }
+
+        // Mettre le véhicule en maintenance
+        vehicle.status = 'maintenance';
+        vehicle.currentDriver = null;
+        await vehicle.save();
+
+        // Créer une nouvelle entrée de maintenance
+        const Maintenance = require('../models/maintenanceModel');
+        const maintenance = new Maintenance({
+            vehicle: id,
+            maintenanceType,
+            maintenanceNature,
+            description,
+            duration: duration || 1,
+            mileage,
+            maintenanceDate: new Date()
+        });
+
+        await maintenance.save();
+
+        res.json({
+            message: 'Véhicule mis en maintenance avec succès',
+            vehicle,
+            maintenance
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};

@@ -50,8 +50,8 @@ const Sidebar = ({ user }) => {
             roles: ['admin', 'manager']
         },
         {
-            href: '/maintenance',
-            label: 'Maintenance',
+            href: '/maintenances',
+            label: 'Maintenances',
             icon: <Wrench className="h-5 w-5" />,
             roles: ['admin', 'manager']
         },

@@ -1,13 +1,12 @@
-// src/pages/VehiclesList.jsx
+// src/pages/MaintenancesList.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { maintenanceService } from '@/services/api';
 import { vehicleService } from '@/services/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Eye } from "lucide-react";
+import { Eye, PlusIcon, EditIcon, TrashIcon, SearchIcon, ImageIcon, XIcon, AlertCircleIcon, InfoIcon } from 'lucide-react';
 import {
     Card,
     CardContent,
@@ -54,47 +53,39 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-    CarIcon,
-    BikeIcon,
-    PlusIcon,
-    EditIcon,
-    TrashIcon,
-    SearchIcon,
-    ImageIcon,
-    XIcon,
-    AlertCircleIcon,
-    InfoIcon
-} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
-const VehiclesList = () => {
+const MaintenancesList = () => {
     const navigate = useNavigate();
 
     // États
+    const [maintenances, setMaintenances] = useState([]);
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterVehicle, setFilterVehicle] = useState('all');
     const [filterType, setFilterType] = useState('all');
 
     // États pour les modales
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [selectedVehicle, setSelectedVehicle] = useState(null);
+    const [selectedMaintenance, setSelectedMaintenance] = useState(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [vehicleToDelete, setVehicleToDelete] = useState(null);
+    const [maintenanceToDelete, setMaintenanceToDelete] = useState(null);
 
     // État du formulaire
     const [formData, setFormData] = useState({
-        type: 'taxi',
-        licensePlate: '',
-        brand: '',
-        model: '',
-        registrationDate: '',
-        serviceEntryDate: '',
-        status: 'active',
+        vehicle: '',
+        maintenanceType: 'oil_change',
+        maintenanceNature: 'preventive',
+        maintenanceDate: '',
+        completionDate: '',
+        cost: '',
+        duration: '',
+        technicianName: '',
         notes: '',
-        dailyIncomeTarget: ''
+        completed: false
     });
 
     // État pour la gestion des photos
@@ -103,6 +94,7 @@ const VehiclesList = () => {
 
     useEffect(() => {
         fetchData();
+        fetchVehicles();
     }, [activeTab]);
 
     // Créer des URL d'aperçu lorsque les fichiers sont sélectionnés
@@ -129,109 +121,91 @@ const VehiclesList = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            let vehiclesRes;
+            let response = await maintenanceService.getAll();
 
-            // Charger les véhicules selon l'onglet actif
-            switch (activeTab) {
-                case 'active':
-                    vehiclesRes = await vehicleService.getByStatus('active');
-                    break;
-                case 'inactive':
-                    vehiclesRes = await vehicleService.getByStatus('inactive');
-                    break;
-                case 'maintenance':
-                    vehiclesRes = await vehicleService.getByStatus('maintenance');
-                    break;
-                default:
-                    vehiclesRes = await vehicleService.getAll();
+            // Filtrer selon l'onglet actif
+            let filteredData = response.data;
+            if (activeTab === 'active') {
+                filteredData = filteredData.filter(m => !m.completed);
+            } else if (activeTab === 'completed') {
+                filteredData = filteredData.filter(m => m.completed);
             }
 
-            setVehicles(vehiclesRes.data);
+            setMaintenances(filteredData);
         } catch (error) {
             console.error('Erreur lors de la récupération des données:', error);
-            toast({
-                title: "Erreur",
-                description: "Impossible de charger les données des véhicules"
-            });
-            // En cas d'erreur, utiliser des données simulées pour le développement
-            setVehicles([
-                {
-                    _id: '1',
-                    type: 'taxi',
-                    licensePlate: 'ABC-123',
-                    brand: 'Toyota',
-                    model: 'Corolla',
-                    registrationDate: '2022-01-15',
-                    serviceEntryDate: '2022-02-01',
-                    status: 'active',
-                    currentDriver: { _id: '1', firstName: 'Amadou', lastName: 'Diallo' }
-                },
-                {
-                    _id: '2',
-                    type: 'taxi',
-                    licensePlate: 'DEF-456',
-                    brand: 'Peugeot',
-                    model: '308',
-                    registrationDate: '2022-03-20',
-                    serviceEntryDate: '2022-04-05',
-                    status: 'active',
-                    currentDriver: null
-                },
-                {
-                    _id: '3',
-                    type: 'moto',
-                    licensePlate: 'GHI-789',
-                    brand: 'Honda',
-                    model: 'CBR',
-                    registrationDate: '2022-05-10',
-                    serviceEntryDate: '2022-05-15',
-                    status: 'maintenance',
-                    currentDriver: null
-                }
-            ]);
+            toast.error("Erreur lors du chargement des données");
         } finally {
             setLoading(false);
         }
     };
 
-    // Filtrer les véhicules
-    const filteredVehicles = vehicles.filter(vehicle => {
-        // Filtrer par terme de recherche
-        const vehicleInfo = `${vehicle.brand || ''} ${vehicle.model || ''} ${vehicle.licensePlate || ''}`.toLowerCase();
-        const searchLower = searchTerm.toLowerCase();
+    const fetchVehicles = async () => {
+        try {
+            const vehiclesRes = await vehicleService.getAll();
+            setVehicles(vehiclesRes.data);
+        } catch (error) {
+            console.error('Erreur lors de la récupération des véhicules:', error);
+            toast.error("Erreur lors du chargement des véhicules");
+        }
+    };
 
-        if (searchTerm && !vehicleInfo.includes(searchLower)) {
+    // Filtrer les maintenances
+    const filteredMaintenances = maintenances.filter(maintenance => {
+        // Filtrer par terme de recherche
+        const searchLower = searchTerm.toLowerCase();
+        const vehicleInfo = maintenance.vehicle?.licensePlate?.toLowerCase() || '';
+        const technicianInfo = maintenance.technicianName?.toLowerCase() || '';
+        const notesInfo = maintenance.notes?.toLowerCase() || '';
+
+        if (searchTerm &&
+            !vehicleInfo.includes(searchLower) &&
+            !technicianInfo.includes(searchLower) &&
+            !notesInfo.includes(searchLower)) {
+            return false;
+        }
+
+        // Filtrer par véhicule
+        if (filterVehicle && filterVehicle !== 'all' && maintenance.vehicle?._id !== filterVehicle) {
             return false;
         }
 
         // Filtrer par type
-        if (filterType && filterType !== 'all' && vehicle.type !== filterType) {
+        if (filterType && filterType !== 'all' && maintenance.maintenanceType !== filterType) {
             return false;
         }
 
         return true;
     });
 
-    const handleOpenForm = (vehicle = null) => {
-        if (vehicle) {
-            setSelectedVehicle(vehicle);
+    const handleOpenForm = (maintenance = null) => {
+        if (maintenance) {
+            setSelectedMaintenance(maintenance);
             setFormData({
-                ...vehicle,
-                registrationDate: format(new Date(vehicle.registrationDate), 'yyyy-MM-dd'),
-                serviceEntryDate: format(new Date(vehicle.serviceEntryDate), 'yyyy-MM-dd')
+                vehicle: maintenance.vehicle?._id || '',
+                maintenanceType: maintenance.maintenanceType || 'oil_change',
+                maintenanceNature: maintenance.maintenanceNature || 'preventive',
+                maintenanceDate: maintenance.maintenanceDate ? format(new Date(maintenance.maintenanceDate), 'yyyy-MM-dd') : '',
+                completionDate: maintenance.completionDate ? format(new Date(maintenance.completionDate), 'yyyy-MM-dd') : '',
+                cost: maintenance.cost || '',
+                duration: maintenance.duration || '',
+                technicianName: maintenance.technicianName || '',
+                notes: maintenance.notes || '',
+                completed: maintenance.completed || false
             });
         } else {
-            setSelectedVehicle(null);
+            setSelectedMaintenance(null);
             setFormData({
-                type: 'taxi',
-                licensePlate: '',
-                brand: '',
-                model: '',
-                registrationDate: '',
-                serviceEntryDate: '',
-                status: 'active',
+                vehicle: '',
+                maintenanceType: 'oil_change',
+                maintenanceNature: 'preventive',
+                maintenanceDate: '',
+                completionDate: '',
+                cost: '',
+                duration: '',
+                technicianName: '',
                 notes: '',
-                dailyIncomeTarget: ''
+                completed: false
             });
         }
         setSelectedFiles([]);
@@ -239,71 +213,56 @@ const VehiclesList = () => {
         setIsFormOpen(true);
     };
 
-    const confirmDelete = (vehicle) => {
-        setVehicleToDelete(vehicle);
+    const confirmDelete = (maintenance) => {
+        setMaintenanceToDelete(maintenance);
         setDeleteDialogOpen(true);
     };
 
     // Naviguer vers la page de détail
     const handleViewDetails = (id) => {
-        navigate(`/vehicles/${id}`);
+        navigate(`/maintenances/${id}`);
     };
 
     const handleDelete = async () => {
-        if (!vehicleToDelete) return;
+        if (!maintenanceToDelete) return;
 
         try {
-            await vehicleService.delete(vehicleToDelete._id);
-            toast({
-                title: "Succès",
-                description: "Véhicule supprimé avec succès"
-            });
+            await maintenanceService.delete(maintenanceToDelete._id);
+            toast.success("Maintenance supprimée avec succès");
             fetchData();
         } catch (error) {
             console.error('Erreur lors de la suppression:', error);
-            toast({
-                title: "Erreur",
-                description: "Impossible de supprimer le véhicule"
-            });
+            toast.error("Impossible de supprimer la maintenance");
         } finally {
             setDeleteDialogOpen(false);
-            setVehicleToDelete(null);
+            setMaintenanceToDelete(null);
         }
     };
 
     const handleSubmit = async () => {
         try {
-            if (selectedVehicle) {
-                await vehicleService.update(selectedVehicle._id, formData);
-                toast({
-                    title: "Succès",
-                    description: "Véhicule mis à jour avec succès"
-                });
+            if (selectedMaintenance) {
+                await maintenanceService.update(selectedMaintenance._id, formData);
+                toast.success("Maintenance mise à jour avec succès");
             } else {
-                await vehicleService.create(formData);
-                toast({
-                    title: "Succès",
-                    description: "Véhicule ajouté avec succès"
-                });
+                await maintenanceService.create(formData);
+                toast.success("Maintenance crée avec succès");
             }
 
             // Upload des photos si des fichiers ont été sélectionnés
-            if (selectedFiles.length > 0 && selectedVehicle) {
-                await vehicleService.uploadPhotos(selectedVehicle._id, selectedFiles);
-                toast({
-                    title: "Photos",
-                    description: `${selectedFiles.length} photo(s) ajoutée(s) avec succès`
-                });
+            if (selectedFiles.length > 0 && (selectedMaintenance || formData._id)) {
+                const maintenanceId = selectedMaintenance?._id || formData._id;
+                await maintenanceService.uploadPhotos(maintenanceId, selectedFiles);
+                toast.success(`${selectedFiles.length} photo(s) ajoutée(s) avec succès`);
             }
 
             setIsFormOpen(false);
             fetchData();
         } catch (error) {
             console.error('Erreur lors de l\'enregistrement:', error);
-            toast({
-                title: "Erreur",
-                description: error.response?.data?.message || "Une erreur est survenue"
-            });
+            toast.error("Impossible d'enregistrer la maintenance");
+        } finally {
+            setSelectedFiles([]);
         }
     };
 
@@ -320,10 +279,8 @@ const VehiclesList = () => {
         const validFiles = filesArray.filter(file => file.size <= 5 * 1024 * 1024);
 
         if (validFiles.length < filesArray.length) {
-            toast({
-                title: "Attention",
-                description: "Certains fichiers dépassent la taille maximale de 5 MB et ont été ignorés",
-                icon: <AlertCircleIcon className="h-5 w-5 text-yellow-500" />
+            toast.warning("Certains fichiers dépassent la taille maximale de 5 MB et ont été ignorés", {
+                description: "Veuillez sélectionner des fichiers plus petits",
             });
         }
 
@@ -336,35 +293,35 @@ const VehiclesList = () => {
         setSelectedFiles(newFiles);
     };
 
-    const getStatusBadge = (status) => {
-        switch (status) {
-            case 'active':
-                return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Actif</Badge>;
-            case 'inactive':
-                return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Inactif</Badge>;
-            case 'maintenance':
-                return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Maintenance</Badge>;
-            default:
-                return null;
-        }
+    const getStatusBadge = (completed) => {
+        return completed ?
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Terminée</Badge> :
+            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">En cours</Badge>;
     };
 
-    const getVehicleIcon = (type) => {
-        if (type === 'moto') {
-            return <BikeIcon className="h-4 w-4 text-blue-500" />;
-        } else {
-            return <CarIcon className="h-4 w-4 text-gray-500" />;
-        }
+    const getTypeLabel = (type) => {
+        const types = {
+            oil_change: 'Vidange',
+            tire_replacement: 'Changement pneus',
+            engine: 'Moteur',
+            other: 'Autre'
+        };
+        return types[type] || type;
     };
 
-    const getDriverInfo = (driver) => {
-        if (!driver) return 'Non assigné';
-        return `${driver.firstName} ${driver.lastName}`;
+    const getNatureLabel = (nature) => {
+        const natures = {
+            preventive: 'Préventive',
+            corrective: 'Corrective',
+            predictive: 'Prédictive'
+        };
+        return natures[nature] || nature;
     };
 
     // Réinitialiser les filtres
     const resetFilters = () => {
         setSearchTerm('');
+        setFilterVehicle('all');
         setFilterType('all');
     };
 
@@ -373,28 +330,42 @@ const VehiclesList = () => {
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle>Gestion des Véhicules</CardTitle>
+                        <CardTitle>Gestion des Maintenances</CardTitle>
                         <CardDescription>
-                            Visualisez et gérez les informations des véhicules
+                            Visualisez et gérez les interventions de maintenance
                         </CardDescription>
                     </div>
                     <Button onClick={() => handleOpenForm()}>
                         <PlusIcon className="mr-2 h-4 w-4" />
-                        Ajouter un véhicule
+                        Ajouter une maintenance
                     </Button>
                 </CardHeader>
                 <CardContent>
                     {/* Filtres */}
-                    <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="relative">
                             <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                                placeholder="Rechercher par marque, modèle ou immatriculation..."
+                                placeholder="Rechercher par véhicule, technicien ou notes..."
                                 className="pl-10"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
+
+                        <Select value={filterVehicle} onValueChange={setFilterVehicle}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Filtrer par véhicule" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tous les véhicules</SelectItem>
+                                {vehicles.map(vehicle => (
+                                    <SelectItem key={vehicle._id} value={vehicle._id}>
+                                        {vehicle.licensePlate} - {vehicle.brand} {vehicle.model}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
 
                         <Select value={filterType} onValueChange={setFilterType}>
                             <SelectTrigger>
@@ -402,14 +373,16 @@ const VehiclesList = () => {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Tous les types</SelectItem>
-                                <SelectItem value="taxi">Taxi</SelectItem>
-                                <SelectItem value="moto">Moto</SelectItem>
+                                <SelectItem value="oil_change">Vidange</SelectItem>
+                                <SelectItem value="tire_replacement">Changement pneus</SelectItem>
+                                <SelectItem value="engine">Moteur</SelectItem>
+                                <SelectItem value="other">Autre</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
                     {/* Bouton pour réinitialiser les filtres */}
-                    {(searchTerm || filterType !== 'all') && (
+                    {(searchTerm || filterVehicle !== 'all' || filterType !== 'all') && (
                         <div className="flex justify-end mb-4">
                             <Button variant="ghost" onClick={resetFilters}>
                                 Réinitialiser les filtres
@@ -419,64 +392,72 @@ const VehiclesList = () => {
 
                     {/* Onglets pour filtrer par statut */}
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-                        <TabsList className="grid grid-cols-4">
-                            <TabsTrigger value="all">Tous les véhicules</TabsTrigger>
-                            <TabsTrigger value="active">Actifs</TabsTrigger>
-                            <TabsTrigger value="inactive">Inactifs</TabsTrigger>
-                            <TabsTrigger value="maintenance">En maintenance</TabsTrigger>
+                        <TabsList className="grid grid-cols-3">
+                            <TabsTrigger value="all">Toutes les maintenances</TabsTrigger>
+                            <TabsTrigger value="active">En cours</TabsTrigger>
+                            <TabsTrigger value="completed">Terminées</TabsTrigger>
                         </TabsList>
                     </Tabs>
 
-                    {/* Tableau des véhicules */}
+                    {/* Tableau des maintenances */}
                     {loading ? (
                         <div className="flex justify-center items-center py-10">
-                            <p>Chargement des véhicules...</p>
+                            <p>Chargement des maintenances...</p>
                         </div>
-                    ) : filteredVehicles.length === 0 ? (
+                    ) : filteredMaintenances.length === 0 ? (
                         <div className="text-center py-10">
-                            <p className="text-muted-foreground">Aucun véhicule trouvé</p>
+                            <p className="text-muted-foreground">Aucune maintenance trouvée</p>
                         </div>
                     ) : (
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Immatriculation</TableHead>
-                                    <TableHead>Marque / Modèle</TableHead>
-                                    <TableHead>Mise en service</TableHead>
+                                    <TableHead>Véhicule</TableHead>
+                                    <TableHead>Type/Nature</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Technicien</TableHead>
+                                    <TableHead>Coût</TableHead>
                                     <TableHead>Statut</TableHead>
-                                    <TableHead>Chauffeur</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredVehicles.map((vehicle) => (
-                                    <TableRow key={vehicle._id}>
-                                        <TableCell className="flex items-center gap-2">
-                                            {getVehicleIcon(vehicle.type)}
-                                            {vehicle.type === 'taxi' ? 'Taxi' : 'Moto'}
-                                        </TableCell>
+                                {filteredMaintenances.map((maintenance) => (
+                                    <TableRow key={maintenance._id}>
                                         <TableCell className="font-medium">
-                                            {vehicle.licensePlate}
+                                            {maintenance.vehicle?.licensePlate} - {maintenance.vehicle?.brand} {maintenance.vehicle?.model}
                                         </TableCell>
                                         <TableCell>
-                                            {vehicle.brand} {vehicle.model}
+                                            <div className="flex flex-col">
+                                                <span>{getTypeLabel(maintenance.maintenanceType)}</span>
+                                                <span className="text-sm text-muted-foreground">
+                                                    {getNatureLabel(maintenance.maintenanceNature)}
+                                                </span>
+                                            </div>
                                         </TableCell>
                                         <TableCell>
-                                            {vehicle.serviceEntryDate ? format(new Date(vehicle.serviceEntryDate), 'dd MMM yyyy', { locale: fr }) : '-'}
+                                            {maintenance.maintenanceDate ? format(new Date(maintenance.maintenanceDate), 'dd MMM yyyy', { locale: fr }) : '-'}
+                                            {maintenance.completionDate && (
+                                                <span className="block text-sm text-muted-foreground">
+                                                    au {format(new Date(maintenance.completionDate), 'dd MMM yyyy', { locale: fr })}
+                                                </span>
+                                            )}
                                         </TableCell>
                                         <TableCell>
-                                            {getStatusBadge(vehicle.status)}
+                                            {maintenance.technicianName || '-'}
                                         </TableCell>
                                         <TableCell>
-                                            {getDriverInfo(vehicle.currentDriver)}
+                                            {maintenance.cost ? `${maintenance.cost} FCFA` : '-'}
+                                        </TableCell>
+                                        <TableCell>
+                                            {getStatusBadge(maintenance.completed)}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end space-x-2">
                                                 <Button
                                                     variant="outline"
                                                     size="icon"
-                                                    onClick={() => handleViewDetails(vehicle._id)}
+                                                    onClick={() => handleViewDetails(maintenance._id)}
                                                     className="text-muted-foreground hover:text-primary"
                                                 >
                                                     <Eye className="h-4 w-4" />
@@ -484,7 +465,7 @@ const VehiclesList = () => {
                                                 <Button
                                                     variant="outline"
                                                     size="icon"
-                                                    onClick={() => handleOpenForm(vehicle)}
+                                                    onClick={() => handleOpenForm(maintenance)}
                                                 >
                                                     <EditIcon className="h-4 w-4" />
                                                 </Button>
@@ -492,7 +473,7 @@ const VehiclesList = () => {
                                                     variant="outline"
                                                     size="icon"
                                                     className="text-red-500"
-                                                    onClick={() => confirmDelete(vehicle)}
+                                                    onClick={() => confirmDelete(maintenance)}
                                                 >
                                                     <TrashIcon className="h-4 w-4" />
                                                 </Button>
@@ -511,106 +492,140 @@ const VehiclesList = () => {
                 <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>
-                            {selectedVehicle ? 'Modifier un véhicule' : 'Ajouter un véhicule'}
+                            {selectedMaintenance ? 'Modifier une maintenance' : 'Ajouter une maintenance'}
                         </DialogTitle>
                         <DialogDescription>
-                            {selectedVehicle
-                                ? 'Modifiez les détails de ce véhicule'
-                                : 'Remplissez les informations pour ajouter un nouveau véhicule'}
+                            {selectedMaintenance
+                                ? 'Modifiez les détails de cette maintenance'
+                                : 'Remplissez les informations pour ajouter une nouvelle maintenance'}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label htmlFor="type">Type de véhicule</label>
+                                <label htmlFor="vehicle">Véhicule</label>
                                 <Select
-                                    name="type"
-                                    value={formData.type}
-                                    onValueChange={(value) => setFormData({ ...formData, type: value })}
+                                    name="vehicle"
+                                    value={formData.vehicle}
+                                    onValueChange={(value) => setFormData({ ...formData, vehicle: value })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Sélectionner un véhicule" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {vehicles.map(vehicle => (
+                                            <SelectItem key={vehicle._id} value={vehicle._id}>
+                                                {vehicle.licensePlate} - {vehicle.brand} {vehicle.model}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="maintenanceType">Type de maintenance</label>
+                                <Select
+                                    name="maintenanceType"
+                                    value={formData.maintenanceType}
+                                    onValueChange={(value) => setFormData({ ...formData, maintenanceType: value })}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sélectionner un type" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="taxi">Taxi</SelectItem>
-                                        <SelectItem value="moto">Moto</SelectItem>
+                                        <SelectItem value="oil_change">Vidange</SelectItem>
+                                        <SelectItem value="tire_replacement">Changement pneus</SelectItem>
+                                        <SelectItem value="engine">Moteur</SelectItem>
+                                        <SelectItem value="other">Autre</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-2">
-                                <label htmlFor="licensePlate">Immatriculation</label>
-                                <Input
-                                    name="licensePlate"
-                                    value={formData.licensePlate}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label htmlFor="brand">Marque</label>
-                                <Input
-                                    name="brand"
-                                    value={formData.brand}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label htmlFor="model">Modèle</label>
-                                <Input
-                                    name="model"
-                                    value={formData.model}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label htmlFor="registrationDate">Date d'immatriculation</label>
-                                <Input
-                                    type="date"
-                                    name="registrationDate"
-                                    value={formData.registrationDate}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label htmlFor="serviceEntryDate">Date de mise en service</label>
-                                <Input
-                                    type="date"
-                                    name="serviceEntryDate"
-                                    value={formData.serviceEntryDate}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label htmlFor="status">Statut</label>
+                                <label htmlFor="maintenanceNature">Nature de maintenance</label>
                                 <Select
-                                    name="status"
-                                    value={formData.status}
-                                    onValueChange={(value) => setFormData({ ...formData, status: value })}
+                                    name="maintenanceNature"
+                                    value={formData.maintenanceNature}
+                                    onValueChange={(value) => setFormData({ ...formData, maintenanceNature: value })}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Sélectionner un statut" />
+                                        <SelectValue placeholder="Sélectionner une nature" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="active">Actif</SelectItem>
-                                        <SelectItem value="inactive">Inactif</SelectItem>
-
+                                        <SelectItem value="preventive">Préventive</SelectItem>
+                                        <SelectItem value="corrective">Corrective</SelectItem>
+                                        <SelectItem value="predictive">Prédictive</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="dailyIncomeTarget">Objectif journalier (FCFA)</label>
+                                <label htmlFor="technicianName">Technicien</label>
                                 <Input
-                                    type="number"
-                                    name="dailyIncomeTarget"
-                                    value={formData.dailyIncomeTarget}
+                                    name="technicianName"
+                                    value={formData.technicianName}
+                                    onChange={handleInputChange}
+                                    placeholder="Nom du technicien"
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label htmlFor="maintenanceDate">Date de début</label>
+                                <Input
+                                    type="date"
+                                    name="maintenanceDate"
+                                    value={formData.maintenanceDate}
                                     onChange={handleInputChange}
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <label htmlFor="completionDate">Date de fin</label>
+                                <Input
+                                    type="date"
+                                    name="completionDate"
+                                    value={formData.completionDate}
+                                    onChange={handleInputChange}
+                                    disabled={!formData.completed}
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label htmlFor="cost">Coût (FCFA)</label>
+                                <Input
+                                    type="number"
+                                    name="cost"
+                                    value={formData.cost}
+                                    onChange={handleInputChange}
+                                    min="0"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="duration">Durée (Jours)</label>
+                                <Input
+                                    type="number"
+                                    name="duration"
+                                    value={formData.duration}
+                                    onChange={handleInputChange}
+                                    min="1"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label htmlFor="completed">Statut</label>
+                            <Select
+                                name="completed"
+                                value={formData.completed ? 'true' : 'false'}
+                                onValueChange={(value) => setFormData({ ...formData, completed: value === 'true' })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Sélectionner un statut" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="false">En cours</SelectItem>
+                                    <SelectItem value="true">Terminée</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-2">
                             <label htmlFor="notes">Notes</label>
@@ -627,7 +642,7 @@ const VehiclesList = () => {
                         {/* Section de gestion des photos */}
                         <div className="space-y-4 mt-2">
                             <div className="flex items-center justify-between">
-                                <label className="text-base font-medium">Photos du véhicule</label>
+                                <label className="text-base font-medium">Photos de la maintenance</label>
                                 <Button variant="outline" asChild>
                                     <label className="cursor-pointer">
                                         <ImageIcon className="mr-2 h-4 w-4" />
@@ -692,7 +707,7 @@ const VehiclesList = () => {
                             Annuler
                         </Button>
                         <Button onClick={handleSubmit}>
-                            {selectedVehicle ? 'Mettre à jour' : 'Créer'}
+                            {selectedMaintenance ? 'Mettre à jour' : 'Créer'}
                         </Button>
                     </div>
                 </DialogContent>
@@ -704,7 +719,7 @@ const VehiclesList = () => {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Êtes-vous sûr de vouloir supprimer ce véhicule ? Cette action est irréversible.
+                            Êtes-vous sûr de vouloir supprimer cette maintenance ? Cette action est irréversible.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -719,4 +734,4 @@ const VehiclesList = () => {
     );
 };
 
-export default VehiclesList;
+export default MaintenancesList;

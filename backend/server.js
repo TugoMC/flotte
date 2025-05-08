@@ -28,6 +28,7 @@ app.use('/api/vehicles', require('./routes/vehicleRoutes'));
 app.use('/api/drivers', require('./routes/driverRoutes'));
 app.use('/api/schedules', require('./routes/scheduleRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
+app.use('/api/maintenances', require('./routes/maintenanceRoutes'));
 
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

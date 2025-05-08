@@ -1,21 +1,22 @@
 // src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
-
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Dashboard from '@/pages/Dashboard';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
-import VehiclesList from '@/pages/VehiclesList';
-import DriversList from '@/pages/DriversList';
-import SchedulesList from '@/pages/SchedulesList';
-import PaymentsList from '@/pages/PaymentsList';
 import Profile from '@/pages/Profile';
 import NotFound from '@/pages/NotFound';
-import VehicleDetail from '@/pages/VehicleDetail';
+import SchedulesList from '@/pages/SchedulesList';
+import DriversList from '@/pages/DriversList';
 import DriverDetail from '@/pages/DriverDetail';
+import PaymentsList from '@/pages/PaymentsList';
 import PaymentDetail from './pages/PaymentDetail';
+import VehiclesList from '@/pages/VehiclesList';
+import VehicleDetail from '@/pages/VehicleDetail';
+import MaintenancesList from './pages/MaintenancesList';
+import MaintenanceDetail from './pages/MaintenanceDetail';
 
 function App() {
   return (
@@ -77,6 +78,18 @@ function App() {
           <Route path="payments/:id" element={
             <ProtectedRoute requiredRole="manager">
               <PaymentDetail />
+            </ProtectedRoute>
+          } />
+
+          <Route path="maintenances" element={
+            <ProtectedRoute requiredRole="manager">
+              <MaintenancesList />
+            </ProtectedRoute>
+          } />
+
+          <Route path="maintenances/:id" element={
+            <ProtectedRoute requiredRole="manager">
+              <MaintenanceDetail />
             </ProtectedRoute>
           } />
 

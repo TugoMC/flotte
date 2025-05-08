@@ -13,6 +13,8 @@ const storage = multer.diskStorage({
             uploadDir = 'uploads/vehicles/';
         } else if (req.originalUrl.includes('/drivers')) {
             uploadDir = 'uploads/drivers/';
+        } else if (req.originalUrl.includes('/maintenance')) {
+            uploadDir = 'uploads/maintenance/';
         } else {
             uploadDir = 'uploads/other/';
         }

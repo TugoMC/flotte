@@ -1,32 +1,42 @@
-// src/pages/VehicleDetail.jsx
+// src/pages/MaintenanceDetail.jsx
 import React, { useState, useEffect } from 'react';
-import {
-    DialogClose,
-} from "@/components/ui/dialog";
-import { Info as InfoIcon } from "lucide-react";
-import { Lightbox } from "../components/Lightbox";
 import { useParams, useNavigate } from 'react-router-dom';
-import { vehicleService } from '../services/vehicleService';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { maintenanceService } from '@/services/api';
+import { vehicleService } from '@/services/api';
+import { toast } from 'sonner';
 import {
-
     ArrowLeft,
     Edit,
-    User,
-    UserMinus,
     Camera,
-
     Wrench,
     CheckCircle2,
     XCircle,
     X,
-
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Info,
+    Trash2,
+    AlertCircle
 } from 'lucide-react';
 
-
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogClose,
+} from '@/components/ui/dialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,106 +47,79 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { duration } from '@mui/material';
 
 const API_BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:5000';
 
-
-
-const VehicleDetail = () => {
+const MaintenanceDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [maintenance, setMaintenance] = useState(null);
     const [vehicle, setVehicle] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [refreshKey, setRefreshKey] = useState(0);
     const [lightboxOpen, setLightboxOpen] = useState(false);
-    // États pour le carrousel
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-
-    // États pour les dialogs
-
-    const [openTargetDialog, setOpenTargetDialog] = useState(false);
-    const [openPhotoDialog, setOpenPhotoDialog] = useState(false);
     const [openEditDialog, setOpenEditDialog] = useState(false);
-
-    // États pour les formulaires
-    const [newStatus, setNewStatus] = useState('');
-    const [dailyTarget, setDailyTarget] = useState('');
-
-    // État pour les photos
+    const [openPhotoDialog, setOpenPhotoDialog] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [previewImages, setPreviewImages] = useState([]);
     const [photoUploadError, setPhotoUploadError] = useState('');
 
-    // État pour le formulaire d'édition
-    const [editFormData, setEditFormData] = useState({
-        type: '',
-        licensePlate: '',
-        brand: '',
-        model: '',
-        registrationDate: '',
-        serviceEntryDate: '',
-        status: '',
+    const [formData, setFormData] = useState({
+        vehicle: '',
+        maintenanceType: 'oil_change',
+        maintenanceNature: 'preventive',
+        maintenanceDate: '',
+        completionDate: '',
+        cost: '',
+        duration: '',
+        technicianName: '',
         notes: '',
-        dailyIncomeTarget: ''
+        description: '',
+        completed: false
     });
 
     useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (lightboxOpen) {
-                if (e.key === 'ArrowRight') {
-                    nextPhoto();
-                } else if (e.key === 'ArrowLeft') {
-                    prevPhoto();
-                } else if (e.key === 'Escape') {
-                    setLightboxOpen(false);
-                }
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [lightboxOpen, currentPhotoIndex, vehicle?.photos]);
-
-    // Récupération des données du véhicule
-    useEffect(() => {
-        const fetchVehicleDetails = async () => {
+        const fetchMaintenanceDetails = async () => {
             setLoading(true);
             try {
-                const response = await vehicleService.getById(id);
-                const vehicleData = response.data;
+                const response = await maintenanceService.getById(id);
+                const maintenanceData = response.data;
+                setMaintenance(maintenanceData);
 
-                setVehicle(vehicleData);
-                setNewStatus(vehicleData.status);
-                setDailyTarget(vehicleData.dailyIncomeTarget || '');
+                // Récupérer les détails du véhicule associé
+                if (maintenanceData.vehicle) {
+                    const vehicleRes = await vehicleService.getById(maintenanceData.vehicle._id);
+                    setVehicle(vehicleRes.data);
+                }
 
-                setEditFormData({
-                    ...vehicleData,
-                    registrationDate: vehicleData.registrationDate ?
-                        format(new Date(vehicleData.registrationDate), 'yyyy-MM-dd') : '',
-                    serviceEntryDate: vehicleData.serviceEntryDate ?
-                        format(new Date(vehicleData.serviceEntryDate), 'yyyy-MM-dd') : ''
+                // Remplir le formulaire
+                setFormData({
+                    vehicle: maintenanceData.vehicle?._id || '',
+                    maintenanceType: maintenanceData.maintenanceType || 'oil_change',
+                    maintenanceNature: maintenanceData.maintenanceNature || 'preventive',
+                    maintenanceDate: maintenanceData.maintenanceDate ?
+                        format(new Date(maintenanceData.maintenanceDate), 'yyyy-MM-dd') : '',
+                    completionDate: maintenanceData.completionDate ?
+                        format(new Date(maintenanceData.completionDate), 'yyyy-MM-dd') : '',
+                    cost: maintenanceData.cost || '',
+                    duration: maintenanceData.duration || '',
+                    technicianName: maintenanceData.technicianName || '',
+                    notes: maintenanceData.notes || '',
+                    description: maintenanceData.description || '',
+                    completed: maintenanceData.completed || false
                 });
 
                 setError(null);
             } catch (err) {
-                setError("Erreur lors du chargement des détails du véhicule: " +
+                setError("Erreur lors du chargement des détails de la maintenance: " +
                     (err.response?.data?.message || err.message));
                 console.error("Erreur:", err);
             } finally {
@@ -144,8 +127,28 @@ const VehicleDetail = () => {
             }
         };
 
-        fetchVehicleDetails();
+        fetchMaintenanceDetails();
     }, [id, refreshKey]);
+
+    const [formErrors, setFormErrors] = useState({
+        vehicle: false,
+        maintenanceType: false,
+        maintenanceNature: false,
+        maintenanceDate: false,
+        duration: false
+    });
+
+    const validateForm = () => {
+        const errors = {
+            vehicle: !formData.vehicle,
+            maintenanceType: !formData.maintenanceType,
+            maintenanceNature: !formData.maintenanceNature,
+            maintenanceDate: !formData.maintenanceDate
+        };
+
+        setFormErrors(errors);
+        return !Object.values(errors).some(error => error);
+    };
 
     const formatDate = (dateString) => {
         if (!dateString) return '—';
@@ -156,31 +159,84 @@ const VehicleDetail = () => {
         }
     };
 
-    // Actions sur le véhicule
-    const handleSetDailyTarget = async () => {
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+    };
+
+    const handleUpdateMaintenance = async () => {
+        // Validation des champs obligatoires
+        if (!validateForm()) {
+            toast.error("Veuillez remplir tous les champs obligatoires");
+            return;
+        }
+
+        // Vérification des valeurs numériques
+        if (formData.cost && formData.cost < 0) {
+            toast.error("Le coût ne peut pas être négatif");
+            return;
+        }
+
+        if (formData.duration && formData.duration <= 0) {
+            toast.error("La durée doit être positive");
+            return;
+        }
+
+        // Vérification des dates
+        if (formData.completionDate && formData.maintenanceDate &&
+            new Date(formData.completionDate) < new Date(formData.maintenanceDate)) {
+            toast.error("La date de fin ne peut pas être antérieure à la date de début");
+            return;
+        }
+
         try {
-            await vehicleService.setDailyTarget(id, dailyTarget);
-            setOpenTargetDialog(false);
+            await maintenanceService.update(id, formData);
+            toast.success("Maintenance mise à jour avec succès");
+            setOpenEditDialog(false);
             setRefreshKey(oldKey => oldKey + 1);
         } catch (err) {
-            alert("Erreur lors de la définition de l'objectif: " + (err.response?.data?.message || err.message));
+            console.error("Détails de l'erreur:", err.response?.data);
+            toast.error(`Erreur lors de la mise à jour: ${err.response?.data?.message || err.message}`);
+        }
+    };
+
+    const handleCompleteMaintenance = async () => {
+        try {
+            await maintenanceService.completeMaintenance(id);
+            toast.success("Maintenance marquée comme terminée");
+            setRefreshKey(oldKey => oldKey + 1);
+        } catch (err) {
+            toast.error("Erreur: " + (err.response?.data?.message || err.message));
             console.error("Erreur:", err);
+        }
+    };
+
+    const handleDeleteMaintenance = async () => {
+        if (window.confirm("Êtes-vous sûr de vouloir supprimer cette maintenance ?")) {
+            try {
+                await maintenanceService.delete(id);
+                toast.success("Maintenance supprimée avec succès");
+                navigate('/maintenances');
+            } catch (err) {
+                toast.error("Erreur lors de la suppression: " + (err.response?.data?.message || err.message));
+                console.error("Erreur:", err);
+            }
         }
     };
 
     // Navigation du carrousel
     const nextPhoto = () => {
-        if (vehicle?.photos && vehicle.photos.length > 0) {
+        if (maintenance?.photos && maintenance.photos.length > 0) {
             setCurrentPhotoIndex((prevIndex) =>
-                prevIndex === vehicle.photos.length - 1 ? 0 : prevIndex + 1
+                prevIndex === maintenance.photos.length - 1 ? 0 : prevIndex + 1
             );
         }
     };
 
     const prevPhoto = () => {
-        if (vehicle?.photos && vehicle.photos.length > 0) {
+        if (maintenance?.photos && maintenance.photos.length > 0) {
             setCurrentPhotoIndex((prevIndex) =>
-                prevIndex === 0 ? vehicle.photos.length - 1 : prevIndex - 1
+                prevIndex === 0 ? maintenance.photos.length - 1 : prevIndex - 1
             );
         }
     };
@@ -227,7 +283,8 @@ const VehicleDetail = () => {
         }
 
         try {
-            await vehicleService.uploadPhotos(id, selectedFiles);
+            await maintenanceService.uploadPhotos(id, selectedFiles);
+            toast.success("Photos ajoutées avec succès");
             setOpenPhotoDialog(false);
             setSelectedFiles([]);
             setPreviewImages([]);
@@ -241,58 +298,50 @@ const VehicleDetail = () => {
     const handleDeletePhoto = async (photoIndex) => {
         if (window.confirm("Êtes-vous sûr de vouloir supprimer cette photo ?")) {
             try {
-                await vehicleService.deletePhoto(id, photoIndex);
+                await maintenanceService.deletePhoto(id, photoIndex);
+                toast.success("Photo supprimée avec succès");
                 setRefreshKey(oldKey => oldKey + 1);
             } catch (err) {
-                alert("Erreur lors de la suppression de la photo: " + (err.response?.data?.message || err.message));
+                toast.error("Erreur lors de la suppression: " + (err.response?.data?.message || err.message));
                 console.error("Erreur:", err);
             }
         }
     };
 
-    // Édition des informations du véhicule
-    const handleEditInputChange = (e) => {
-        const { name, value } = e.target;
-        setEditFormData({ ...editFormData, [name]: value });
+    const getTypeLabel = (type) => {
+        const types = {
+            oil_change: 'Vidange',
+            tire_replacement: 'Changement pneus',
+            engine: 'Moteur',
+            other: 'Autre'
+        };
+        return types[type] || type;
     };
 
-    const handleUpdateVehicle = async () => {
-        try {
-            await vehicleService.update(id, editFormData);
-            setOpenEditDialog(false);
-            setRefreshKey(oldKey => oldKey + 1);
-        } catch (err) {
-            alert("Erreur lors de la mise à jour du véhicule: " + (err.response?.data?.message || err.message));
-            console.error("Erreur:", err);
-        }
+    const getNatureLabel = (nature) => {
+        const natures = {
+            preventive: 'Préventive',
+            corrective: 'Corrective',
+            predictive: 'Prédictive'
+        };
+        return natures[nature] || nature;
     };
 
-    // Rendu du statut avec badge
-    const renderStatus = (status) => {
-        let variant = 'default';
-        let icon = null;
-
-        switch (status) {
-            case 'active':
-                return <Badge variant="outline" className="bg-green-50 text-green-800 border-green-300">actif</Badge>;
-
-            case 'inactive':
-                return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">inactif</Badge>;
-            case 'maintenance':
-                return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">en maintenance</Badge>;
-            default:
-                variant = 'default';
-        }
-
-        return (
-            <Badge variant={variant} className="px-3 py-1 text-sm">
-                {icon}
-                {status}
+    const renderStatus = (completed) => {
+        return completed ? (
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                <CheckCircle2 className="w-4 h-4 mr-1" />
+                Terminée
+            </Badge>
+        ) : (
+            <Badge variant="outline" className="ml-2 bg-yellow-50 text-yellow-700 border-yellow-200">
+                <Wrench className="w-4 h-4 mr-1" />
+                En cours
             </Badge>
         );
     };
 
-    if (loading && !vehicle) {
+    if (loading && !maintenance) {
         return (
             <div className="flex items-center justify-center h-[50vh]">
                 <div className="flex flex-col space-y-3">
@@ -306,7 +355,7 @@ const VehicleDetail = () => {
         );
     }
 
-    if (error && !vehicle) {
+    if (error && !maintenance) {
         return (
             <div className="container">
                 <Alert variant="destructive" className="mt-4">
@@ -315,7 +364,7 @@ const VehicleDetail = () => {
                 </Alert>
                 <Button
                     variant="outline"
-                    onClick={() => navigate('/vehicles')}
+                    onClick={() => navigate('/maintenances')}
                     className="mt-4"
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" />
@@ -325,53 +374,55 @@ const VehicleDetail = () => {
         );
     }
 
-    if (!vehicle) return null;
+    if (!maintenance) return null;
 
     return (
         <div className="container max-w-6xl py-4">
-            <Button
-                variant="outline"
-                onClick={() => navigate(-1)}
-                className="mb-4 mr-4" // ← Ajout de mr-4 (margin-right: 1rem)
-            >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Retour
-            </Button>
-            <Button
-                variant="outline"
-                onClick={() => navigate('/vehicles')}
-                className="mb-4"
-            >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Retour à la liste
-            </Button>
+            <div className="flex space-x-2 mb-4">
+                <Button
+                    variant="outline"
+                    onClick={() => navigate(-1)}
+                    className="mb-4"
+                >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Retour
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => navigate('/maintenances')}
+                    className="mb-4"
+                >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Retour à la liste
+                </Button>
+            </div>
+
             {/* Photo Carousel */}
             <div className="mb-6 relative w-full h-80 rounded-lg overflow-hidden">
-                {vehicle.photos && vehicle.photos.length > 0 ? (
+                {maintenance.photos && maintenance.photos.length > 0 ? (
                     <>
                         <button
                             onClick={() => setLightboxOpen(true)}
                             className="w-full h-full focus:outline-none"
                         >
                             <img
-                                src={vehicle.photos[currentPhotoIndex]?.startsWith('http')
-                                    ? vehicle.photos[currentPhotoIndex]
-                                    : `${API_BASE_URL}/${vehicle.photos[currentPhotoIndex]}`}
-                                alt={`Photo du véhicule ${vehicle.brand} ${vehicle.model}`}
+                                src={maintenance.photos[currentPhotoIndex]?.startsWith('http')
+                                    ? maintenance.photos[currentPhotoIndex]
+                                    : `${API_BASE_URL}/${maintenance.photos[currentPhotoIndex]}`}
+                                alt={`Photo de la maintenance`}
                                 className="w-full h-full object-cover cursor-zoom-in"
                             />
                         </button>
-
 
                         {/* Lightbox Dialog */}
                         <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
                             <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-black border-none">
                                 <div className="relative w-full h-full flex items-center justify-center">
                                     <img
-                                        src={vehicle.photos[currentPhotoIndex]?.startsWith('http')
-                                            ? vehicle.photos[currentPhotoIndex]
-                                            : `${API_BASE_URL}/${vehicle.photos[currentPhotoIndex]}`}
-                                        alt={`Photo du véhicule ${vehicle.brand} ${vehicle.model}`}
+                                        src={maintenance.photos[currentPhotoIndex]?.startsWith('http')
+                                            ? maintenance.photos[currentPhotoIndex]
+                                            : `${API_BASE_URL}/${maintenance.photos[currentPhotoIndex]}`}
+                                        alt={`Photo de la maintenance`}
                                         className="max-w-full max-h-full object-contain"
                                     />
 
@@ -407,14 +458,13 @@ const VehicleDetail = () => {
 
                                     {/* Photo counter */}
                                     <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                                        {currentPhotoIndex + 1} / {vehicle.photos.length}
+                                        {currentPhotoIndex + 1} / {maintenance.photos.length}
                                     </div>
                                 </div>
                             </DialogContent>
                         </Dialog>
 
                         {/* Navigation buttons */}
-
                         <div className="absolute inset-0 flex items-center justify-between px-4 pointer-events-none">
                             <Button
                                 variant="outline"
@@ -436,7 +486,7 @@ const VehicleDetail = () => {
 
                         {/* Photo counter */}
                         <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                            {currentPhotoIndex + 1} / {vehicle.photos.length}
+                            {currentPhotoIndex + 1} / {maintenance.photos.length}
                         </div>
 
                         {/* Add photo button */}
@@ -466,24 +516,25 @@ const VehicleDetail = () => {
                 )}
             </div>
 
-            {/* Vehicle Details Container */}
+            {/* Maintenance Details Container */}
             <div className="bg-white rounded-lg p-6 shadow-sm">
-                {/* Header with title and edit button */}
+                {/* Header with title and action buttons */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-2xl font-bold">
-                            {`${vehicle.brand} ${vehicle.model} - ${vehicle.licensePlate}`}
+                            Maintenance #{maintenance._id.slice(-6).toUpperCase()}
                         </h1>
-                        <p className="text-gray-500">Détails du véhicule</p>
+                        <p className="text-gray-500">Détails de la maintenance</p>
                     </div>
                     <div className="flex space-x-2">
 
+
                         <Button
                             variant="outline"
-                            size="icon"
                             onClick={() => setOpenEditDialog(true)}
                         >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-4 w-4 mr-2" />
+                            Modifier
                         </Button>
                     </div>
                 </div>
@@ -491,102 +542,85 @@ const VehicleDetail = () => {
                 {/* Details List */}
                 <div className="space-y-4">
                     {/* Statut */}
+
                     <div className="py-3">
                         <div className="flex justify-between items-center">
                             <div className="flex items-center space-x-4">
                                 <span className="text-sm font-medium text-gray-500">Statut:</span>
-                                {renderStatus(vehicle.status)}
+                                {renderStatus(maintenance.completed)}
                             </div>
                         </div>
                     </div>
                     <Separator />
 
-                    {/* Chauffeur */}
+                    {/* Véhicule */}
                     <div className="py-3">
                         <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-500">Chauffeur:</span>
-                            <span>
-                                {vehicle.currentDriver
-                                    ? `${vehicle.currentDriver.firstName} ${vehicle.currentDriver.lastName}`
-                                    : 'Non assigné'}
-                            </span>
+                            <span className="text-sm font-medium text-gray-500">Véhicule:</span>
+                            <span>{maintenance.vehicle.brand} - {maintenance.vehicle.model} - {maintenance.vehicle.licensePlate}</span>
                         </div>
                     </div>
-
                     <Separator />
 
                     {/* Type */}
                     <div className="py-3">
                         <div className="flex justify-between items-center">
                             <span className="text-sm font-medium text-gray-500">Type:</span>
-                            <span>{vehicle.type === 'taxi' ? 'Taxi' : 'Moto'}</span>
+                            <span>{getTypeLabel(maintenance.maintenanceType)}</span>
                         </div>
                     </div>
                     <Separator />
 
-                    {/* Immatriculation */}
+                    {/* Nature */}
                     <div className="py-3">
                         <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-500">Immatriculation:</span>
-                            <span>{vehicle.licensePlate}</span>
+                            <span className="text-sm font-medium text-gray-500">Nature:</span>
+                            <span>{getNatureLabel(maintenance.maintenanceNature)}</span>
                         </div>
                     </div>
                     <Separator />
 
-                    {/* Marque */}
+                    {/* Date de début */}
                     <div className="py-3">
                         <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-500">Marque:</span>
-                            <span>{vehicle.brand}</span>
+                            <span className="text-sm font-medium text-gray-500">Date de début de maintenance:</span>
+                            <span>{formatDate(maintenance.maintenanceDate)}</span>
                         </div>
                     </div>
                     <Separator />
 
-                    {/* Modèle */}
+                    {/* Date de fin */}
                     <div className="py-3">
                         <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-500">Modèle:</span>
-                            <span>{vehicle.model}</span>
+                            <span className="text-sm font-medium text-gray-500">Date de fin de maintenance:</span>
+                            <span>{maintenance.completionDate ? formatDate(maintenance.completionDate) : '—'}</span>
                         </div>
                     </div>
                     <Separator />
 
-                    {/* Date d'immatriculation */}
+                    {/* Technicien */}
                     <div className="py-3">
                         <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-500">Date d'immatriculation:</span>
-                            <span>{formatDate(vehicle.registrationDate)}</span>
+                            <span className="text-sm font-medium text-gray-500">Technicien:</span>
+                            <span>{maintenance.technicianName || '—'}</span>
                         </div>
                     </div>
                     <Separator />
 
-                    {/* Date de mise en service */}
+                    {/* Coût */}
                     <div className="py-3">
                         <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-500">Date de mise en service:</span>
-                            <span>{formatDate(vehicle.serviceEntryDate)}</span>
+                            <span className="text-sm font-medium text-gray-500">Coût:</span>
+                            <span>{maintenance.cost ? `${maintenance.cost} FCFA` : '—'}</span>
                         </div>
                     </div>
                     <Separator />
 
-                    {/* Objectif journalier */}
+                    {/* Durée */}
                     <div className="py-3">
                         <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-500">Objectif journalier:</span>
-                            <div className="flex items-center space-x-2">
-                                <span>{vehicle.dailyIncomeTarget ? `${vehicle.dailyIncomeTarget.toLocaleString()} FCFA` : 'Non défini'}</span>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={() => {
-                                        setDailyTarget(vehicle.dailyIncomeTarget || '');
-                                        setOpenTargetDialog(true);
-                                    }}
-                                >
-                                    <Edit className="h-3 w-3" />
-                                </Button>
-                            </div>
+                            <span className="text-sm font-medium text-gray-500">Durée d'immobilisation du véhicule (Sans travailler):</span>
+                            <span>{maintenance.duration ? `${maintenance.duration} jours` : '—'}</span>
                         </div>
                     </div>
                     <Separator />
@@ -595,60 +629,35 @@ const VehicleDetail = () => {
                     <div className="py-3">
                         <div className="space-y-2">
                             <span className="text-sm font-medium text-gray-500">Notes:</span>
-                            <p className="text-sm">{vehicle.notes || 'Aucune note pour ce véhicule.'}</p>
+                            <p className="text-sm">{maintenance.notes || 'Aucune note pour cette maintenance.'}</p>
+                        </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Description */}
+                    <div className="py-3">
+                        <div className="space-y-2">
+                            <span className="text-sm font-medium text-gray-500">Description:</span>
+                            <p className="text-sm">{maintenance.description || 'Aucune description pour cette maintenance.'}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-
-
-            {/* Dialog pour définir l'objectif journalier */}
-            <Dialog open={openTargetDialog} onOpenChange={setOpenTargetDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Définir l'objectif journalier</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="target" className="text-right">
-                                Montant (FCFA)
-                            </Label>
-                            <Input
-                                id="target"
-                                type="number"
-                                value={dailyTarget}
-                                onChange={(e) => setDailyTarget(e.target.value)}
-                                className="col-span-3"
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setOpenTargetDialog(false)}>
-                            Annuler
-                        </Button>
-                        <Button onClick={handleSetDailyTarget}>Confirmer</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-
-
-
             {/* Dialog pour ajouter des photos */}
             <Dialog open={openPhotoDialog} onOpenChange={setOpenPhotoDialog}>
-                <DialogContent className="max-w-[95vw] w-[900px] h-[600px] flex flex-col"> {/* Augmentation de la taille */}
+                <DialogContent className="max-w-[95vw] w-[900px] h-[600px] flex flex-col">
                     <DialogHeader>
-                        <DialogTitle>Gérer les photos du véhicule</DialogTitle>
+                        <DialogTitle>Gérer les photos de la maintenance</DialogTitle>
                         <DialogDescription>
-                            {vehicle?.photos?.length || 0} photo(s) existante(s)
+                            {maintenance?.photos?.length || 0} photo(s) existante(s)
                         </DialogDescription>
                     </DialogHeader>
 
-                    {/* Message de conseil réduit pour gagner de l'espace */}
                     <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-4 py-2">
                         <div className="flex items-start gap-2">
-                            <InfoIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                            <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
                             <div>
                                 <AlertTitle className="text-sm">Conseils pour les photos</AlertTitle>
                                 <AlertDescription className="text-xs">
@@ -658,16 +667,15 @@ const VehicleDetail = () => {
                         </div>
                     </Alert>
 
-                    {/* Contenu principal avec scroll */}
-                    <div className="flex-1 overflow-auto space-y-4"> {/* Flex-1 pour prendre tout l'espace disponible */}
+                    <div className="flex-1 overflow-auto space-y-4">
                         {/* Section des photos existantes */}
-                        {vehicle?.photos && vehicle.photos.length > 0 && (
+                        {maintenance?.photos && maintenance.photos.length > 0 && (
                             <div className="space-y-2">
                                 <Label>Photos existantes</Label>
                                 <div className="border rounded-md p-2">
-                                    <div className="grid grid-cols-3 gap-3"> {/* Espacement augmenté */}
-                                        {vehicle.photos.map((photo, index) => (
-                                            <div key={index} className="relative group h-40"> {/* Hauteur augmentée */}
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {maintenance.photos.map((photo, index) => (
+                                            <div key={index} className="relative group h-40">
                                                 <img
                                                     src={photo.startsWith('http') ? photo : `${API_BASE_URL}/${photo}`}
                                                     alt={`Photo ${index + 1}`}
@@ -691,8 +699,7 @@ const VehicleDetail = () => {
                             </div>
                         )}
 
-                        {/* Séparateur seulement si les deux sections existent */}
-                        {(vehicle?.photos?.length > 0 && previewImages.length > 0) && (
+                        {(maintenance?.photos?.length > 0 && previewImages.length > 0) && (
                             <Separator className="my-2" />
                         )}
 
@@ -769,126 +776,194 @@ const VehicleDetail = () => {
                 </DialogContent>
             </Dialog>
 
-            {/* Dialog pour modifier le véhicule */}
+            {/* Dialog pour modifier la maintenance */}
             <Dialog open={openEditDialog} onOpenChange={setOpenEditDialog}>
-                <DialogContent className="sm:max-w-[625px]">
+                <DialogContent className="sm:max-w-[625px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Modifier le véhicule</DialogTitle>
+                        <DialogTitle>Modifier la maintenance</DialogTitle>
+                        <DialogDescription>
+                            Modifiez les détails de cette maintenance. Les champs marqués d'un * sont obligatoires.
+                        </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
+                    <div className="grid gap-4 py-4 overflow-y-auto">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="dailyIncomeTarget">Objectif journalier (FCFA)</Label>
-                                <Input
-                                    id="dailyIncomeTarget"
-                                    name="dailyIncomeTarget"
-                                    type="number"
-                                    value={editFormData.dailyIncomeTarget}
-                                    onChange={handleEditInputChange}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="type">Type de véhicule</Label>
+                                <Label htmlFor="vehicle">Véhicule</Label>
                                 <Select
-                                    name="type"
-                                    value={editFormData.type}
-                                    onValueChange={(value) => setEditFormData({ ...editFormData, type: value })}
+                                    name="vehicle"
+                                    value={formData.vehicle}
+                                    onValueChange={(value) => setFormData({ ...formData, vehicle: value })}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Sélectionner un type" />
+                                        <SelectValue placeholder="Sélectionner un véhicule" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="taxi">Taxi</SelectItem>
-                                        <SelectItem value="moto">Moto</SelectItem>
+                                        {vehicle && (
+                                            <SelectItem value={vehicle._id}>
+                                                {`${vehicle.licensePlate} - ${vehicle.brand} ${vehicle.model}`}
+                                            </SelectItem>
+                                        )}
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="licensePlate">Immatriculation</Label>
-                                <Input
-                                    id="licensePlate"
-                                    name="licensePlate"
-                                    value={editFormData.licensePlate}
-                                    onChange={handleEditInputChange}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="brand">Marque</Label>
-                                <Input
-                                    id="brand"
-                                    name="brand"
-                                    value={editFormData.brand}
-                                    onChange={handleEditInputChange}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="model">Modèle</Label>
-                                <Input
-                                    id="model"
-                                    name="model"
-                                    value={editFormData.model}
-                                    onChange={handleEditInputChange}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="registrationDate">Date d'immatriculation</Label>
-                                <Input
-                                    id="registrationDate"
-                                    name="registrationDate"
-                                    type="date"
-                                    value={editFormData.registrationDate}
-                                    onChange={handleEditInputChange}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="serviceEntryDate">Date de mise en service</Label>
-                                <Input
-                                    id="serviceEntryDate"
-                                    name="serviceEntryDate"
-                                    type="date"
-                                    value={editFormData.serviceEntryDate}
-                                    onChange={handleEditInputChange}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="status">Statut</Label>
+                                <Label htmlFor="maintenanceType">Type de maintenance *</Label>
                                 <Select
-                                    name="status"
-                                    value={editFormData.status}
-                                    onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}
+                                    name="maintenanceType"
+                                    value={formData.maintenanceType}
+                                    onValueChange={(value) => setFormData({ ...formData, maintenanceType: value })}
+                                >
+                                    <SelectTrigger className={formErrors.maintenanceType ? "border-red-500" : ""}>
+                                        <SelectValue placeholder="Sélectionner un type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="oil_change">Vidange</SelectItem>
+                                        <SelectItem value="tire_replacement">Changement pneus</SelectItem>
+                                        <SelectItem value="engine">Moteur</SelectItem>
+                                        <SelectItem value="other">Autre</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {formErrors.maintenanceType && (
+                                    <p className="text-sm text-red-500">Ce champ est obligatoire</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="maintenanceNature">Nature de maintenance *</Label>
+                                <Select
+                                    name="maintenanceNature"
+                                    value={formData.maintenanceNature}
+                                    onValueChange={(value) => setFormData({ ...formData, maintenanceNature: value })}
+                                >
+                                    <SelectTrigger className={formErrors.maintenanceNature ? "border-red-500" : ""}>
+                                        <SelectValue placeholder="Sélectionner une nature" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="preventive">Préventive</SelectItem>
+                                        <SelectItem value="corrective">Corrective</SelectItem>
+                                        <SelectItem value="predictive">Prédictive</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {formErrors.maintenanceNature && (
+                                    <p className="text-sm text-red-500">Ce champ est obligatoire</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="technicianName">Technicien</Label>
+                                <Input
+                                    id="technicianName"
+                                    name="technicianName"
+                                    value={formData.technicianName}
+                                    onChange={handleInputChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="maintenanceDate">Date de début de maintenance *</Label>
+                                <Input
+                                    id="maintenanceDate"
+                                    name="maintenanceDate"
+                                    type="date"
+                                    value={formData.maintenanceDate}
+                                    onChange={handleInputChange}
+                                    className={formErrors.maintenanceDate ? "border-red-500" : ""}
+                                />
+                                {formErrors.maintenanceDate && (
+                                    <p className="text-sm text-red-500">Ce champ est obligatoire</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="completionDate">Date de fin de maintenance</Label>
+                                <Input
+                                    id="completionDate"
+                                    name="completionDate"
+                                    type="date"
+                                    value={formData.completionDate}
+                                    onChange={handleInputChange}
+                                    disabled={!formData.completed}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="cost">Coût (FCFA)</Label>
+                                <Input
+                                    id="cost"
+                                    name="cost"
+                                    type="number"
+                                    value={formData.cost}
+                                    onChange={handleInputChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="duration">Durée d'immobilisation du véhicule (Sans travailler) en jours</Label>
+                                <Input
+                                    id="duration"
+                                    name="duration"
+                                    type="number"
+                                    value={formData.duration}
+                                    onChange={handleInputChange}
+                                    className={formErrors.maintenanceDate ? "border-red-500" : ""}
+                                />
+
+                                {formErrors.maintenanceDate && (
+                                    <p className="text-sm text-red-500">Ce champ est obligatoire</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="completed">Statut</Label>
+                                <Select
+                                    name="completed"
+                                    value={formData.completed ? 'true' : 'false'}
+                                    onValueChange={(value) => setFormData({ ...formData, completed: value === 'true' })}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sélectionner un statut" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="active">Actif</SelectItem>
-                                        <SelectItem value="inactive">Inactif</SelectItem>
+                                        <SelectItem value="false">En cours</SelectItem>
+                                        <SelectItem value="true">Terminée</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="notes">Notes</Label>
+                            <textarea
+                                id="notes"
+                                name="notes"
+                                value={formData.notes}
+                                onChange={handleInputChange}
+                                rows={3}
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Description</Label>
+                            <textarea
+                                id="description"
+                                name="description"
+                                value={formData.description}
+                                onChange={handleInputChange}
+                                rows={5}
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            />
+                        </div>
                     </div>
-                    <DialogFooter>
+
+                    <DialogFooter className="pt-4 border-t sticky bottom-0 bg-background">
                         <Button
                             variant="outline"
-                            onClick={() => {
-                                setOpenEditDialog(false);
-                                setEditFormData({});
-                            }} className="mr-2"
+                            onClick={() => setOpenEditDialog(false)}
+                            className="mr-2"
                         >
                             Annuler
                         </Button>
-                        <Button onClick={handleEditInputChange}>Modifier</Button>
+                        <Button onClick={handleUpdateMaintenance}>
+                            Enregistrer
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
-}
+};
 
-export default VehicleDetail
+export default MaintenanceDetail;

@@ -29,4 +29,7 @@ router.put('/:id/status', protect, manager, vehicleController.changeStatus);
 router.put('/:id/assign-driver', protect, manager, vehicleController.assignDriver);
 router.put('/:id/release-driver', protect, manager, vehicleController.releaseDriver);
 
+// Route pour la maintenance
+router.post('/:id/maintenance', protect, manager, vehicleController.startMaintenance);
+
 module.exports = router;

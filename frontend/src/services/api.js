@@ -262,18 +262,43 @@ export const expenseService = {
     getStats: () => api.get('/expenses/stats')
 };
 */
-/*
 export const maintenanceService = {
-    getAll: () => api.get('/maintenance'),
-    getById: (id) => api.get(`/maintenance/${id}`),
-    create: (data) => api.post('/maintenance', data),
-    update: (id, data) => api.put(`/maintenance/${id}`, data),
-    delete: (id) => api.delete(`/maintenance/${id}`),
-    getByVehicle: (vehicleId) => api.get(`/maintenance/vehicle/${vehicleId}`),
-    getUpcoming: () => api.get('/maintenance/upcoming'),
-    getHistory: (vehicleId) => api.get(`/maintenance/history/${vehicleId}`)
+    // Routes standard CRUD
+    getAll: () => api.get('/maintenances'),
+    getById: (id) => api.get(`/maintenances/${id}`),
+    create: (data) => api.post('/maintenances', data),
+    update: (id, data) => api.put(`/maintenances/${id}`, data),
+    delete: (id) => api.delete(`/maintenances/${id}`),
+
+    // Routes par véhicule et par type
+    getByVehicle: (vehicleId) => api.get(`/maintenances/vehicle/${vehicleId}`),
+    getByType: (type) => api.get(`/maintenances/type/${type}`),
+
+    // Route pour marquer une maintenance comme terminée
+    completeMaintenance: (id) => api.put(`/maintenances/${id}/complete`),
+
+    // Routes pour la gestion des photos
+    uploadPhotos: (id, files) => {
+        const formData = new FormData();
+        // Ajouter chaque fichier à formData sous le nom "photos" (comme attendu par le backend)
+        if (Array.isArray(files)) {
+            files.forEach(file => formData.append('photos', file));
+        } else {
+            formData.append('photos', files);
+        }
+        return api.post(`/maintenances/${id}/photos`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    },
+    deletePhoto: (id, photoIndex) => api.delete(`/maintenances/${id}/photos/${photoIndex}`),
+
+    // Routes statistiques et de validation
+    getStats: () => api.get('/maintenances/stats'),
+    checkStatusConsistency: () => api.get('/maintenances/check-status'),
+    validateDates: () => api.get('/maintenances/validate-dates')
 };
-*/
 /*
 export const documentService = {
     getAll: () => api.get('/documents'),

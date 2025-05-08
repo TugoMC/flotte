@@ -12,6 +12,7 @@ function setupUploadDirectories() {
         'uploads/drivers',
         'uploads/users',
         'uploads/documents',
+        'uploads/maintenance',
         'uploads/other'
     ];
 
