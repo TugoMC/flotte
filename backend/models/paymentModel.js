@@ -21,10 +21,9 @@ const paymentSchema = new mongoose.Schema({
         enum: ['cash', 'mobile_money'],
         required: true
     },
-    media: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Media',
-        default: null
+    photos: {
+        type: [String],  // Tableau de chemins/URLs vers les photos
+        default: []
     },
     comments: {
         type: String,

@@ -13,9 +13,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/datepicker";
 import { toast } from "sonner";
 import { format } from 'date-fns';
-import { Loader2, Image as ImageIcon } from "lucide-react";
+import { Loader2, Image as ImageIcon, XIcon, InfoIcon } from "lucide-react";
 
-import { paymentService, scheduleService, mediaService } from '@/services/api';
+import { paymentService, scheduleService } from '@/services/api';
 
 const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
     const [formData, setFormData] = useState({
@@ -35,6 +35,51 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
     const [medias, setMedias] = useState([]);
     const [fetchingMedias, setFetchingMedias] = useState(false);
     const [errors, setErrors] = useState({});
+    const [selectedFiles, setSelectedFiles] = useState([]);
+    const [photosPreviews, setPhotosPreviews] = useState([]);
+
+    // Créer des URL d'aperçu lorsque les fichiers sont sélectionnés
+    useEffect(() => {
+        if (!selectedFiles.length) {
+            setPhotosPreviews([]);
+            return;
+        }
+
+        const newPreviews = [];
+        selectedFiles.forEach(file => {
+            const preview = URL.createObjectURL(file);
+            newPreviews.push({ file, preview });
+        });
+
+        setPhotosPreviews(newPreviews);
+
+        // Nettoyer les URL d'objet lors du démontage
+        return () => {
+            newPreviews.forEach(item => URL.revokeObjectURL(item.preview));
+        };
+    }, [selectedFiles]);
+
+    const handleFileSelect = (e) => {
+        if (e.target.files.length === 0) return;
+
+        // Vérifier la taille des fichiers (max 5MB)
+        const filesArray = Array.from(e.target.files);
+        const validFiles = filesArray.filter(file => file.size <= 5 * 1024 * 1024);
+
+        if (validFiles.length < filesArray.length) {
+            toast.warning("Certains fichiers dépassent la taille maximale de 5 MB et ont été ignorés", {
+                description: "Veuillez sélectionner des fichiers plus petits",
+            });
+        }
+
+        setSelectedFiles(validFiles);
+    };
+
+    const removePhoto = (index) => {
+        const newFiles = [...selectedFiles];
+        newFiles.splice(index, 1);
+        setSelectedFiles(newFiles);
+    };
 
     // Charger les plannings disponibles
     const fetchSchedules = async () => {
@@ -63,34 +108,6 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
             toast.error('Erreur lors du chargement des plannings');
         } finally {
             setFetchingSchedules(false);
-        }
-    };
-
-    // Charger les médias disponibles pour les paiements
-    const fetchMedias = async () => {
-        setFetchingMedias(true);
-        try {
-            const res = await mediaService.getByEntityType('payment');
-            setMedias(res.data);
-
-            // Si on modifie un paiement avec un média qui n'est pas dans la liste
-            if (payment && payment.media && payment.media._id &&
-                !res.data.some(m => m._id === payment.media._id)) {
-                try {
-                    const mediaRes = await mediaService.getById(payment.media._id);
-                    if (mediaRes.data) {
-                        setMedias(prev => [...prev, mediaRes.data]);
-                    }
-                } catch (error) {
-                    console.error('Erreur lors du chargement du média spécifique:', error);
-                    toast.error('Impossible de charger le média spécifique');
-                }
-            }
-        } catch (error) {
-            console.error('Erreur lors du chargement des médias:', error);
-            toast.error('Erreur lors du chargement des médias');
-        } finally {
-            setFetchingMedias(false);
         }
     };
 
@@ -201,24 +218,10 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
                 await paymentService.changeStatus(payment._id, formData.status);
             }
 
-            // Si un média a été associé au paiement et que ce n'est pas l'ancien
-            if (formData.mediaId && (!payment || formData.mediaId !== payment?.media?._id)) {
-                // Vérifier si le média est déjà associé au paiement
-                if (response.data && response.data._id && formData.mediaId !== "none") {
-                    try {
-                        // Récupérer les données du média
-                        const mediaResponse = await mediaService.getById(formData.mediaId);
-                        if (mediaResponse.data) {
-                            // Associer le média au paiement
-                            await paymentService.addMedia(response.data._id, {
-                                mediaUrl: mediaResponse.data.mediaUrl
-                            });
-                        }
-                    } catch (error) {
-                        console.error("Erreur lors de l'association du média:", error);
-                        toast.error("Le paiement a été créé mais le justificatif n'a pas pu être associé");
-                    }
-                }
+            // Upload des photos si des fichiers ont été sélectionnés
+            if (selectedFiles.length > 0 && response.data._id) {
+                await paymentService.uploadPhotos(response.data._id, selectedFiles);
+                toast.success(`${selectedFiles.length} photo(s) ajoutée(s) avec succès`);
             }
 
             onSubmitSuccess();
@@ -233,7 +236,7 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
     // Charger les données initiales
     useEffect(() => {
         fetchSchedules();
-        fetchMedias();
+
 
         // Si on modifie un paiement existant, initialiser le planning sélectionné
         if (payment && payment.schedule) {
@@ -251,7 +254,7 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-h-[80vh] overflow-y-auto p-1">
             {/* Sélection du planning */}
             <div className="space-y-2">
                 <label className="text-sm font-medium">Planning</label>
@@ -332,42 +335,77 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
                 {errors.paymentType && <p className="text-sm text-red-500 mt-1">{errors.paymentType}</p>}
             </div>
 
-            {/* Sélection du média (justificatif) */}
-            <div className="space-y-2">
-                <label className="text-sm font-medium">Justificatif de paiement</label>
-                <Select
-                    onValueChange={(value) => handleChange('mediaId', value)}
-                    value={formData.mediaId || "none"}
-                >
-                    <SelectTrigger disabled={fetchingMedias}>
-                        {fetchingMedias ? (
-                            <div className="flex items-center">
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                Chargement...
-                            </div>
-                        ) : (
-                            <SelectValue placeholder="Sélectionner un justificatif (optionnel)" />
-                        )}
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="none">Aucun justificatif</SelectItem>
-                        {medias.map((media) => {
-                            if (!media._id) return null; // Skip if no _id
-                            return (
-                                <SelectItem key={media._id} value={media._id}>
-                                    <div className="flex items-center">
-                                        <ImageIcon className="h-4 w-4 mr-2" />
-                                        {media.createdAt ? format(new Date(media.createdAt), 'dd/MM/yyyy HH:mm') : 'Date inconnue'}
-                                        {media.uploadedBy && ` - ${media.uploadedBy.firstName || 'Utilisateur'}`}
-                                    </div>
-                                </SelectItem>
-                            );
-                        })}
-                    </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                    Sélectionnez un justificatif de paiement (optionnel)
-                </p>
+            {/* Section de gestion des photos */}
+            <div className="space-y-2 col-span-full">
+                <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Justificatifs de paiement</label>
+                    <Button variant="outline" asChild>
+                        <label className="cursor-pointer">
+                            <ImageIcon className="mr-2 h-4 w-4" />
+                            Ajouter des justificatifs
+                            <input
+                                type="file"
+                                accept="image/jpeg, image/png"
+                                multiple
+                                hidden
+                                onChange={handleFileSelect}
+                            />
+                        </label>
+                    </Button>
+                </div>
+
+                {/* Message d'information pour les photos */}
+                <div className="bg-blue-50 p-3 rounded-md text-sm flex items-start gap-2">
+                    <InfoIcon className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="font-medium text-blue-800 mb-1">Conseils pour les justificatifs</p>
+                        <p className="text-blue-700">
+                            Pour une qualité optimale, utilisez des images claires des reçus ou captures d'écran.
+                            Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Prévisualisation des photos */}
+                {photosPreviews.length > 0 && (
+                    <div className="mt-3">
+                        <p className="text-sm text-gray-500 mb-2">
+                            {photosPreviews.length} justificatif(s) sélectionné(s)
+                        </p>
+                        <div className="grid grid-cols-3 gap-3 max-h-[300px] overflow-y-auto">
+                            {photosPreviews.map((item, index) => (
+                                <div
+                                    key={index}
+                                    className="relative aspect-[3/2] bg-gray-100 rounded-md overflow-hidden group"
+                                >
+                                    <img
+                                        src={item.preview}
+                                        alt={`Aperçu ${index + 1}`}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => removePhoto(index)}
+                                        className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Supprimer"
+                                    >
+                                        <XIcon className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Commentaires */}
+            <div className="space-y-2 col-span-full">
+                <label className="text-sm font-medium">Commentaires</label>
+                <Textarea
+                    placeholder="Commentaires ou notes additionnelles"
+                    value={formData.comments}
+                    onChange={(e) => handleChange('comments', e.target.value)}
+                />
             </div>
 
             {/* Statut (uniquement pour la modification) */}
@@ -390,18 +428,8 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
                 </div>
             )}
 
-            {/* Commentaires */}
-            <div className="space-y-2">
-                <label className="text-sm font-medium">Commentaires</label>
-                <Textarea
-                    placeholder="Commentaires ou notes additionnelles"
-                    value={formData.comments}
-                    onChange={(e) => handleChange('comments', e.target.value)}
-                />
-            </div>
-
             {/* Boutons d'action */}
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-end space-x-4 col-span-full">
                 <Button
                     type="button"
                     variant="outline"

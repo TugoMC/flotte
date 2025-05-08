@@ -3,8 +3,9 @@ const Payment = require('../models/paymentModel');
 const Schedule = require('../models/scheduleModel');
 const Vehicle = require('../models/vehicleModel');
 const Driver = require('../models/driverModel');
-const Media = require('../models/mediaModel');
 const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 const {
     isSchedulePaidForDate,
     isLastPaymentForSchedule,
@@ -24,7 +25,6 @@ exports.getAll = async (req, res) => {
                     { path: 'vehicle', select: 'brand model licensePlate' }
                 ]
             })
-            .populate('media')
             .sort({ paymentDate: -1 })
             .lean();
         // Populer manuellement les drivers et vehicles pour gérer les références invalides
@@ -106,8 +106,7 @@ exports.getById = async (req, res) => {
                     { path: 'driver', select: 'firstName lastName' },
                     { path: 'vehicle', select: 'type brand model licensePlate dailyIncomeTarget' }
                 ]
-            })
-            .populate('media');
+            });
         if (!payment) {
             return res.status(404).json({ message: 'Paiement non trouvé' });
         }
@@ -134,7 +133,6 @@ exports.getBySchedule = async (req, res) => {
                     { path: 'vehicle', select: 'type brand model licensePlate' }
                 ]
             })
-            .populate('media')
             .sort({ paymentDate: 1 });
         res.json(payments);
     } catch (error) {
@@ -146,7 +144,7 @@ exports.getBySchedule = async (req, res) => {
 // Créer un nouveau paiement
 exports.create = async (req, res) => {
     try {
-        const { scheduleId, amount, paymentDate, paymentType, mediaId, comments } = req.body;
+        const { scheduleId, amount, paymentDate, paymentType, comments } = req.body;
         // Validation des champs requis
         if (!scheduleId || !amount || amount <= 0 || !paymentDate || !paymentType) {
             return res.status(400).json({
@@ -203,7 +201,7 @@ exports.create = async (req, res) => {
             amount,
             paymentDate: new Date(paymentDate),
             paymentType,
-            media: mediaId || null,
+            photos: [],
             comments,
             isMeetingTarget
         });
@@ -223,8 +221,7 @@ exports.create = async (req, res) => {
                     { path: 'driver', select: 'firstName lastName' },
                     { path: 'vehicle', select: 'type brand model licensePlate dailyIncomeTarget' }
                 ]
-            })
-            .populate('media');
+            });
         res.status(201).json(completePayment);
     } catch (error) {
         console.error('Erreur create:', error);
@@ -235,7 +232,7 @@ exports.create = async (req, res) => {
 // Mettre à jour un paiement
 exports.update = async (req, res) => {
     try {
-        const { scheduleId, amount, paymentDate, paymentType, mediaId, comments, status } = req.body;
+        const { scheduleId, amount, paymentDate, paymentType, comments, status } = req.body;
 
         // Vérifier que le paiement existe
         const existingPayment = await Payment.findById(req.params.id);
@@ -288,7 +285,6 @@ exports.update = async (req, res) => {
         if (amount !== undefined) updateData.amount = amount;
         if (paymentDate) updateData.paymentDate = new Date(paymentDate);
         if (paymentType) updateData.paymentType = paymentType;
-        if (mediaId !== undefined) updateData.media = mediaId || null;
         if (comments !== undefined) updateData.comments = comments;
         if (status) updateData.status = status;
 
@@ -312,8 +308,7 @@ exports.update = async (req, res) => {
                     { path: 'driver', select: 'firstName lastName' },
                     { path: 'vehicle', select: 'type brand model licensePlate dailyIncomeTarget' }
                 ]
-            })
-            .populate('media');
+            });
 
         // Vérifier si c'est maintenant le dernier paiement du planning
         if (paymentDate) {
@@ -334,48 +329,84 @@ exports.update = async (req, res) => {
     }
 };
 
-// Ajouter un justificatif média à un paiement
-exports.addMedia = async (req, res) => {
+// Télécharger des photos pour un paiement
+exports.uploadPhotos = async (req, res) => {
     try {
-        const { paymentId } = req.params;
-        const { mediaUrl } = req.body;
-        const uploadedBy = req.user._id; // Supposant l'authentification
+        const { id } = req.params;
 
         // Vérifier que le paiement existe
-        const payment = await Payment.findById(paymentId);
+        const payment = await Payment.findById(id);
+        if (!payment) {
+            // Supprimer les fichiers téléchargés si le paiement n'existe pas
+            if (req.files && req.files.length > 0) {
+                for (const file of req.files) {
+                    fs.unlinkSync(file.path);
+                }
+            }
+            return res.status(404).json({ message: 'Paiement non trouvé' });
+        }
+
+        // Ajouter les nouvelles photos au tableau existant
+        const newPhotoPaths = req.files.map(file => file.path);
+
+        // Mettre à jour le tableau de photos
+        payment.photos = [...payment.photos, ...newPhotoPaths];
+        await payment.save();
+
+        res.json({
+            message: 'Photos téléchargées avec succès',
+            payment: {
+                _id: payment._id,
+                photos: payment.photos
+            }
+        });
+    } catch (error) {
+        console.error('Erreur uploadPhotos:', error);
+        res.status(400).json({ message: error.message });
+    }
+};
+
+// Supprimer une photo d'un paiement
+exports.deletePhoto = async (req, res) => {
+    try {
+        const { id, photoIndex } = req.params;
+
+        // Vérifier que le paiement existe
+        const payment = await Payment.findById(id);
         if (!payment) {
             return res.status(404).json({ message: 'Paiement non trouvé' });
         }
 
-        // Créer le média
-        const media = new Media({
-            entityType: 'payment',
-            entityId: payment._id,
-            mediaUrl,
-            uploadedBy
-        });
+        // Vérifier que l'index est valide
+        if (photoIndex < 0 || photoIndex >= payment.photos.length) {
+            return res.status(400).json({ message: 'Index de photo invalide' });
+        }
 
-        const savedMedia = await media.save();
+        // Récupérer le chemin de la photo à supprimer
+        const photoPath = payment.photos[photoIndex];
 
-        // Associer le média au paiement
-        payment.media = savedMedia._id;
+        // Supprimer le fichier du système de fichiers
+        try {
+            fs.unlinkSync(photoPath);
+        } catch (err) {
+            console.error('Erreur lors de la suppression du fichier:', err);
+            // Continuer même si le fichier n'existe pas physiquement
+        }
+
+        // Supprimer la référence de la photo dans le tableau
+        payment.photos.splice(photoIndex, 1);
         await payment.save();
 
-        // Retourner le paiement mis à jour avec le média
-        const updatedPayment = await Payment.findById(paymentId)
-            .populate({
-                path: 'schedule',
-                populate: [
-                    { path: 'driver', select: 'firstName lastName' },
-                    { path: 'vehicle', select: 'type brand model licensePlate dailyIncomeTarget' }
-                ]
-            })
-            .populate('media');
-
-        res.json(updatedPayment);
+        res.json({
+            message: 'Photo supprimée avec succès',
+            payment: {
+                _id: payment._id,
+                photos: payment.photos
+            }
+        });
     } catch (error) {
-        console.error('Erreur lors de l\'ajout du média au paiement:', error);
-        res.status(400).json({ message: error.message });
+        console.error('Erreur deletePhoto:', error);
+        res.status(500).json({ message: error.message });
     }
 };
 
@@ -387,9 +418,16 @@ exports.delete = async (req, res) => {
             return res.status(404).json({ message: 'Paiement non trouvé' });
         }
 
-        // Si le paiement a un média associé, le supprimer également
-        if (payment.media) {
-            await Media.findByIdAndDelete(payment.media);
+        // Si le paiement a des photos, les supprimer du système de fichiers
+        if (payment.photos && payment.photos.length > 0) {
+            for (const photoPath of payment.photos) {
+                try {
+                    fs.unlinkSync(photoPath);
+                } catch (err) {
+                    console.error('Erreur lors de la suppression du fichier:', err);
+                    // Continuer même si le fichier n'existe pas physiquement
+                }
+            }
         }
 
         // Garder une référence au scheduleId avant suppression
@@ -426,7 +464,6 @@ exports.getPendingPayments = async (req, res) => {
                     { path: 'vehicle', select: 'type brand model licensePlate dailyIncomeTarget' }
                 ]
             })
-            .populate('media')
             .sort({ paymentDate: 1 }); // Trier par date croissante
 
         res.json(pendingPayments);
@@ -453,7 +490,6 @@ exports.getPendingPaymentsBySchedule = async (req, res) => {
                     { path: 'vehicle', select: 'type brand model licensePlate dailyIncomeTarget' }
                 ]
             })
-            .populate('media')
             .sort({ paymentDate: 1 });
 
         res.json(pendingPayments);
@@ -476,7 +512,7 @@ exports.confirmMultiplePayments = async (req, res) => {
 
         for (const paymentInfo of payments) {
             try {
-                const { id, amount, paymentType, mediaId, comments } = paymentInfo;
+                const { id, amount, paymentType, comments } = paymentInfo;
 
                 if (!id || !amount || amount <= 0 || !paymentType) {
                     results.push({
@@ -513,7 +549,6 @@ exports.confirmMultiplePayments = async (req, res) => {
                     {
                         amount,
                         paymentType,
-                        media: mediaId || null,
                         comments: comments || existingPayment.comments,
                         status: 'confirmed',
                         isMeetingTarget
@@ -577,8 +612,7 @@ exports.changeStatus = async (req, res) => {
                     { path: 'driver', select: 'firstName lastName' },
                     { path: 'vehicle', select: 'type brand model licensePlate dailyIncomeTarget' }
                 ]
-            })
-            .populate('media');
+            });
         if (!payment) {
             return res.status(404).json({ message: 'Paiement non trouvé' });
         }
@@ -615,7 +649,6 @@ exports.getByDriver = async (req, res) => {
                     { path: 'vehicle', select: 'type brand model licensePlate dailyIncomeTarget' }
                 ]
             })
-            .populate('media')
             .sort({ paymentDate: -1 });
         res.json(payments);
     } catch (error) {
@@ -642,7 +675,6 @@ exports.getByVehicle = async (req, res) => {
                     { path: 'vehicle', select: 'type brand model licensePlate dailyIncomeTarget' }
                 ]
             })
-            .populate('media')
             .sort({ paymentDate: -1 });
         res.json(payments);
     } catch (error) {

@@ -1,15 +1,14 @@
-// src/pages/DriverDetail.jsx
+// src/pages/PaymentDetail.jsx
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { driverService, vehicleService } from '@/services/api';
+import { paymentService } from '@/services/api';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     Dialog,
     DialogContent,
@@ -24,7 +23,7 @@ import {
     Edit,
     Phone,
     Car,
-    Bike,
+    Receipt,
     Calendar,
     Upload,
     X,
@@ -32,26 +31,41 @@ import {
     ChevronRight,
     User,
     Info,
-    Camera
+    Camera,
+    Clock,
+    CheckCircle,
+    AlertCircle,
+    XCircle,
+    CreditCard,
+    Banknote,
+    FileText
 } from 'lucide-react';
-import DriverForm from '@/components/forms/DriverForm';
+import PaymentForm from '@/components/forms/PaymentForm';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 const API_BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:5000';
 
-const DriverDetail = () => {
+const PaymentDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
     // États
-    const [driver, setDriver] = useState(null);
-    const [vehicle, setVehicle] = useState(null);
+    const [payment, setPayment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+    const [newStatus, setNewStatus] = useState('pending');
 
     // États pour le carrousel de photos
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
@@ -62,87 +76,28 @@ const DriverDetail = () => {
     const [photoUploadError, setPhotoUploadError] = useState('');
 
     useEffect(() => {
-        fetchDriverData();
+        fetchPaymentData();
     }, [id]);
 
-    const extractMongoId = (id) => {
-        if (!id) return null;
+    const safeFormatDate = (dateString, dateFormat = 'dd MMMM yyyy') => {
+        if (!dateString) return "Non spécifiée";
 
-        // Si c'est déjà une chaîne de caractères
-        if (typeof id === 'string') return id;
-
-        // Si c'est un objet avec une propriété $oid (format BSON/MongoDB)
-        if (typeof id === 'object') {
-            // Cas 1: {$oid: "..."}
-            if (id.$oid) return id.$oid;
-
-            // Cas spécifique pour la situation [object Object]
-            if (id._id) {
-                // Si _id est un objet avec $oid
-                if (typeof id._id === 'object' && id._id.$oid) {
-                    return id._id.$oid;
-                }
-                // Si _id est une chaîne
-                if (typeof id._id === 'string') {
-                    return id._id;
-                }
-            }
-
-            // Cas 2: Récupération directe de l'ID si c'est un objet MongoID
-            if (id.toString && typeof id.toString === 'function') {
-                const str = id.toString();
-                // Vérifier si la chaîne ressemble à un ObjectId MongoDB
-                if (str !== '[object Object]' && /^[0-9a-fA-F]{24}$/.test(str)) {
-                    return str;
-                }
-            }
-        }
-
-        // Tenter de sérialiser pour voir si on peut extraire une valeur
         try {
-            const jsonStr = JSON.stringify(id);
-            const parsed = JSON.parse(jsonStr);
-            if (parsed && parsed.$oid) return parsed.$oid;
-        } catch (e) {
-            // Ignorer les erreurs de sérialisation
+            const date = new Date(dateString);
+            return isNaN(date.getTime()) ? "Non spécifiée" : format(date, dateFormat, { locale: fr });
+        } catch {
+            return "Non spécifiée";
         }
-
-        // En dernier recours, tenter de récupérer l'ID directement si c'est un objet simple avec une propriété _id
-        if (id && typeof id === 'object' && !Array.isArray(id)) {
-            const keys = Object.keys(id);
-            if (keys.length === 1 && keys[0] === '_id') {
-                return extractMongoId(id._id);
-            }
-        }
-
-        // Si aucune méthode n'a fonctionné, retourner null
-        return null;
     };
 
-    const fetchDriverData = async () => {
+    const fetchPaymentData = async () => {
         try {
             setLoading(true);
-
-            const driverRes = await driverService.getById(id);
-            setDriver(driverRes.data);
-
-            if (driverRes.data.currentVehicle) {
-                try {
-                    // Extraire proprement l'ID du véhicule
-                    const vehicleId = extractMongoId(driverRes.data.currentVehicle);
-                    if (vehicleId) {
-                        const vehicleRes = await vehicleService.getById(vehicleId);
-                        setVehicle(vehicleRes.data);
-                    } else {
-                        console.error('ID de véhicule non valide:', driverRes.data.currentVehicle);
-                    }
-                } catch (vehicleError) {
-                    console.error('Erreur lors de la récupération du véhicule:', vehicleError);
-                }
-            }
+            const paymentRes = await paymentService.getById(id);
+            setPayment(paymentRes.data);
         } catch (err) {
-            console.error('Erreur lors de la récupération des données du chauffeur:', err);
-            setError("Impossible de charger les informations du chauffeur");
+            console.error('Erreur lors de la récupération des données du paiement:', err);
+            setError("Impossible de charger les informations du paiement");
             toast.error("Erreur lors du chargement des données");
         } finally {
             setLoading(false);
@@ -150,29 +105,41 @@ const DriverDetail = () => {
     };
 
     const handleEdit = () => {
-        if (!driver) return;
+        if (!payment) return;
         setIsFormOpen(true);
     };
 
     const handleFormSuccess = () => {
         setIsFormOpen(false);
-        toast.success("Informations du chauffeur mises à jour");
-        fetchDriverData();
+        toast.success("Informations du paiement mises à jour");
+        fetchPaymentData();
+    };
+
+    const handleStatusChange = async () => {
+        try {
+            await paymentService.changeStatus(id, newStatus);
+            setIsStatusDialogOpen(false);
+            toast.success(`Statut du paiement mis à jour: ${getStatusLabel(newStatus)}`);
+            fetchPaymentData();
+        } catch (err) {
+            toast.error("Erreur lors du changement de statut: " + (err.response?.data?.message || err.message));
+            console.error("Erreur:", err);
+        }
     };
 
     // Navigation du carrousel
     const nextPhoto = () => {
-        if (driver?.photos && driver.photos.length > 0) {
+        if (payment?.photos && payment.photos.length > 0) {
             setCurrentPhotoIndex((prevIndex) =>
-                prevIndex === driver.photos.length - 1 ? 0 : prevIndex + 1
+                prevIndex === payment.photos.length - 1 ? 0 : prevIndex + 1
             );
         }
     };
 
     const prevPhoto = () => {
-        if (driver?.photos && driver.photos.length > 0) {
+        if (payment?.photos && payment.photos.length > 0) {
             setCurrentPhotoIndex((prevIndex) =>
-                prevIndex === 0 ? driver.photos.length - 1 : prevIndex - 1
+                prevIndex === 0 ? payment.photos.length - 1 : prevIndex - 1
             );
         }
     };
@@ -210,11 +177,11 @@ const DriverDetail = () => {
         }
 
         try {
-            await driverService.uploadPhotos(id, selectedFiles);
+            await paymentService.uploadPhotos(id, selectedFiles);
             setOpenPhotoDialog(false);
             setSelectedFiles([]);
             setPreviewImages([]);
-            fetchDriverData();
+            fetchPaymentData();
         } catch (err) {
             setPhotoUploadError("Erreur lors de l'upload des photos: " + (err.response?.data?.message || err.message));
             console.error("Erreur:", err);
@@ -224,8 +191,8 @@ const DriverDetail = () => {
     const handleDeletePhoto = async (photoIndex) => {
         if (window.confirm("Êtes-vous sûr de vouloir supprimer cette photo ?")) {
             try {
-                await driverService.deletePhoto(id, photoIndex);
-                fetchDriverData();
+                await paymentService.deletePhoto(id, photoIndex);
+                fetchPaymentData();
                 // Réinitialiser l'index si on supprime la dernière photo
                 if (photoIndex === currentPhotoIndex && currentPhotoIndex > 0) {
                     setCurrentPhotoIndex(currentPhotoIndex - 1);
@@ -237,37 +204,63 @@ const DriverDetail = () => {
         }
     };
 
-    const getInitials = (firstName, lastName) => {
-        return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
-    };
-
-    const getVehicleIcon = (type) => {
-        if (type === 'moto') {
-            return <Bike className="h-4 w-4 text-blue-500" />;
-        } else {
-            return <Car className="h-4 w-4 text-gray-500" />;
-        }
-    };
-
-    const getStatusBadge = (departureDate) => {
-        if (departureDate) {
-            return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Ancien</Badge>;
-        } else {
-            return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Actif</Badge>;
-        }
-    };
-
-    const getVehicleStatusBadge = (status) => {
+    const getStatusLabel = (status) => {
         switch (status) {
-            case 'active':
-                return <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Actif</Badge>;
-            case 'maintenance':
-                return <Badge variant="outline" className="ml-2 bg-yellow-50 text-yellow-700 border-yellow-200">Maintenance</Badge>;
-            case 'inactive':
-                return <Badge variant="outline" className="ml-2 bg-red-50 text-red-700 border-red-200">Inactif</Badge>;
-            default:
-                return null;
+            case 'pending': return 'En attente';
+            case 'confirmed': return 'Confirmé';
+            case 'rejected': return 'Rejeté';
+            case 'completed': return 'Complété';
+            case 'cancelled': return 'Annulé';
+            default: return status;
         }
+    };
+
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'pending':
+                return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">En attente</Badge>;
+            case 'confirmed':
+                return <Badge variant="outline" className="bg-green-50 text-green-800 border-green-300">Confirmé</Badge>;
+            case 'completed':
+                return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Complété</Badge>;
+            case 'rejected':
+                return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Rejeté</Badge>;
+            case 'cancelled':
+                return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Annulé</Badge>;
+            default:
+                return <Badge variant="outline">{status}</Badge>;
+        }
+    };
+
+    const getPaymentTypeIcon = (type) => {
+        switch (type) {
+            case 'cash':
+                return <Banknote className="h-4 w-4 text-green-600" />;
+            case 'card':
+                return <CreditCard className="h-4 w-4 text-blue-600" />;
+            case 'transfer':
+                return <FileText className="h-4 w-4 text-gray-600" />;
+            default:
+                return <Receipt className="h-4 w-4 text-gray-600" />;
+        }
+    };
+
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('fr-FR', {
+            style: 'currency',
+            currency: 'XOF',
+            minimumFractionDigits: 0
+        }).format(amount);
+    };
+
+    const getDriverInfo = (payment) => {
+        if (!payment?.schedule?.driver) return 'Non spécifié';
+        return `${payment.schedule.driver.firstName || ''} ${payment.schedule.driver.lastName || ''}`.trim();
+    };
+
+    const getVehicleInfo = (payment) => {
+        if (!payment?.schedule?.vehicle) return 'Non spécifié';
+        return `${payment.schedule.vehicle.brand || ''} ${payment.schedule.vehicle.model || ''} ${payment.schedule.vehicle.licensePlate ? `(${payment.schedule.vehicle.licensePlate})` : ''}`.trim();
     };
 
     if (loading) {
@@ -284,16 +277,16 @@ const DriverDetail = () => {
         );
     }
 
-    if (error || !driver) {
+    if (error || !payment) {
         return (
             <div className="container">
                 <Alert variant="destructive" className="mt-4">
                     <AlertTitle>Erreur</AlertTitle>
-                    <AlertDescription>{error || "Chauffeur non trouvé"}</AlertDescription>
+                    <AlertDescription>{error || "Paiement non trouvé"}</AlertDescription>
                 </Alert>
                 <Button
                     variant="outline"
-                    onClick={() => navigate('/drivers')}
+                    onClick={() => navigate('/payments')}
                     className="mt-4"
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" />
@@ -305,6 +298,7 @@ const DriverDetail = () => {
 
     return (
         <div className="container max-w-6xl py-4">
+
             <Button
                 variant="outline"
                 onClick={() => navigate(-1)}
@@ -315,26 +309,28 @@ const DriverDetail = () => {
             </Button>
             <Button
                 variant="outline"
-                onClick={() => navigate('/drivers')}
+                onClick={() => navigate('/payments')}
                 className="mb-4"
             >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Retour à la liste
             </Button>
 
+
+
             {/* Photo Carousel */}
             <div className="mb-6 relative w-full h-80 rounded-lg overflow-hidden">
-                {driver.photos && driver.photos.length > 0 ? (
+                {payment.photos && payment.photos.length > 0 ? (
                     <>
                         <button
                             onClick={() => setLightboxOpen(true)}
                             className="w-full h-full focus:outline-none"
                         >
                             <img
-                                src={driver.photos[currentPhotoIndex]?.startsWith('http')
-                                    ? driver.photos[currentPhotoIndex]
-                                    : `${API_BASE_URL}/${driver.photos[currentPhotoIndex]}`}
-                                alt={`Photo du chauffeur ${driver.firstName} ${driver.lastName}`}
+                                src={payment.photos[currentPhotoIndex]?.startsWith('http')
+                                    ? payment.photos[currentPhotoIndex]
+                                    : `${API_BASE_URL}/${payment.photos[currentPhotoIndex]}`}
+                                alt={`Photo du reçu de paiement ${payment.referenceNumber || payment._id}`}
                                 className="w-full h-full object-cover cursor-zoom-in"
                             />
                         </button>
@@ -344,10 +340,10 @@ const DriverDetail = () => {
                             <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-black border-none">
                                 <div className="relative w-full h-full flex items-center justify-center">
                                     <img
-                                        src={driver.photos[currentPhotoIndex]?.startsWith('http')
-                                            ? driver.photos[currentPhotoIndex]
-                                            : `${API_BASE_URL}/${driver.photos[currentPhotoIndex]}`}
-                                        alt={`Photo du chauffeur ${driver.firstName} ${driver.lastName}`}
+                                        src={payment.photos[currentPhotoIndex]?.startsWith('http')
+                                            ? payment.photos[currentPhotoIndex]
+                                            : `${API_BASE_URL}/${payment.photos[currentPhotoIndex]}`}
+                                        alt={`Photo du reçu de paiement ${payment.referenceNumber || payment._id}`}
                                         className="max-w-full max-h-full object-contain"
                                     />
 
@@ -383,7 +379,7 @@ const DriverDetail = () => {
 
                                     {/* Photo counter */}
                                     <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                                        {currentPhotoIndex + 1} / {driver.photos.length}
+                                        {currentPhotoIndex + 1} / {payment.photos.length}
                                     </div>
                                 </div>
                             </DialogContent>
@@ -411,7 +407,7 @@ const DriverDetail = () => {
 
                         {/* Photo counter */}
                         <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                            {currentPhotoIndex + 1} / {driver.photos.length}
+                            {currentPhotoIndex + 1} / {payment.photos.length}
                         </div>
 
                         {/* Add photo button */}
@@ -427,8 +423,8 @@ const DriverDetail = () => {
                     </>
                 ) : (
                     <div className="w-full h-full bg-gray-100 flex flex-col items-center justify-center">
-                        <Camera className="w-16 h-16 text-gray-400 mb-4" />
-                        <p className="text-gray-500">Aucune photo disponible</p>
+                        <Receipt className="w-16 h-16 text-gray-400 mb-4" />
+                        <p className="text-gray-500">Aucune photo de reçu disponible</p>
                         <Button
                             variant="outline"
                             className="mt-4"
@@ -441,15 +437,15 @@ const DriverDetail = () => {
                 )}
             </div>
 
-            {/* Driver Details Container */}
+            {/* Payment Details Container */}
             <div className="bg-white rounded-lg p-6 shadow-sm">
                 {/* Header with title and edit button */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-2xl font-bold">
-                            {`${driver.firstName} ${driver.lastName}`}
+                            {payment.referenceNumber || `Paiement #${payment._id.substring(0, 8)}`}
                         </h1>
-                        <p className="text-gray-500">Détails du chauffeur</p>
+                        <p className="text-gray-500">Détails du paiement</p>
                     </div>
                     <div className="flex space-x-2">
                         <Button
@@ -469,91 +465,101 @@ const DriverDetail = () => {
                         <div className="flex justify-between items-center">
                             <div className="flex items-center space-x-4">
                                 <span className="text-sm font-medium text-gray-500">Statut:</span>
-                                {getStatusBadge(driver.departureDate)}
+                                {getStatusBadge(payment.status)}
+                            </div>
+                            <div className="flex items-center">
+                                <span className="text-sm font-medium text-gray-500 mr-2">Montant:</span>
+                                <span className="text-xl font-semibold">{formatCurrency(payment.amount)}</span>
                             </div>
                         </div>
                     </div>
                     <Separator />
 
-                    {/* Informations personnelles */}
+                    {/* Informations de base */}
                     <div className="py-3">
-                        <h3 className="text-lg font-medium mb-2">Informations personnelles</h3>
+                        <h3 className="text-lg font-medium mb-2">Informations de paiement</h3>
                         <Separator className="mb-4" />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <p className="text-sm font-medium text-gray-500">Prénom</p>
-                                <p>{driver.firstName || "Non spécifié"}</p>
+                                <p className="text-sm font-medium text-gray-500">Date de paiement</p>
+                                <p>{safeFormatDate(payment.paymentDate)}</p>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">Nom</p>
-                                <p>{driver.lastName || "Non spécifié"}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Date de naissance</p>
-                                <p>{driver.birthDate ? format(new Date(driver.birthDate), 'dd MMMM yyyy', { locale: fr }) : "Non spécifiée"}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Adresse</p>
-                                <p>{driver.address || "Non spécifiée"}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Téléphone</p>
+                                <p className="text-sm font-medium text-gray-500">Type de paiement</p>
                                 <div className="flex items-center">
-                                    <Phone className="h-4 w-4 mr-2 text-gray-500" />
-                                    <p>{driver.phoneNumber || "Non spécifié"}</p>
+                                    {getPaymentTypeIcon(payment.paymentType)}
+                                    <p className="ml-2">{payment.paymentType ? payment.paymentType.charAt(0).toUpperCase() + payment.paymentType.slice(1) : "Non spécifié"}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Numéro de référence</p>
+                                <p>{payment._id.substring(0, 8)}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Date de création</p>
+                                <p>{safeFormatDate(payment.createdAt, 'dd MMMM yyyy HH:mm')}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Objectif atteint</p>
+                                <div className="flex items-center">
+                                    {payment.isMeetingTarget ? (
+                                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                    ) : (
+                                        <XCircle className="h-4 w-4 text-red-500 mr-2" />
+                                    )}
+                                    <p>{payment.isMeetingTarget ? "Oui" : "Non"}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <Separator />
 
-                    {/* Informations professionnelles */}
-                    <div className="py-3">
-                        <h3 className="text-lg font-medium mb-2">Informations professionnelles</h3>
-                        <Separator className="mb-4" />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Date d'embauche</p>
-                                <p>{driver.hireDate ? format(new Date(driver.hireDate), 'dd MMMM yyyy', { locale: fr }) : "Non spécifiée"}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Date de départ</p>
-                                <p>{driver.departureDate ? format(new Date(driver.departureDate), 'dd MMMM yyyy', { locale: fr }) : "N/A"}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Numéro de permis</p>
-                                <p>{driver.licenseNumber || "Non spécifié"}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Date d'expiration du permis</p>
-                                <p>{driver.licenseExpiry ? format(new Date(driver.licenseExpiry), 'dd MMMM yyyy', { locale: fr }) : "Non spécifiée"}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <Separator />
-
-                    {/* Véhicule assigné */}
+                    {/* Chauffeur associé */}
                     <div className="py-3">
                         <div className="flex justify-between items-center">
                             <div className="flex items-center space-x-4">
-                                <span className="text-sm font-medium text-gray-500">Véhicule assigné:</span>
-                                {vehicle ? (
+                                <span className="text-sm font-medium text-gray-500">Chauffeur:</span>
+                                {payment.schedule?.driver ? (
                                     <div className="flex items-center">
-                                        {getVehicleIcon(vehicle.type)}
-                                        <span className="ml-2">
-                                            {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
-                                        </span>
-                                        {getVehicleStatusBadge(vehicle.status)}
+                                        <User className="h-4 w-4 text-gray-500 mr-2" />
+                                        <span>{getDriverInfo(payment)}</span>
                                     </div>
                                 ) : (
                                     <Badge variant="outline">Non assigné</Badge>
                                 )}
                             </div>
-                            {vehicle && (
+                            {payment.schedule?.driver && (
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => navigate(`/vehicles/${vehicle._id}`)}
+                                    onClick={() => navigate(`/drivers/${payment.schedule.driver._id}`)}
+                                >
+                                    Voir le chauffeur
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                    <Separator />
+
+                    {/* Véhicule associé */}
+                    <div className="py-3">
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center space-x-4">
+                                <span className="text-sm font-medium text-gray-500">Véhicule:</span>
+                                {payment.schedule?.vehicle ? (
+                                    <div className="flex items-center">
+                                        <Car className="h-4 w-4 text-gray-500 mr-2" />
+                                        <span>{getVehicleInfo(payment)}</span>
+                                    </div>
+                                ) : (
+                                    <Badge variant="outline">Non assigné</Badge>
+                                )}
+                            </div>
+                            {payment.schedule?.vehicle && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => navigate(`/vehicles/${payment.schedule.vehicle._id}`)}
                                 >
                                     Voir le véhicule
                                 </Button>
@@ -566,7 +572,7 @@ const DriverDetail = () => {
                     <div className="py-3">
                         <div className="space-y-2">
                             <span className="text-sm font-medium text-gray-500">Notes:</span>
-                            <p className="text-sm">{driver.notes || 'Aucune note pour ce chauffeur.'}</p>
+                            <p className="text-sm">{payment.comments || 'Aucune note pour ce paiement.'}</p>
                         </div>
                     </div>
                 </div>
@@ -576,9 +582,9 @@ const DriverDetail = () => {
             <Dialog open={openPhotoDialog} onOpenChange={setOpenPhotoDialog}>
                 <DialogContent className="max-w-[95vw] w-[900px] h-[600px] flex flex-col">
                     <DialogHeader>
-                        <DialogTitle>Gérer les photos du chauffeur</DialogTitle>
+                        <DialogTitle>Gérer les photos du paiement</DialogTitle>
                         <DialogDescription>
-                            {driver?.photos?.length || 0} photo(s) existante(s)
+                            {payment?.photos?.length || 0} photo(s) existante(s)
                         </DialogDescription>
                     </DialogHeader>
 
@@ -588,7 +594,7 @@ const DriverDetail = () => {
                             <div>
                                 <AlertTitle className="text-sm">Conseils pour les photos</AlertTitle>
                                 <AlertDescription className="text-xs">
-                                    Résolution min: 1200×800 px • Rapport 3:2 • Formats: JPG, PNG • Max: 5 MB/image
+                                    Assurez-vous que toutes les informations du reçu sont clairement visibles • Formats: JPG, PNG • Max: 5 MB/image
                                 </AlertDescription>
                             </div>
                         </div>
@@ -596,12 +602,12 @@ const DriverDetail = () => {
 
                     <div className="flex-1 overflow-auto space-y-4">
                         {/* Section des photos existantes */}
-                        {driver?.photos && driver.photos.length > 0 && (
+                        {payment?.photos && payment.photos.length > 0 && (
                             <div className="space-y-2">
                                 <Label>Photos existantes</Label>
                                 <div className="border rounded-md p-2">
                                     <div className="grid grid-cols-3 gap-3">
-                                        {driver.photos.map((photo, index) => (
+                                        {payment.photos.map((photo, index) => (
                                             <div key={index} className="relative group h-40">
                                                 <img
                                                     src={photo.startsWith('http') ? photo : `${API_BASE_URL}/${photo}`}
@@ -626,7 +632,7 @@ const DriverDetail = () => {
                             </div>
                         )}
 
-                        {(driver?.photos?.length > 0 && previewImages.length > 0) && (
+                        {(payment?.photos?.length > 0 && previewImages.length > 0) && (
                             <Separator className="my-2" />
                         )}
 
@@ -639,93 +645,31 @@ const DriverDetail = () => {
                                 accept="image/*"
                                 multiple
                                 onChange={handleFileSelect}
-                                className="cursor-pointer"
                             />
+                            {photoUploadError && <p className="text-red-500 text-xs mt-1">{photoUploadError}</p>}
                         </div>
-
-                        {photoUploadError && (
-                            <Alert variant="destructive" className="mt-2">
-                                <AlertDescription>{photoUploadError}</AlertDescription>
-                            </Alert>
-                        )}
-
-                        {previewImages.length > 0 && (
-                            <div className="space-y-2">
-                                <Label>Nouvelles photos à ajouter</Label>
-                                <div className="border rounded-md p-2">
-                                    <div className="grid grid-cols-3 gap-3">
-                                        {previewImages.map((preview, index) => (
-                                            <div key={index} className="relative group h-40">
-                                                <img
-                                                    src={preview.url}
-                                                    alt={`Nouvelle photo ${index + 1}`}
-                                                    className="rounded-md w-full h-full object-cover"
-                                                />
-                                                <Button
-                                                    variant="destructive"
-                                                    size="icon"
-                                                    className="absolute top-2 right-2 h-7 w-7"
-                                                    onClick={() => {
-                                                        URL.revokeObjectURL(preview.url);
-                                                        setPreviewImages(prev => prev.filter((_, i) => i !== index));
-                                                        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-                                                    }}
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </Button>
-                                                <div className="absolute bottom-2 left-2 bg-blue-600/80 text-white text-xs px-2 py-1 rounded">
-                                                    Nouveau
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
-
-                    <DialogFooter className="pt-4 border-t">
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setOpenPhotoDialog(false);
-                                setSelectedFiles([]);
-                                setPreviewImages([]);
-                                setPhotoUploadError('');
-                            }}
-                        >
-                            Annuler
-                        </Button>
-                        <Button
-                            onClick={handleUploadPhotos}
-                            disabled={selectedFiles.length === 0}
-                            className="ml-2"
-                        >
-                            Télécharger {selectedFiles.length > 0 && `(${selectedFiles.length})`}
-                        </Button>
+                    <DialogFooter>
+                        <Button onClick={() => setOpenPhotoDialog(false)}>Fermer</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* Modale de modification */}
+            {/* Dialog pour modifier le paiement */}
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-[550px]">
+                <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
-                        <DialogTitle>Modifier les informations du chauffeur</DialogTitle>
-                        <DialogDescription>
-                            Modifiez les informations du chauffeur ci-dessous.
-                        </DialogDescription>
+                        <DialogTitle>Modifier le paiement</DialogTitle>
                     </DialogHeader>
-                    <DriverForm
-                        driver={driver}
-                        vehicles={vehicle ? [vehicle] : []}
-                        onSuccess={handleFormSuccess}
+                    <PaymentForm
+                        payment={payment}
+                        onSubmitSuccess={handleFormSuccess}
                         onCancel={() => setIsFormOpen(false)}
                     />
                 </DialogContent>
             </Dialog>
         </div>
     );
-};
+}
 
-export default DriverDetail;
+export default PaymentDetail;

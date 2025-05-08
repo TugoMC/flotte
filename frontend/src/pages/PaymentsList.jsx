@@ -5,7 +5,9 @@ import { fr } from 'date-fns/locale';
 import { paymentService, driverService, vehicleService } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Eye } from "lucide-react";
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import {
     Card,
     CardContent,
@@ -97,6 +99,12 @@ const PaymentsList = () => {
         };
         fetchData();
     }, []);
+
+    const navigate = useNavigate();
+
+    const handleViewDetails = (paymentId) => {
+        navigate(`/payments/${paymentId}`);
+    };
 
     // Filtrer les paiements en fonction des critères
     const filteredPayments = payments.filter(payment => {
@@ -414,32 +422,15 @@ const PaymentsList = () => {
                                         <TableCell>{getStatusBadge(payment.status)}</TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end space-x-2">
-                                                {payment.status === 'pending' && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        onClick={() => {
-                                                            setPaymentToChangeStatus(payment);
-                                                            setNewStatus('confirmed');
-                                                            setStatusChangeDialogOpen(true);
-                                                        }}
-                                                    >
-                                                        <CheckIcon className="h-4 w-4 text-green-600" />
-                                                    </Button>
-                                                )}
-                                                {payment.status === 'pending' && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        onClick={() => {
-                                                            setPaymentToChangeStatus(payment);
-                                                            setNewStatus('rejected');
-                                                            setStatusChangeDialogOpen(true);
-                                                        }}
-                                                    >
-                                                        <XIcon className="h-4 w-4 text-red-600" />
-                                                    </Button>
-                                                )}
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => handleViewDetails(payment._id)}
+                                                    className="text-muted-foreground hover:text-primary"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+
                                                 <Button
                                                     variant="outline"
                                                     size="icon"

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentController');
+const { uploadMultipleFiles } = require('../services/fileUploadService');
 const { protect } = require('../middlewares/authMiddleware');
 const { manager } = require('../middlewares/roleMiddleware');
 
@@ -25,8 +26,11 @@ router.get('/stats/vehicles', protect, manager, paymentController.getVehicleStat
 // Routes POST
 router.post('/', protect, manager, paymentController.create);
 router.post('/confirm-multiple', protect, manager, paymentController.confirmMultiplePayments);
-router.post('/:id/media', protect, manager, paymentController.addMedia);
 router.post('/:id/status', protect, manager, paymentController.changeStatus);
+
+// Routes pour la gestion des photos
+router.post('/:id/photos', protect, manager, uploadMultipleFiles, paymentController.uploadPhotos);
+router.delete('/:id/photos/:photoIndex', protect, manager, paymentController.deletePhoto);
 
 // Routes PUT
 router.put('/:id', protect, manager, paymentController.update);

@@ -349,6 +349,14 @@ const VehicleDetail = () => {
         <div className="container max-w-6xl py-4">
             <Button
                 variant="outline"
+                onClick={() => navigate(-1)}
+                className="mb-4 mr-4" // ← Ajout de mr-4 (margin-right: 1rem)
+            >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Retour
+            </Button>
+            <Button
+                variant="outline"
                 onClick={() => navigate('/vehicles')}
                 className="mb-4"
             >

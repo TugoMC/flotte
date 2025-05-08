@@ -15,6 +15,7 @@ import Profile from '@/pages/Profile';
 import NotFound from '@/pages/NotFound';
 import VehicleDetail from '@/pages/VehicleDetail';
 import DriverDetail from '@/pages/DriverDetail';
+import PaymentDetail from './pages/PaymentDetail';
 
 function App() {
   return (
@@ -70,6 +71,12 @@ function App() {
           <Route path="payments" element={
             <ProtectedRoute requiredRole="manager">
               <PaymentsList />
+            </ProtectedRoute>
+          } />
+
+          <Route path="payments/:id" element={
+            <ProtectedRoute requiredRole="manager">
+              <PaymentDetail />
             </ProtectedRoute>
           } />
 

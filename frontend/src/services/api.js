@@ -199,6 +199,7 @@ export const scheduleService = {
     checkExpiredSchedules: () => api.post('/schedules/check-expired')
 };
 
+
 export const paymentService = {
     getAll: () => api.get('/payments'),
     getById: (id) => api.get(`/payments/${id}`),
@@ -206,7 +207,7 @@ export const paymentService = {
     update: (id, data) => api.put(`/payments/${id}`, data),
     delete: (id) => api.delete(`/payments/${id}`),
 
-    // Méthode corrigée pour correspondre à la route POST du backend
+    // Méthode de changement de statut (correcte)
     changeStatus: (id, status) => api.post(`/payments/${id}/status`, { status }),
 
     // Paiements en attente
@@ -220,8 +221,21 @@ export const paymentService = {
     // Confirmation de plusieurs paiements
     confirmMultiplePayments: (paymentIds) => api.post('/payments/confirm-multiple', { paymentIds }),
 
-    // Ajout de média à un paiement
-    addMedia: (id, mediaData) => api.post(`/payments/${id}/media`, mediaData),
+    // Gestion des photos - AJOUT pour correspondre au backend
+    uploadPhotos: (id, files) => {
+        const formData = new FormData();
+        if (Array.isArray(files)) {
+            files.forEach(file => formData.append('photos', file));
+        } else {
+            formData.append('photos', files);
+        }
+        return api.post(`/payments/${id}/photos`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    },
+    deletePhoto: (id, photoIndex) => api.delete(`/payments/${id}/photos/${photoIndex}`),
 
     // Récupération par chauffeur, véhicule, date
     getByDriver: (driverId) => api.get(`/payments/driver/${driverId}`),
@@ -234,46 +248,6 @@ export const paymentService = {
     getDailyStats: () => api.get('/payments/stats/daily'),
     getDriverStats: () => api.get('/payments/stats/drivers'),
     getVehicleStats: () => api.get('/payments/stats/vehicles')
-};
-
-export const mediaService = {
-    // Get all media
-    getAll: () => api.get('/media'),
-
-    // Get media by ID
-    getById: (id) => api.get(`/media/${id}`),
-
-    // Get media by entity type
-    getByEntityType: (entityType) => api.get(`/media/entity-type/${entityType}`),
-
-    // Get media by entity (type and ID)
-    getByEntity: (entityType, entityId) => api.get(`/media/entity/${entityType}/${entityId}`),
-
-    // Create new media record (usually after upload)
-    create: (data) => api.post('/media', data),
-
-    // Update media
-    update: (id, data) => api.put(`/media/${id}`, data),
-
-    // Delete media
-    delete: (id) => api.delete(`/media/${id}`),
-
-    // Get media statistics
-    getStats: () => api.get('/media/stats'),
-
-    // Upload file with entity information
-    upload: (file, entityType, entityId) => {
-        const formData = new FormData();
-        formData.append('media', file); // 'media' pour correspondre au backend
-        formData.append('entityType', entityType);
-        formData.append('entityId', entityId);
-
-        return api.post('/upload', formData, { // Correction: enlevé 'api/'
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
-        });
-    }
 };
 /*
 export const expenseService = {
@@ -338,21 +312,6 @@ export const reportService = {
         api.post('/reports/generate-excel', { reportType, params })
 };
 */
-/*
-export const mediaService = {
-    upload: (file, entityType, entityId) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('entityType', entityType);
-        formData.append('entityId', entityId);
-        return api.post('/media/upload', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
-        });
-    },
-    delete: (id) => api.delete(`/media/${id}`)
-};
-*/
+
 
 export default api;
