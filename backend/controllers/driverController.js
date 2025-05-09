@@ -88,6 +88,19 @@ exports.create = async (req, res) => {
         });
 
         const savedDriver = await driver.save();
+
+        // Enregistrement dans l'historique
+        await History.create({
+            eventType: 'driver_create',
+            module: 'driver',
+            entityId: savedDriver._id,
+            newData: savedDriver.toObject(),
+            performedBy: req.user ? req.user._id : null,
+            description: `Création du chauffeur ${savedDriver.firstName} ${savedDriver.lastName} (${savedDriver.licenseNumber})`,
+            ipAddress: req.ip
+        });
+
+
         console.log(`[DriverController] create - Nouveau chauffeur créé (ID: ${savedDriver._id})`);
 
         res.status(201).json(savedDriver);
@@ -215,6 +228,16 @@ exports.update = async (req, res) => {
             .populate('user', 'username email');
 
         console.log(`[DriverController] update - Chauffeur ${req.params.id} mis à jour avec succès`);
+        await History.create({
+            eventType: 'driver_update',
+            module: 'driver',
+            entityId: req.params.id,
+            oldData: driver.toObject(), // anciennes données avant modification
+            newData: updatedDriver.toObject(),
+            performedBy: req.user ? req.user._id : null,
+            description: `Mise à jour du chauffeur ${updatedDriver.firstName} ${updatedDriver.lastName}`,
+            ipAddress: req.ip
+        });
         res.json(updatedDriver);
     } catch (error) {
         console.error('[DriverController] Erreur dans update:', error.message, error.stack);
@@ -262,10 +285,83 @@ exports.delete = async (req, res) => {
         await Driver.deleteOne({ _id: driver._id });
         console.log(`[DriverController] delete - Chauffeur ${req.params.id} supprimé avec succès`);
 
+        await History.create({
+            eventType: 'driver_delete',
+            module: 'driver',
+            entityId: driver._id,
+            oldData: driver.toObject(),
+            performedBy: req.user ? req.user._id : null,
+            description: `Suppression du chauffeur ${driver.firstName} ${driver.lastName}`,
+            ipAddress: req.ip
+        });
+
         res.json({ message: 'Chauffeur supprimé avec succès' });
     } catch (error) {
         console.error('[DriverController] Erreur dans delete:', error.message, error.stack);
         res.status(500).json({ message: error.message });
+    }
+};
+
+exports.assignVehicle = async (req, res) => {
+    try {
+        const { driverId, vehicleId } = req.body;
+
+        if (!driverId || !vehicleId) {
+            return res.status(400).json({ message: 'ID du chauffeur et du véhicule requis' });
+        }
+
+        const driver = await Driver.findById(driverId);
+        if (!driver) {
+            return res.status(404).json({ message: 'Chauffeur non trouvé' });
+        }
+
+        const vehicle = await Vehicle.findById(vehicleId);
+        if (!vehicle) {
+            return res.status(404).json({ message: 'Véhicule non trouvé' });
+        }
+
+        // Si le chauffeur a déjà un véhicule, le libérer
+        if (driver.currentVehicle) {
+            await Vehicle.findByIdAndUpdate(
+                driver.currentVehicle,
+                { currentDriver: null }
+            );
+        }
+
+        // Si le véhicule a déjà un chauffeur, le libérer
+        if (vehicle.currentDriver) {
+            await Driver.findByIdAndUpdate(
+                vehicle.currentDriver,
+                { currentVehicle: null }
+            );
+        }
+
+        // Faire l'assignation
+        driver.currentVehicle = vehicleId;
+        await driver.save();
+
+        vehicle.currentDriver = driverId;
+        await vehicle.save();
+
+        // Historique
+        await History.create({
+            eventType: 'driver_vehicle_assign',
+            module: 'driver',
+            entityId: driver._id,
+            oldData: { currentVehicle: null },
+            newData: { currentVehicle: vehicleId },
+            performedBy: req.user?._id,
+            description: `Assignation du véhicule ${vehicle.licensePlate} au chauffeur ${driver.firstName} ${driver.lastName}`,
+            ipAddress: req.ip
+        });
+
+        res.json({
+            message: 'Véhicule assigné avec succès',
+            driver: await Driver.findById(driver._id)
+                .populate('currentVehicle', 'type brand model licensePlate')
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
     }
 };
 

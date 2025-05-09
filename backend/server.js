@@ -9,6 +9,7 @@ const cron = require('node-cron');
 const { generateDailyPayments } = require('./controllers/scheduleController');
 const Schedule = require('./models/scheduleModel');
 const setupUploadDirectories = require('./utils/setupUploadDirs');
+const historyRoutes = require('./routes/historyRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -29,6 +30,7 @@ app.use('/api/drivers', require('./routes/driverRoutes'));
 app.use('/api/schedules', require('./routes/scheduleRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/maintenances', require('./routes/maintenanceRoutes'));
+app.use('/api', historyRoutes);
 
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

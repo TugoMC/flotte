@@ -426,40 +426,32 @@ exports.uploadPhotos = async (req, res) => {
 
 // Supprimer une photo d'un paiement
 exports.deletePhoto = async (req, res) => {
-    console.log(`[PaymentController] Début de deletePhoto - Suppression de la photo ${req.params.photoIndex} du paiement ${req.params.id}`);
     try {
         const { id, photoIndex } = req.params;
-
-        // Vérifier que le paiement existe
         const payment = await Payment.findById(id);
         if (!payment) {
-            console.log(`[PaymentController] deletePhoto - Paiement ${id} non trouvé`);
             return res.status(404).json({ message: 'Paiement non trouvé' });
         }
 
-        // Vérifier que l'index est valide
         if (photoIndex < 0 || photoIndex >= payment.photos.length) {
-            console.log(`[PaymentController] deletePhoto - Index ${photoIndex} invalide pour le paiement ${id}`);
             return res.status(400).json({ message: 'Index de photo invalide' });
         }
 
-        // Récupérer le chemin de la photo à supprimer
-        const photoPath = payment.photos[photoIndex];
-        console.log(`[PaymentController] deletePhoto - Suppression du fichier: ${photoPath}`);
-
-        // Supprimer le fichier du système de fichiers
-        try {
-            fs.unlinkSync(photoPath);
-        } catch (err) {
-            console.error('[PaymentController] Erreur lors de la suppression du fichier:', err);
-            // Continuer même si le fichier n'existe pas physiquement
-        }
-
-        // Supprimer la référence de la photo dans le tableau
+        const deletedPhoto = payment.photos[photoIndex];
         payment.photos.splice(photoIndex, 1);
         await payment.save();
 
-        console.log(`[PaymentController] deletePhoto - Photo supprimée avec succès, il reste ${payment.photos.length} photos`);
+        // Historique
+        await History.create({
+            eventType: 'payment_photo_delete',
+            module: 'payment',
+            entityId: payment._id,
+            oldData: { photos: [...payment.photos, deletedPhoto] },
+            newData: { photos: payment.photos },
+            performedBy: req.user?._id,
+            description: `Suppression d'une photo du paiement ${payment._id}`,
+            ipAddress: req.ip
+        });
 
         res.json({
             message: 'Photo supprimée avec succès',
@@ -469,7 +461,6 @@ exports.deletePhoto = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error(`[PaymentController] Erreur deletePhoto pour le paiement ${req.params.id}:`, error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -730,6 +721,17 @@ exports.changeStatus = async (req, res) => {
                 await Schedule.findByIdAndUpdate(payment.schedule._id, { status: 'assigned' });
             }
         }
+
+        await History.create({
+            eventType: 'payment_confirm',
+            module: 'payment',
+            entityId: payment._id,
+            oldData: { status: 'pending' },
+            newData: { status: 'confirmed', amount: payment.amount },
+            performedBy: req.user ? req.user._id : null,
+            description: `Paiement confirmé de ${payment.amount}€ pour le planning ${payment.schedule._id}`,
+            ipAddress: req.ip
+        });
 
         res.json(payment);
     } catch (error) {

@@ -15,8 +15,19 @@ router.get('/', protect, vehicleController.getAll);
 router.get('/:id', protect, vehicleController.getById);
 
 // Routes pour créer/modifier/supprimer (réservées aux managers/admin)
-router.post('/', protect, manager, vehicleController.create);
-router.put('/:id', protect, manager, vehicleController.update);
+router.post(
+    '/',
+    protect,
+    manager,
+
+    vehicleController.create
+);
+router.put(
+    '/:id',
+    protect,
+    manager,
+    vehicleController.update
+);
 router.delete('/:id', protect, manager, vehicleController.delete);
 
 // Routes pour les photos

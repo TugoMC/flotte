@@ -73,6 +73,22 @@ async function generateDailyPayments(scheduleId) {
             currentDate.setHours(0, 0, 0, 0);
         }
 
+        if (dailyPayments.length > 0) {
+            await History.create({
+                eventType: 'schedule_payments_generated',
+                module: 'schedule',
+                entityId: scheduleId,
+                newData: { paymentsGenerated: dailyPayments.length },
+                performedBy: req.user?._id,
+                description: `Génération de ${dailyPayments.length} paiements pour le planning ${scheduleId}`,
+                ipAddress: req.ip,
+                metadata: {
+                    count: dailyPayments.length,
+                    dates: dailyPayments.map(p => p.paymentDate)
+                }
+            });
+        }
+
         return dailyPayments;
     } catch (error) {
         console.error('Erreur lors de la génération des paiements quotidiens:', error);
@@ -313,6 +329,16 @@ exports.create = async (req, res) => {
             .populate('driver', 'firstName lastName')
             .populate('vehicle', 'type brand model licensePlate');
 
+        await History.create({
+            eventType: 'schedule_create',
+            module: 'schedule',
+            entityId: savedSchedule._id,
+            newData: savedSchedule.toObject(),
+            performedBy: req.user ? req.user._id : null,
+            description: `Création d'un planning pour ${savedSchedule.driver.firstName} ${savedSchedule.driver.lastName} du ${savedSchedule.scheduleDate.toLocaleDateString()}`,
+            ipAddress: req.ip
+        });
+
         res.status(201).json(completeSchedule);
     } catch (error) {
         console.error('Erreur lors de la création du planning:', error);
@@ -520,6 +546,19 @@ exports.changeStatus = async (req, res) => {
         else if ((status === 'completed' || status === 'canceled' || status === 'pending') && existingSchedule.status === 'assigned') {
             await updateDriverVehicleRelationship(existingSchedule.driver, existingSchedule.vehicle, false);
         }
+
+        await History.create({
+            eventType: `schedule_${status}`,
+            module: 'schedule',
+            entityId: req.params.id,
+            oldData: { status: existingSchedule.status },
+            newData: { status },
+            performedBy: req.user ? req.user._id : null,
+            description: `Planning ${existingSchedule._id} passé à l'état ${status}`,
+            ipAddress: req.ip
+        });
+
+
         res.json(schedule);
 
         // Si le planning est complété, mettre à jour les paiements manquants

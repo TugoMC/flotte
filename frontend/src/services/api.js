@@ -38,12 +38,58 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     response => response,
     error => {
+        // Récupérer les informations d'erreur
+        const statusCode = error.response?.status;
         const message = error.response?.data?.message || 'Une erreur est survenue';
+
+        // Afficher un toast d'erreur
         toast({
             variant: "destructive",
             title: "Erreur",
             description: message,
         });
+
+        // Gérer les cas spéciaux d'erreur
+        if (statusCode === 401) {
+            // Non autorisé - rediriger vers la page de connexion si nous ne sommes pas déjà sur celle-ci
+            const currentPath = window.location.pathname;
+            if (currentPath !== '/login') {
+                // Stocker l'URL actuelle pour redirection après connexion
+                localStorage.setItem('redirectAfterLogin', currentPath);
+
+                // Supprimer le token invalide
+                localStorage.removeItem('token');
+
+                // Rediriger vers la page de connexion
+                window.location.href = '/login';
+                return Promise.reject(error);
+            }
+        }
+        else if (statusCode === 403) {
+            // Accès refusé - rediriger vers la page 403
+            window.location.href = '/error/403';
+            return Promise.reject(error);
+        }
+        else if (statusCode === 404) {
+            // Ressource non trouvée - rediriger vers la page 404 si l'utilisateur a demandé une ressource
+            // Ne pas rediriger si c'est une API qui a retourné 404
+            const requestPath = error.config?.url;
+            if (requestPath.includes('/api/') && requestPath.split('/').length > 3) {
+                // C'est probablement une ressource spécifique qui est demandée
+                // On peut afficher un message mais ne pas rediriger
+                console.warn('API Resource not found:', requestPath);
+            }
+        }
+        else if (statusCode === 500) {
+            // Erreur serveur - rediriger vers la page 500 pour les erreurs graves
+            console.error('Server error:', error);
+            // Optionnel: ne pas rediriger automatiquement pour toutes les erreurs 500
+            // window.location.href = '/error/500';
+        }
+
+        // Pour le développement, consigner l'erreur
+        console.error('API Error:', error);
+
         return Promise.reject(error);
     }
 );
@@ -298,6 +344,13 @@ export const maintenanceService = {
     getStats: () => api.get('/maintenances/stats'),
     checkStatusConsistency: () => api.get('/maintenances/check-status'),
     validateDates: () => api.get('/maintenances/validate-dates')
+};
+
+
+export const historyService = {
+    getRecentActivities: (limit = 5) => api.get(`/history/recent?limit=${limit}`),
+    getByEntity: (id) => api.get(`/history/entity/${id}`),
+    getStats: () => api.get('/history/stats')
 };
 /*
 export const documentService = {

@@ -36,7 +36,7 @@ const Navbar = ({ user }) => {
     };
 
     return (
-        <nav className="bg-white shadow">
+        <nav className="bg-white shadow rounded-3xl">
             <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
                 <div className="flex justify-between h-16">
                     <div className="flex">
@@ -88,7 +88,7 @@ const Navbar = ({ user }) => {
 
             {/* Menu mobile */}
             {isMobileMenuOpen && (
-                <div className="md:hidden bg-white border-b border-gray-200">
+                <div className="md:hidden bg-white border-b border-gray-200 rounded-b-3xl">
                     <div className="px-2 pt-2 pb-3 space-y-1">
                         <a href="/" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">
                             Tableau de bord

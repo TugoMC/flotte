@@ -292,6 +292,29 @@ exports.completeMaintenance = async (req, res) => {
             await vehicle.save();
         }
 
+        await History.create({
+            eventType: 'maintenance_complete',
+            module: 'maintenance',
+            entityId: maintenance._id,
+            oldData: { completed: false },
+            newData: { completed: true, completionDate: new Date() },
+            performedBy: req.user ? req.user._id : null,
+            description: `Maintenance terminée pour le véhicule ${maintenance.vehicle.licensePlate}`,
+            ipAddress: req.ip
+        });
+
+        // Et aussi un événement pour le véhicule
+        await History.create({
+            eventType: 'vehicle_maintenance_end',
+            module: 'vehicle',
+            entityId: maintenance.vehicle,
+            oldData: { status: 'maintenance' },
+            newData: { status: 'active' },
+            performedBy: req.user ? req.user._id : null,
+            description: `Fin de maintenance - véhicule remis en service`,
+            ipAddress: req.ip
+        });
+
         res.json({
             message: 'Maintenance marquée comme terminée',
             maintenance: await Maintenance.findById(maintenance._id)
@@ -424,7 +447,6 @@ exports.validateDates = async (req, res) => {
 exports.uploadPhotos = async (req, res) => {
     try {
         const maintenance = await Maintenance.findById(req.params.id);
-
         if (!maintenance) {
             return res.status(404).json({ message: 'Maintenance non trouvée' });
         }
@@ -433,12 +455,21 @@ exports.uploadPhotos = async (req, res) => {
             return res.status(400).json({ message: 'Aucun fichier téléchargé' });
         }
 
-        // Créer un tableau de chemins d'accès aux photos
         const photoPaths = req.files.map(file => file.path);
-
-        // Ajouter les nouveaux chemins au tableau existant
         maintenance.photos = [...maintenance.photos, ...photoPaths];
         await maintenance.save();
+
+        // Historique
+        await History.create({
+            eventType: 'maintenance_photo_upload',
+            module: 'maintenance',
+            entityId: maintenance._id,
+            newData: { photos: maintenance.photos },
+            performedBy: req.user?._id,
+            description: `Ajout de ${req.files.length} photo(s) à la maintenance ${maintenance._id}`,
+            ipAddress: req.ip,
+            metadata: { count: req.files.length }
+        });
 
         res.json({
             message: 'Photos de maintenance ajoutées avec succès',

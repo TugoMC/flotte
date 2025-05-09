@@ -1,6 +1,7 @@
 // controllers/vehicleController.js
 const Vehicle = require('../models/vehicleModel');
 const Driver = require('../models/driverModel');
+const History = require('../models/historyModel');
 
 // Récupérer tous les véhicules
 exports.getAll = async (req, res) => {
@@ -28,17 +29,16 @@ exports.getById = async (req, res) => {
     }
 };
 
+
 // Créer un nouveau véhicule
 exports.create = async (req, res) => {
     try {
-        // Validation des champs obligatoires
         const { type, licensePlate, brand, model, registrationDate, serviceEntryDate } = req.body;
 
         if (!type || !licensePlate || !brand || !model || !registrationDate || !serviceEntryDate) {
             return res.status(400).json({ message: 'Tous les champs obligatoires doivent être remplis' });
         }
 
-        // Vérifier si le véhicule existe déjà (plaque d'immatriculation unique)
         const vehicleExists = await Vehicle.findOne({ licensePlate });
         if (vehicleExists) {
             return res.status(400).json({ message: 'Un véhicule avec cette plaque d\'immatriculation existe déjà' });
@@ -46,6 +46,18 @@ exports.create = async (req, res) => {
 
         const vehicle = new Vehicle(req.body);
         const savedVehicle = await vehicle.save();
+
+        // Historique de création
+        await History.create({
+            eventType: 'vehicle_create',
+            module: 'vehicle',
+            entityId: savedVehicle._id,
+            newData: savedVehicle.toObject(),
+            performedBy: req.user?._id,
+            description: `Création du véhicule ${savedVehicle.brand} ${savedVehicle.model} (${savedVehicle.licensePlate})`,
+            ipAddress: req.ip
+        });
+
         res.status(201).json(savedVehicle);
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -55,7 +67,8 @@ exports.create = async (req, res) => {
 // Mettre à jour un véhicule
 exports.update = async (req, res) => {
     try {
-        // Vérifier si la plaque d'immatriculation est mise à jour et si elle est unique
+        const oldVehicle = await Vehicle.findById(req.params.id).lean();
+
         if (req.body.licensePlate) {
             const existingVehicle = await Vehicle.findOne({
                 licensePlate: req.body.licensePlate,
@@ -78,6 +91,27 @@ exports.update = async (req, res) => {
         if (!vehicle) {
             return res.status(404).json({ message: 'Véhicule non trouvé' });
         }
+
+        // Détecter si c'est un changement de statut
+        let description;
+        if (req.body.status && req.body.status !== oldVehicle.status) {
+            description = `Changement de statut du véhicule ${vehicle.licensePlate} (${oldVehicle.status} → ${vehicle.status})`;
+        } else {
+            description = `Modification du véhicule ${vehicle.licensePlate}`;
+        }
+
+        // Historique de modification
+        await History.create({
+            eventType: req.body.status ? 'vehicle_status_change' : 'vehicle_update',
+            module: 'vehicle',
+            entityId: vehicle._id,
+            oldData: oldVehicle,
+            newData: vehicle.toObject(),
+            performedBy: req.user?._id,
+            description: description,
+            ipAddress: req.ip
+        });
+
         res.json(vehicle);
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -87,7 +121,11 @@ exports.update = async (req, res) => {
 // Supprimer un véhicule
 exports.delete = async (req, res) => {
     try {
-        // Vérifier si un chauffeur est toujours assigné à ce véhicule
+        const vehicle = await Vehicle.findById(req.params.id);
+        if (!vehicle) {
+            return res.status(404).json({ message: 'Véhicule non trouvé' });
+        }
+
         const hasDriver = await Driver.findOne({ currentVehicle: req.params.id });
         if (hasDriver) {
             return res.status(400).json({
@@ -95,10 +133,18 @@ exports.delete = async (req, res) => {
             });
         }
 
-        const vehicle = await Vehicle.findByIdAndDelete(req.params.id);
-        if (!vehicle) {
-            return res.status(404).json({ message: 'Véhicule non trouvé' });
-        }
+        // Historique avant suppression
+        await History.create({
+            eventType: 'vehicle_delete',
+            module: 'vehicle',
+            entityId: vehicle._id,
+            oldData: vehicle.toObject(),
+            performedBy: req.user?._id,
+            description: `Suppression du véhicule ${vehicle.licensePlate}`,
+            ipAddress: req.ip
+        });
+
+        await Vehicle.findByIdAndDelete(req.params.id);
         res.json({ message: 'Véhicule supprimé avec succès' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -162,18 +208,20 @@ exports.setDailyTarget = async (req, res) => {
 exports.changeStatus = async (req, res) => {
     try {
         const { status } = req.body;
+        const validStatuses = ['active', 'inactive', 'maintenance'];
 
-        if (!['active', 'inactive', 'maintenance'].includes(status)) {
+        if (!validStatuses.includes(status)) {
             return res.status(400).json({ message: 'Statut invalide' });
         }
 
         const vehicle = await Vehicle.findById(req.params.id);
-
         if (!vehicle) {
             return res.status(404).json({ message: 'Véhicule non trouvé' });
         }
 
-        // Si le véhicule passe à un statut inactif ou maintenance, on libère le chauffeur associé
+        const oldStatus = vehicle.status;
+
+        // Si le véhicule passe à un statut inactif ou maintenance, on libère le chauffeur
         if (status !== 'active' && vehicle.currentDriver) {
             await Driver.findByIdAndUpdate(
                 vehicle.currentDriver,
@@ -185,6 +233,18 @@ exports.changeStatus = async (req, res) => {
         vehicle.status = status;
         await vehicle.save();
 
+        // Historique de changement de statut
+        await History.create({
+            eventType: 'vehicle_status_change',
+            module: 'vehicle',
+            entityId: vehicle._id,
+            oldData: { status: oldStatus },
+            newData: { status: vehicle.status },
+            performedBy: req.user?._id,
+            description: `Changement de statut du véhicule ${vehicle.licensePlate} (${oldStatus} → ${vehicle.status})`,
+            ipAddress: req.ip
+        });
+
         res.json(vehicle);
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -195,14 +255,11 @@ exports.changeStatus = async (req, res) => {
 exports.assignDriver = async (req, res) => {
     try {
         const { driverId } = req.body;
-
         if (!driverId) {
             return res.status(400).json({ message: 'ID du chauffeur requis' });
         }
 
-        // Vérifier que le véhicule existe et est actif
         const vehicle = await Vehicle.findById(req.params.id);
-
         if (!vehicle) {
             return res.status(404).json({ message: 'Véhicule non trouvé' });
         }
@@ -213,9 +270,7 @@ exports.assignDriver = async (req, res) => {
             });
         }
 
-        // Vérifier que le chauffeur existe et est actif
         const driver = await Driver.findById(driverId);
-
         if (!driver) {
             return res.status(404).json({ message: 'Chauffeur non trouvé' });
         }
@@ -240,12 +295,24 @@ exports.assignDriver = async (req, res) => {
             );
         }
 
-        // Faire l'assignation dans les deux sens
+        // Faire l'assignation
         vehicle.currentDriver = driverId;
         await vehicle.save();
 
         driver.currentVehicle = vehicle._id;
         await driver.save();
+
+        // Historique d'assignation
+        await History.create({
+            eventType: 'vehicle_driver_assign',
+            module: 'vehicle',
+            entityId: vehicle._id,
+            oldData: { currentDriver: null },
+            newData: { currentDriver: driverId },
+            performedBy: req.user?._id,
+            description: `Assignation du chauffeur ${driver.firstName} ${driver.lastName} au véhicule ${vehicle.licensePlate}`,
+            ipAddress: req.ip
+        });
 
         res.json({
             message: 'Chauffeur assigné avec succès',
@@ -260,7 +327,6 @@ exports.assignDriver = async (req, res) => {
 exports.releaseDriver = async (req, res) => {
     try {
         const vehicle = await Vehicle.findById(req.params.id);
-
         if (!vehicle) {
             return res.status(404).json({ message: 'Véhicule non trouvé' });
         }
@@ -269,14 +335,24 @@ exports.releaseDriver = async (req, res) => {
             return res.status(400).json({ message: 'Ce véhicule n\'a pas de chauffeur assigné' });
         }
 
-        // Libérer le chauffeur du véhicule
         const driver = await Driver.findById(vehicle.currentDriver);
         if (driver) {
             driver.currentVehicle = null;
             await driver.save();
         }
 
-        // Libérer le véhicule du chauffeur
+        // Historique avant libération
+        await History.create({
+            eventType: 'vehicle_driver_release',
+            module: 'vehicle',
+            entityId: vehicle._id,
+            oldData: { currentDriver: vehicle.currentDriver },
+            newData: { currentDriver: null },
+            performedBy: req.user?._id,
+            description: `Libération du chauffeur du véhicule ${vehicle.licensePlate}`,
+            ipAddress: req.ip
+        });
+
         vehicle.currentDriver = null;
         await vehicle.save();
 
@@ -290,7 +366,6 @@ exports.releaseDriver = async (req, res) => {
 exports.uploadPhotos = async (req, res) => {
     try {
         const vehicle = await Vehicle.findById(req.params.id);
-
         if (!vehicle) {
             return res.status(404).json({ message: 'Véhicule non trouvé' });
         }
@@ -299,17 +374,25 @@ exports.uploadPhotos = async (req, res) => {
             return res.status(400).json({ message: 'Aucun fichier téléchargé' });
         }
 
-        // Créer un tableau de chemins d'accès aux photos
         const photoPaths = req.files.map(file => file.path);
-
-        // Ajouter les nouveaux chemins au tableau existant
         vehicle.photos = [...vehicle.photos, ...photoPaths];
         await vehicle.save();
 
+        // Historique d'upload de photos
+        await History.create({
+            eventType: 'vehicle_photo_upload',
+            module: 'vehicle',
+            entityId: vehicle._id,
+            newData: { photos: vehicle.photos },
+            performedBy: req.user?._id,
+            description: `Ajout de ${req.files.length} photo(s) au véhicule ${vehicle.licensePlate}`,
+            ipAddress: req.ip,
+            metadata: { count: req.files.length }
+        });
+
         res.json({
             message: 'Photos du véhicule ajoutées avec succès',
-            vehicle: await Vehicle.findById(vehicle._id)
-                .populate('currentDriver', 'firstName lastName')
+            vehicle: await Vehicle.findById(vehicle._id).populate('currentDriver', 'firstName lastName')
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -321,7 +404,6 @@ exports.deletePhoto = async (req, res) => {
     try {
         const { photoIndex } = req.params;
         const vehicle = await Vehicle.findById(req.params.id);
-
         if (!vehicle) {
             return res.status(404).json({ message: 'Véhicule non trouvé' });
         }
@@ -330,14 +412,26 @@ exports.deletePhoto = async (req, res) => {
             return res.status(400).json({ message: 'Index de photo invalide' });
         }
 
-        // Supprimer la photo à l'index spécifié
+        const deletedPhoto = vehicle.photos[photoIndex];
+
         vehicle.photos.splice(photoIndex, 1);
         await vehicle.save();
 
+        // Historique de suppression de photo
+        await History.create({
+            eventType: 'vehicle_photo_delete',
+            module: 'vehicle',
+            entityId: vehicle._id,
+            oldData: { photos: [...vehicle.photos, deletedPhoto] },
+            newData: { photos: vehicle.photos },
+            performedBy: req.user?._id,
+            description: `Suppression d'une photo du véhicule ${vehicle.licensePlate}`,
+            ipAddress: req.ip
+        });
+
         res.json({
             message: 'Photo supprimée avec succès',
-            vehicle: await Vehicle.findById(vehicle._id)
-                .populate('currentDriver', 'firstName lastName')
+            vehicle: await Vehicle.findById(vehicle._id).populate('currentDriver', 'firstName lastName')
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -388,6 +482,22 @@ exports.startMaintenance = async (req, res) => {
         });
 
         await maintenance.save();
+
+        await History.create({
+            eventType: 'vehicle_maintenance_start',
+            module: 'vehicle',
+            entityId: vehicle._id,
+            oldData: { status: vehicle.status },
+            newData: { status: 'maintenance' },
+            performedBy: req.user ? req.user._id : null,
+            description: `Mise en maintenance (${maintenanceType}) du véhicule ${vehicle.licensePlate}`,
+            ipAddress: req.ip,
+            metadata: {
+                maintenanceId: maintenance._id,
+                maintenanceType,
+                duration
+            }
+        });
 
         res.json({
             message: 'Véhicule mis en maintenance avec succès',
