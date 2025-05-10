@@ -193,9 +193,9 @@ const DriversList = () => {
 
     const getStatusBadge = (departureDate) => {
         if (departureDate) {
-            return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Ancien</Badge>;
+            return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800">Ancien</Badge>;
         } else {
-            return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Actif</Badge>;
+            return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Actif</Badge>;
         }
     };
 
@@ -210,7 +210,7 @@ const DriversList = () => {
     const getVehicleStatusBadge = (status) => {
         switch (status) {
             case 'active':
-                return <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Actif</Badge>;
+                return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Actif</Badge>;
             case 'maintenance':
                 return <Badge variant="outline" className="ml-2 bg-yellow-50 text-yellow-700 border-yellow-200">Maintenance</Badge>;
             case 'inactive':
@@ -363,7 +363,7 @@ const DriversList = () => {
                     </div>
 
                     {/* Bouton pour réinitialiser les filtres */}
-                    {(searchTerm || filterVehicle) && (
+                    {(searchTerm || (filterVehicle && filterVehicle !== 'all')) && (
                         <div className="flex justify-end mb-4">
                             <Button variant="ghost" onClick={resetFilters}>
                                 Réinitialiser les filtres

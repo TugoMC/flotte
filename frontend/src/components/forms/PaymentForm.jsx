@@ -358,11 +358,11 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
                 </div>
 
                 {/* Message d'information pour les photos */}
-                <div className="bg-blue-50 p-3 rounded-md text-sm flex items-start gap-2">
-                    <InfoIcon className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                <div className="bg-accent p-3 rounded-md text-sm flex items-start gap-2">
+                    <InfoIcon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
-                        <p className="font-medium text-blue-800 mb-1">Conseils pour les justificatifs</p>
-                        <p className="text-blue-700">
+                        <p className="font-medium text-accent-foreground mb-1">Conseils pour les justificatifs</p>
+                        <p className="text-muted-foreground">
                             Pour une qualité optimale, utilisez des images claires des reçus ou captures d'écran.
                             Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.
                         </p>

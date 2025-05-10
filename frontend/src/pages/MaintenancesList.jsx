@@ -305,8 +305,8 @@ const MaintenancesList = () => {
 
     const getStatusBadge = (completed) => {
         return completed ?
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Terminée</Badge> :
-            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">En cours</Badge>;
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Terminée</Badge> :
+            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">En cours</Badge>;
     };
 
     const getTypeLabel = (type) => {
@@ -702,11 +702,11 @@ const MaintenancesList = () => {
                         </div>
 
                         {/* Message d'information pour les photos */}
-                        <div className="bg-blue-50 p-3 rounded-md text-sm flex items-start gap-2">
-                            <InfoIcon className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <div className="bg-accent p-3 rounded-md text-sm flex items-start gap-2">
+                            <InfoIcon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                             <div>
-                                <p className="font-medium text-blue-800 mb-1">Conseils pour les photos</p>
-                                <p className="text-blue-700">
+                                <p className="font-medium text-accent-foreground mb-1">Conseils pour les photos</p>
+                                <p className="text-muted-foreground">
                                     Pour une qualité optimale, utilisez des images d'une résolution minimale de 1200×800 pixels
                                     et d'un rapport 3:2. Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.
                                 </p>

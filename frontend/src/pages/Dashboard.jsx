@@ -106,27 +106,28 @@ const Dashboard = () => {
 
     return (
         <div className="flex flex-col min-h-screen bg-background">
-
-
-
             {/* Main content */}
             <main className="flex-1 overflow-auto">
-
-
-                {/* Stats cards */}
+                {/* Chart section - Top alone */}
+                <h2 className="text-lg font-semibold mb-4">Tableau de bord</h2>
                 <div className="px-4 py-6 lg:px-6">
-                    <h2 className="text-lg font-semibold mb-4">Tableau de bord</h2>
-                    <SectionCards />
+                    <ChartAreaInteractive />
                 </div>
 
-                {/* Charts section */}
-                <div className="grid gap-6 px-4 py-6 lg:grid-cols-2 lg:px-6">
-                    <ChartAreaInteractive />
+                {/* Stats cards - 4 in horizontal row */}
+                <div className="px-4 py-6 lg:px-6">
 
-                    {/* Activity card */}
+                    <div >
+                        <SectionCards />
+                    </div>
+                </div>
+
+                {/* Bottom section - Grid 2 */}
+                <div className="grid gap-6 px-4 py-6 lg:grid-cols-2 lg:px-6">
+                    {/* Recent Events card */}
                     <Card>
                         <CardHeader>
-                            <CardTitle> Evenements recents</CardTitle>
+                            <CardTitle>Evenements recents</CardTitle>
                             <CardDescription>
                                 Dernieres actions effectuees
                             </CardDescription>
@@ -164,13 +165,8 @@ const Dashboard = () => {
                             </Button>
                         </CardFooter>
                     </Card>
-                </div>
 
-                {/* Upcoming section */}
-                <div className="grid gap-6 px-4 py-6 lg:grid-cols-2 lg:px-6">
-
-
-                    {/* Upcoming schedules */}
+                    {/* Upcoming schedules card */}
                     <Card>
                         <CardHeader>
                             <CardTitle>Upcoming Schedules</CardTitle>
@@ -204,8 +200,8 @@ const Dashboard = () => {
                         </CardFooter>
                     </Card>
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 };
 

@@ -655,17 +655,16 @@ const MaintenanceDetail = () => {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-4 py-2">
-                        <div className="flex items-start gap-2">
-                            <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                            <div>
-                                <AlertTitle className="text-sm">Conseils pour les photos</AlertTitle>
-                                <AlertDescription className="text-xs">
-                                    Résolution min: 1200×800 px • Rapport 3:2 • Formats: JPG, PNG • Max: 5 MB/image
-                                </AlertDescription>
-                            </div>
+                    <div className="bg-accent p-3 rounded-md text-sm flex items-start gap-2">
+                        <InfoIcon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-medium text-accent-foreground mb-1">Conseils pour les photos</p>
+                            <p className="text-muted-foreground">
+                                Pour une qualité optimale, utilisez des images d'une résolution minimale de 1200×800 pixels
+                                et d'un rapport 3:2. Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.
+                            </p>
                         </div>
-                    </Alert>
+                    </div>
 
                     <div className="flex-1 overflow-auto space-y-4">
                         {/* Section des photos existantes */}

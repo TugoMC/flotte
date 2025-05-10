@@ -274,12 +274,12 @@ const VehicleDetail = () => {
 
         switch (status) {
             case 'active':
-                return <Badge variant="outline" className="bg-green-50 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">actif</Badge>;
+                return <Badge variant="outline" className="bg-green-50 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Actif</Badge>;
 
             case 'inactive':
-                return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800">inactif</Badge>;
+                return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800">Inactif</Badge>;
             case 'maintenance':
-                return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">en maintenance</Badge>;
+                return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">En maintenance</Badge>;
             default:
                 variant = 'default';
         }
@@ -505,11 +505,23 @@ const VehicleDetail = () => {
                     <div className="py-3">
                         <div className="flex justify-between items-center">
                             <span className="text-sm font-medium text-gray-500">Chauffeur:</span>
-                            <span>
-                                {vehicle.currentDriver
-                                    ? `${vehicle.currentDriver.firstName} ${vehicle.currentDriver.lastName}`
-                                    : 'Non assigné'}
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <span>
+                                    {vehicle.currentDriver
+                                        ? `${vehicle.currentDriver.firstName} ${vehicle.currentDriver.lastName}`
+                                        : 'Non assigné'}
+                                </span>
+
+                                {vehicle.currentDriver && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => navigate(`/drivers/${vehicle.currentDriver._id}`)}
+                                    >
+                                        Voir le chauffeur
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -646,17 +658,16 @@ const VehicleDetail = () => {
                     </DialogHeader>
 
                     {/* Message de conseil réduit pour gagner de l'espace */}
-                    <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-4 py-2">
-                        <div className="flex items-start gap-2">
-                            <InfoIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                            <div>
-                                <AlertTitle className="text-sm">Conseils pour les photos</AlertTitle>
-                                <AlertDescription className="text-xs">
-                                    Résolution min: 1200×800 px • Rapport 3:2 • Formats: JPG, PNG • Max: 5 MB/image
-                                </AlertDescription>
-                            </div>
+                    <div className="bg-accent p-3 rounded-md text-sm flex items-start gap-2">
+                        <InfoIcon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-medium text-accent-foreground mb-1">Conseils pour les photos</p>
+                            <p className="text-muted-foreground">
+                                Pour une qualité optimale, utilisez des images d'une résolution minimale de 1200×800 pixels
+                                et d'un rapport 3:2. Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.
+                            </p>
                         </div>
-                    </Alert>
+                    </div>
 
                     {/* Contenu principal avec scroll */}
                     <div className="flex-1 overflow-auto space-y-4"> {/* Flex-1 pour prendre tout l'espace disponible */}

@@ -218,15 +218,15 @@ const PaymentDetail = () => {
     const getStatusBadge = (status) => {
         switch (status) {
             case 'pending':
-                return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">En attente</Badge>;
+                return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">En attente</Badge>;
             case 'confirmed':
-                return <Badge variant="outline" className="bg-green-50 text-green-800 border-green-300">Confirmé</Badge>;
+                return <Badge variant="outline" className="bg-green-50 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Confirmé</Badge>;
             case 'completed':
-                return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Complété</Badge>;
+                return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Complété</Badge>;
             case 'rejected':
-                return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Rejeté</Badge>;
+                return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">Rejeté</Badge>;
             case 'cancelled':
-                return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Annulé</Badge>;
+                return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800">Annulé</Badge>;
             default:
                 return <Badge variant="outline">{status}</Badge>;
         }
@@ -319,7 +319,7 @@ const PaymentDetail = () => {
 
 
             {/* Photo Carousel */}
-            <div className="mb-6 relative w-full h-80 rounded-lg overflow-hidden">
+            <div className="mb-6 relative w-full h-80 rounded-lg overflow-hidden ">
                 {payment.photos && payment.photos.length > 0 ? (
                     <>
                         <button
@@ -438,7 +438,7 @@ const PaymentDetail = () => {
             </div>
 
             {/* Payment Details Container */}
-            <div className="bg-white rounded-lg p-6 ">
+            <div className="bg-card text-card-foreground rounded-lg p-6 border">
                 {/* Header with title and edit button */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
@@ -588,17 +588,16 @@ const PaymentDetail = () => {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-4 py-2">
-                        <div className="flex items-start gap-2">
-                            <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                            <div>
-                                <AlertTitle className="text-sm">Conseils pour les photos</AlertTitle>
-                                <AlertDescription className="text-xs">
-                                    Assurez-vous que toutes les informations du reçu sont clairement visibles • Formats: JPG, PNG • Max: 5 MB/image
-                                </AlertDescription>
-                            </div>
+                    <div className="bg-accent p-3 rounded-md text-sm flex items-start gap-2">
+                        <InfoIcon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-medium text-accent-foreground mb-1">Conseils pour les justificatifs</p>
+                            <p className="text-muted-foreground">
+                                Pour une qualité optimale, utilisez des images claires des reçus ou captures d'écran.
+                                Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.
+                            </p>
                         </div>
-                    </Alert>
+                    </div>
 
                     <div className="flex-1 overflow-auto space-y-4">
                         {/* Section des photos existantes */}

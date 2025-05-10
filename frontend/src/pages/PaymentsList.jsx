@@ -177,11 +177,11 @@ const PaymentsList = () => {
     const getStatusBadge = (status) => {
         switch (status) {
             case 'pending':
-                return <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-300">En attente</Badge>;
+                return <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">En attente</Badge>;
             case 'confirmed':
-                return <Badge variant="outline" className="bg-green-50 text-green-800 border-green-300">Confirmé</Badge>;
+                return <Badge variant="outline" className="bg-green-50 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Confirmé</Badge>;
             case 'rejected':
-                return <Badge variant="outline" className="bg-red-50 text-red-800 border-red-300">Rejeté</Badge>;
+                return <Badge variant="outline" className="bg-red-50 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">Rejeté</Badge>;
             default:
                 return <Badge variant="outline">{status}</Badge>;
         }

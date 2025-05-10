@@ -331,11 +331,11 @@ const VehiclesList = () => {
     const getStatusBadge = (status) => {
         switch (status) {
             case 'active':
-                return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Actif</Badge>;
+                return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Actif</Badge>;
             case 'inactive':
-                return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Inactif</Badge>;
+                return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800">Inactif</Badge>;
             case 'maintenance':
-                return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Maintenance</Badge>;
+                return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">Maintenance</Badge>;
             default:
                 return null;
         }
@@ -643,11 +643,11 @@ const VehiclesList = () => {
                             </div>
 
                             {/* Message d'information pour les photos */}
-                            <div className="bg-blue-50 p-3 rounded-md text-sm flex items-start gap-2">
-                                <InfoIcon className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                            <div className="bg-accent p-3 rounded-md text-sm flex items-start gap-2">
+                                <InfoIcon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                                 <div>
-                                    <p className="font-medium text-blue-800 mb-1">Conseils pour les photos</p>
-                                    <p className="text-blue-700">
+                                    <p className="font-medium text-accent-foreground mb-1">Conseils pour les photos</p>
+                                    <p className="text-muted-foreground">
                                         Pour une qualité optimale, utilisez des images d'une résolution minimale de 1200×800 pixels
                                         et d'un rapport 3:2. Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.
                                     </p>
