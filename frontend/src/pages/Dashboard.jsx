@@ -59,7 +59,7 @@ const Dashboard = () => {
         fetchRecentActivities();
     }, []);
 
-    const getActivityIcon = (module) => {
+    const getActivityIcon = (activity) => {
         const icons = {
             vehicle: <Car className="h-4 w-4 text-primary" />,
             driver: <Users className="h-4 w-4 text-primary" />,
@@ -67,7 +67,7 @@ const Dashboard = () => {
             maintenance: <Wrench className="h-4 w-4 text-primary" />,
             schedule: <CalendarClock className="h-4 w-4 text-primary" />
         };
-        return icons[module] || <Activity className="h-4 w-4 text-primary" />;
+        return icons[activity.module] || <Activity className="h-4 w-4 text-primary" />;
     };
 
     const formatTimeAgo = (dateInput) => {
@@ -126,9 +126,9 @@ const Dashboard = () => {
                     {/* Activity card */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Recent Activity</CardTitle>
+                            <CardTitle> Evenements recents</CardTitle>
                             <CardDescription>
-                                Latest actions from your fleet management system
+                                Dernieres actions effectuees
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -138,13 +138,13 @@ const Dashboard = () => {
                                 </div>
                             ) : activities.length === 0 ? (
                                 <div className="text-center py-4 text-muted-foreground">
-                                    No recent activities
+                                    Aucun évenement recent
                                 </div>
                             ) : (
                                 activities.map((activity) => (
                                     <div key={activity._id} className="flex items-start gap-4 rounded-lg border p-3">
                                         <div className="rounded-full bg-primary/10 p-2">
-                                            {getActivityIcon(activity.module)}
+                                            {getActivityIcon(activity)}
                                         </div>
                                         <div className="flex-1 space-y-1">
                                             <p className="text-sm font-medium leading-none">

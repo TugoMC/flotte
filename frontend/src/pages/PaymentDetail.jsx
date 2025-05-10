@@ -438,7 +438,7 @@ const PaymentDetail = () => {
             </div>
 
             {/* Payment Details Container */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="bg-white rounded-lg p-6 ">
                 {/* Header with title and edit button */}
                 <div className="flex justify-between items-center mb-6">
                     <div>

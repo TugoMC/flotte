@@ -3,6 +3,7 @@ const Schedule = require('../models/scheduleModel');
 const Driver = require('../models/driverModel');
 const Vehicle = require('../models/vehicleModel');
 const Payment = require('../models/paymentModel'); // Ajout de l'import manquant
+const History = require('../models/historyModel');
 const { updateDriverVehicleRelationship } = require('../utils/driverVehicleUtils');
 const { completeExpiredSchedules, activatePendingSchedules } = require('../utils/scheduleAutocompletion');
 
@@ -333,10 +334,25 @@ exports.create = async (req, res) => {
             eventType: 'schedule_create',
             module: 'schedule',
             entityId: savedSchedule._id,
-            newData: savedSchedule.toObject(),
+            newData: {
+                ...savedSchedule.toObject(),
+                driver: {
+                    firstName: completeSchedule.driver.firstName,
+                    lastName: completeSchedule.driver.lastName
+                },
+                vehicle: {
+                    brand: completeSchedule.vehicle.brand,
+                    model: completeSchedule.vehicle.model,
+                    licensePlate: completeSchedule.vehicle.licensePlate
+                }
+            },
             performedBy: req.user ? req.user._id : null,
-            description: `Création d'un planning pour ${savedSchedule.driver.firstName} ${savedSchedule.driver.lastName} du ${savedSchedule.scheduleDate.toLocaleDateString()}`,
-            ipAddress: req.ip
+            description: `Création d'un planning pour ${completeSchedule.driver.firstName} ${completeSchedule.driver.lastName} avec le véhicule ${completeSchedule.vehicle.brand} ${completeSchedule.vehicle.model} (${completeSchedule.vehicle.licensePlate})`,
+            ipAddress: req.ip,
+            metadata: {
+                driverId: completeSchedule.driver._id,
+                vehicleId: completeSchedule.vehicle._id
+            }
         });
 
         res.status(201).json(completeSchedule);
@@ -487,7 +503,10 @@ exports.update = async (req, res) => {
 // Supprimer un planning
 exports.delete = async (req, res) => {
     try {
-        const schedule = await Schedule.findById(req.params.id);
+        const schedule = await Schedule.findById(req.params.id)
+            .populate('driver', 'firstName lastName')
+            .populate('vehicle', 'brand model licensePlate');
+
         if (!schedule) {
             return res.status(404).json({ message: 'Planning non trouvé' });
         }
@@ -497,10 +516,35 @@ exports.delete = async (req, res) => {
 
         // Supprimer les relations chauffeur-véhicule si le planning est actif
         if (schedule.status === 'assigned') {
-            await updateDriverVehicleRelationship(schedule.driver, schedule.vehicle, false);
+            await updateDriverVehicleRelationship(schedule.driver._id, schedule.vehicle._id, false);
         }
 
         await Schedule.findByIdAndDelete(req.params.id);
+
+        // Enregistrement dans l'historique
+        await History.create({
+            eventType: 'schedule_delete',
+            module: 'schedule',
+            entityId: req.params.id,
+            oldData: {
+                driver: {
+                    firstName: schedule.driver.firstName,
+                    lastName: schedule.driver.lastName
+                },
+                vehicle: {
+                    brand: schedule.vehicle.brand,
+                    model: schedule.vehicle.model,
+                    licensePlate: schedule.vehicle.licensePlate
+                },
+                scheduleDate: schedule.scheduleDate,
+                endDate: schedule.endDate,
+                status: schedule.status
+            },
+            performedBy: req.user?._id,
+            description: `Suppression du planning pour ${schedule.driver.firstName} ${schedule.driver.lastName} avec le véhicule ${schedule.vehicle.brand} ${schedule.vehicle.model} (${schedule.vehicle.licensePlate})`,
+            ipAddress: req.ip
+        });
+
         res.json({ message: 'Planning et paiements associés supprimés avec succès' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -514,14 +558,19 @@ exports.changeStatus = async (req, res) => {
         if (!['pending', 'assigned', 'completed', 'canceled'].includes(status)) {
             return res.status(400).json({ message: 'Statut invalide' });
         }
-        const existingSchedule = await Schedule.findById(req.params.id);
+
+        const existingSchedule = await Schedule.findById(req.params.id)
+            .populate('driver', 'firstName lastName')
+            .populate('vehicle', 'brand model licensePlate');
+
         if (!existingSchedule) {
             return res.status(404).json({ message: 'Planning non trouvé' });
         }
+
         // Si on passe à "assigned", vérifier si le chauffeur a déjà un planning actif
         if (status === 'assigned' && existingSchedule.status !== 'assigned') {
             const activeSchedules = await Schedule.find({
-                driver: existingSchedule.driver,
+                driver: existingSchedule.driver._id,
                 status: 'assigned',
                 _id: { $ne: req.params.id }
             });
@@ -532,39 +581,66 @@ exports.changeStatus = async (req, res) => {
                 });
             }
         }
+
         const schedule = await Schedule.findByIdAndUpdate(
             req.params.id,
             { status },
             { new: true, runValidators: true }
         )
             .populate('driver', 'firstName lastName')
-            .populate('vehicle', 'type brand model licensePlate');
+            .populate('vehicle', 'brand model licensePlate');
+
         // Gérer les relations chauffeur-véhicule en fonction du changement de statut
         if (status === 'assigned' && existingSchedule.status === 'pending') {
-            await updateDriverVehicleRelationship(existingSchedule.driver, existingSchedule.vehicle, true);
+            await updateDriverVehicleRelationship(existingSchedule.driver._id, existingSchedule.vehicle._id, true);
         }
         else if ((status === 'completed' || status === 'canceled' || status === 'pending') && existingSchedule.status === 'assigned') {
-            await updateDriverVehicleRelationship(existingSchedule.driver, existingSchedule.vehicle, false);
+            await updateDriverVehicleRelationship(existingSchedule.driver._id, existingSchedule.vehicle._id, false);
         }
 
+        // Enregistrement dans l'historique
         await History.create({
-            eventType: `schedule_${status}`,
+            eventType: `schedule_status_change`,
             module: 'schedule',
             entityId: req.params.id,
-            oldData: { status: existingSchedule.status },
-            newData: { status },
-            performedBy: req.user ? req.user._id : null,
-            description: `Planning ${existingSchedule._id} passé à l'état ${status}`,
-            ipAddress: req.ip
+            oldData: {
+                status: existingSchedule.status,
+                driver: {
+                    firstName: existingSchedule.driver.firstName,
+                    lastName: existingSchedule.driver.lastName
+                },
+                vehicle: {
+                    brand: existingSchedule.vehicle.brand,
+                    model: existingSchedule.vehicle.model,
+                    licensePlate: existingSchedule.vehicle.licensePlate
+                }
+            },
+            newData: {
+                status,
+                driver: {
+                    firstName: schedule.driver.firstName,
+                    lastName: schedule.driver.lastName
+                },
+                vehicle: {
+                    brand: schedule.vehicle.brand,
+                    model: schedule.vehicle.model,
+                    licensePlate: schedule.vehicle.licensePlate
+                }
+            },
+            performedBy: req.user?._id,
+            description: `Changement de statut du planning pour ${schedule.driver.firstName} ${schedule.driver.lastName} de "${existingSchedule.status}" à "${status}"`,
+            ipAddress: req.ip,
+            metadata: {
+                oldStatus: existingSchedule.status,
+                newStatus: status
+            }
         });
-
 
         res.json(schedule);
 
         // Si le planning est complété, mettre à jour les paiements manquants
         if (status === 'completed') {
             try {
-                // On pourrait créer les paiements manquants pour tous les jours du planning
                 await generateDailyPayments(req.params.id);
             } catch (error) {
                 console.error('Erreur lors de la mise à jour des paiements:', error);

@@ -43,11 +43,7 @@ api.interceptors.response.use(
         const message = error.response?.data?.message || 'Une erreur est survenue';
 
         // Afficher un toast d'erreur
-        toast({
-            variant: "destructive",
-            title: "Erreur",
-            description: message,
-        });
+        toast.error(message);
 
         // Gérer les cas spéciaux d'erreur
         if (statusCode === 401) {

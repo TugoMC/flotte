@@ -36,21 +36,21 @@ const Navbar = ({ user }) => {
     };
 
     return (
-        <nav className="bg-white shadow rounded-3xl">
+        <nav className="bg-card rounded-xl border-2 border-border">
             <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
                 <div className="flex justify-between h-16">
                     <div className="flex">
                         <div className="flex items-center md:hidden">
                             <button
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                                className="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
                             >
                                 <span className="sr-only">Ouvrir le menu</span>
                                 {isMobileMenuOpen ? <X className="block h-6 w-6" /> : <Menu className="block h-6 w-6" />}
                             </button>
                         </div>
                         <div className="flex items-center flex-shrink-0 ml-4 md:ml-0">
-                            <h1 className="text-xl font-bold">Gestion de Flotte</h1>
+                            <h1 className="text-xl font-bold text-foreground">Gestion de Flotte</h1>
                         </div>
                     </div>
                     <div className="flex items-center">
@@ -88,21 +88,21 @@ const Navbar = ({ user }) => {
 
             {/* Menu mobile */}
             {isMobileMenuOpen && (
-                <div className="md:hidden bg-white border-b border-gray-200 rounded-b-3xl">
+                <div className="md:hidden bg-card border-b border-border rounded-b-xl">
                     <div className="px-2 pt-2 pb-3 space-y-1">
-                        <a href="/" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                        <a href="/" className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent">
                             Tableau de bord
                         </a>
-                        <a href="/vehicles" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                        <a href="/vehicles" className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent">
                             Véhicules
                         </a>
-                        <a href="/drivers" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                        <a href="/drivers" className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent">
                             Chauffeurs
                         </a>
-                        <a href="/schedules" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                        <a href="/schedules" className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent">
                             Plannings
                         </a>
-                        <a href="/payments" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                        <a href="/payments" className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent">
                             Paiements
                         </a>
                     </div>

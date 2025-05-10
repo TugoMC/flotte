@@ -174,6 +174,28 @@ exports.getEventDescription = (item) => {
         return `${readableAction}${details}`;
     }
 
+    if (module === 'schedule') {
+        let details = '';
+        if (item.newData) {
+            if (action === 'create') {
+                const driverName = item.newData.driver
+                    ? `${item.newData.driver.firstName} ${item.newData.driver.lastName}`
+                    : 'Chauffeur inconnu';
+                const vehicleInfo = item.newData.vehicle
+                    ? `${item.newData.vehicle.brand} ${item.newData.vehicle.model} (${item.newData.vehicle.licensePlate})`
+                    : 'Véhicule inconnu';
+                details = ` pour ${driverName} avec ${vehicleInfo}`;
+            } else if (action === 'update') {
+                details = ` du planning #${item.entityId}`;
+            } else if (action === 'status_change') {
+                details = ` du planning #${item.entityId} (${item.oldData?.status} → ${item.newData.status})`;
+            } else if (action === 'delete') {
+                details = ` du planning #${item.entityId}`;
+            }
+        }
+        return `${readableAction}${details}`;
+    }
+
     return `${readableAction} ${this.getModuleName(module)}`;
 };
 

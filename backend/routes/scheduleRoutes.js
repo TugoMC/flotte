@@ -6,19 +6,20 @@ const { protect } = require('../middlewares/authMiddleware');
 const { manager } = require('../middlewares/roleMiddleware');
 
 // Routes spécifiques
-router.get('/current', protect, scheduleController.getCurrent);
-router.get('/future', protect, scheduleController.getFuture);
-router.get('/driver/:driverId', protect, scheduleController.getByDriver);
-router.get('/vehicle/:vehicleId', protect, scheduleController.getByVehicle);
-router.get('/date/:date', protect, scheduleController.getByDate);
-router.get('/period', protect, scheduleController.getByPeriod);
+router.get('/current', protect, manager, scheduleController.getCurrent);
+router.get('/future', protect, manager, scheduleController.getFuture);
+router.get('/driver/:driverId', protect, manager, scheduleController.getByDriver);
+router.get('/vehicle/:vehicleId', protect, manager, scheduleController.getByVehicle);
+router.get('/date/:date', protect, manager, scheduleController.getByDate);
+router.get('/period', protect, manager, scheduleController.getByPeriod);
+router.get('/', protect, manager, scheduleController.getAll);
 
 // Route pour vérifier les plannings expirés manuellement
 router.post('/check-expired', protect, manager, scheduleController.checkExpiredSchedules);
 
 // Routes standard
-router.get('/', protect, scheduleController.getAll);
-router.get('/:id', protect, scheduleController.getById);
+router.post('/', protect, manager, scheduleController.create);
+router.get('/:id', protect, manager, scheduleController.getById);
 
 // Routes réservées aux managers/admin
 router.post('/', protect, manager, scheduleController.create);

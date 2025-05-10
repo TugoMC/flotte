@@ -3,6 +3,7 @@ const Driver = require('../models/driverModel');
 const Vehicle = require('../models/vehicleModel');
 const User = require('../models/userModel');
 const Schedule = require('../models/scheduleModel');
+const History = require('../models/historyModel');
 
 // Récupérer tous les chauffeurs
 exports.getAll = async (req, res) => {
@@ -103,7 +104,7 @@ exports.create = async (req, res) => {
 
         console.log(`[DriverController] create - Nouveau chauffeur créé (ID: ${savedDriver._id})`);
 
-        res.status(201).json(savedDriver);
+        res.json(savedDriver);
     } catch (error) {
         console.error('[DriverController] Erreur dans create:', error.message, error.stack);
         res.status(400).json({ message: error.message });

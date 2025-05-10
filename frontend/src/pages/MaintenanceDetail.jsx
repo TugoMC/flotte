@@ -517,7 +517,7 @@ const MaintenanceDetail = () => {
             </div>
 
             {/* Maintenance Details Container */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="bg-white rounded-lg p-6 ">
                 {/* Header with title and action buttons */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
@@ -931,7 +931,7 @@ const MaintenanceDetail = () => {
                                 value={formData.notes}
                                 onChange={handleInputChange}
                                 rows={3}
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm  placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             />
                         </div>
 
@@ -943,7 +943,7 @@ const MaintenanceDetail = () => {
                                 value={formData.description}
                                 onChange={handleInputChange}
                                 rows={5}
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm  placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             />
                         </div>
                     </div>

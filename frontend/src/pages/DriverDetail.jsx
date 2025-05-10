@@ -251,9 +251,9 @@ const DriverDetail = () => {
 
     const getStatusBadge = (departureDate) => {
         if (departureDate) {
-            return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Ancien</Badge>;
+            return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800">Ancien</Badge>;
         } else {
-            return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Actif</Badge>;
+            return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Actif</Badge>;
         }
     };
 
@@ -442,7 +442,7 @@ const DriverDetail = () => {
             </div>
 
             {/* Driver Details Container */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="bg-card text-card-foreground rounded-lg p-6 border">
                 {/* Header with title and edit button */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
@@ -478,7 +478,7 @@ const DriverDetail = () => {
                     {/* Informations personnelles */}
                     <div className="py-3">
                         <h3 className="text-lg font-medium mb-2">Informations personnelles</h3>
-                        <Separator className="mb-4" />
+                        <Separator className="mb-4 bg-border" />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Prénom</p>
@@ -510,7 +510,7 @@ const DriverDetail = () => {
                     {/* Informations professionnelles */}
                     <div className="py-3">
                         <h3 className="text-lg font-medium mb-2">Informations professionnelles</h3>
-                        <Separator className="mb-4" />
+                        <Separator className="mb-4 bg-border" />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Date d'embauche</p>

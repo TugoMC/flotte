@@ -1,5 +1,6 @@
 // src/components/Sidebar.jsx
 import { useLocation, Link } from 'react-router-dom';
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
     LayoutDashboard,
     Car,
@@ -56,18 +57,6 @@ const Sidebar = ({ user }) => {
             roles: ['admin', 'manager']
         },
         {
-            href: '/documents',
-            label: 'Documents',
-            icon: <FileText className="h-5 w-5" />,
-            roles: ['admin', 'manager', 'driver']
-        },
-        {
-            href: '/reports',
-            label: 'Rapports',
-            icon: <BarChart2 className="h-5 w-5" />,
-            roles: ['admin', 'manager']
-        },
-        {
             href: '/settings',
             label: 'Paramètres',
             icon: <Settings className="h-5 w-5" />,
@@ -83,9 +72,9 @@ const Sidebar = ({ user }) => {
     return (
         <aside className="hidden md:flex md:flex-shrink-0">
             <div className="flex flex-col w-64">
-                <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-white border-r rounded-3xl">
+                <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-card border-2 border-border rounded-xl">
                     <div className="flex items-center flex-shrink-0 px-4">
-                        <h2 className="text-xl font-semibold text-gray-800">Gestion de Flotte</h2>
+                        <h2 className="text-xl font-semibold text-foreground">Gestion de Flotte</h2>
                     </div>
                     <div className="mt-5 flex-grow flex flex-col">
                         <nav className="flex-1 px-2 space-y-1">
@@ -96,8 +85,8 @@ const Sidebar = ({ user }) => {
                                         className={cn(
                                             "w-full justify-start",
                                             location.pathname === link.href
-                                                ? "bg-gray-100 text-gray-900"
-                                                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                                ? "bg-accent text-accent-foreground"
+                                                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                                         )}
                                     >
                                         {link.icon}
@@ -107,18 +96,23 @@ const Sidebar = ({ user }) => {
                             ))}
                         </nav>
                     </div>
-                    <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                                    <span className="text-xl text-gray-600">
-                                        {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-                                    </span>
+                    <div className="flex-shrink-0 flex border-t border-border p-4">
+                        <div className="flex items-center w-full justify-between">
+                            <div className="flex items-center">
+                                <div className="flex-shrink-0">
+                                    <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
+                                        <span className="text-xl text-secondary-foreground">
+                                            {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="ml-3">
+                                    <p className="text-sm font-medium text-foreground">{user?.firstName} {user?.lastName}</p>
+                                    <p className="text-xs font-medium text-muted-foreground uppercase">{user?.role}</p>
                                 </div>
                             </div>
-                            <div className="ml-3">
-                                <p className="text-sm font-medium text-gray-700">{user?.firstName} {user?.lastName}</p>
-                                <p className="text-xs font-medium text-gray-500 uppercase">{user?.role}</p>
+                            <div className="ml-4">
+                                <ThemeToggle />
                             </div>
                         </div>
                     </div>
@@ -126,6 +120,7 @@ const Sidebar = ({ user }) => {
             </div>
         </aside>
     );
+
 };
 
 export default Sidebar;

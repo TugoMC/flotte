@@ -4,6 +4,10 @@ import { format, isAfter, isBefore, isToday, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { scheduleService, driverService, vehicleService } from '@/services/api';
 import { Button } from '@/components/ui/button';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
+import { Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
@@ -86,27 +90,38 @@ const SchedulesList = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [schedulesRes, driversRes, vehiclesRes] = await Promise.all([
-                    scheduleService.getAll(),
-                    driverService.getAll(),
-                    vehicleService.getAll()
-                ]);
+                const requests = [
+                    { name: 'schedules', request: scheduleService.getAll() },
+                    { name: 'drivers', request: driverService.getAll() },
+                    { name: 'vehicles', request: vehicleService.getAll() }
+                ];
+
+                const results = await Promise.all(requests.map(r =>
+                    r.request.catch(e => ({ error: e, name: r.name }))
+                ));
+
+                // Vérifier les erreurs
+                const errors = results.filter(r => r.error);
+                if (errors.length > 0) {
+                    errors.forEach(err => {
+                        console.error(`Erreur lors du chargement des ${err.name}:`, err.error);
+                    });
+                    throw new Error('Erreur lors du chargement des données');
+                }
+
+                // Extraire les données valides
+                const [schedulesRes, driversRes, vehiclesRes] = results;
 
                 setSchedules(schedulesRes.data);
                 setDrivers(driversRes.data);
                 setVehicles(vehiclesRes.data);
             } catch (error) {
                 console.error('Erreur lors du chargement des données:', error);
-                toast({
-                    variant: "destructive",
-                    title: "Erreur",
-                    description: "Impossible de charger les plannings"
-                });
+                toast.error('Une erreur est survenue lors du chargement des données.');
             } finally {
                 setLoading(false);
             }
         };
-
         fetchData();
     }, []);
 
@@ -231,11 +246,7 @@ const SchedulesList = () => {
             toast.success(`Le statut du planning a été mis à jour avec succès`);
         } catch (error) {
             console.error('Erreur lors du changement de statut:', error);
-            toast({
-                variant: "destructive",
-                title: "Erreur",
-                description: "Impossible de changer le statut du planning"
-            });
+            toast.error("Erreur lors du changement de statut: " + (error.response?.data?.message || error.message));
         } finally {
             setStatusChangeDialogOpen(false);
             setScheduleToChangeStatus(null);
@@ -256,11 +267,7 @@ const SchedulesList = () => {
             toast.success(`Le planning a été supprimé avec succès`);
         } catch (error) {
             console.error('Erreur lors de la suppression:', error);
-            toast({
-                variant: "destructive",
-                title: "Erreur",
-                description: "Impossible de supprimer le planning"
-            });
+            toast.error("Impossible de supprimer le planning");
         } finally {
             setDeleteDialogOpen(false);
             setScheduleToDelete(null);
@@ -518,21 +525,64 @@ const SchedulesList = () => {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
 
-                    <Select value={newStatus} onValueChange={setNewStatus}>
-                        <SelectTrigger className="mt-2">
-                            <SelectValue placeholder="Sélectionner un statut" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="pending">En attente</SelectItem>
-                            <SelectItem value="assigned">Assigné</SelectItem>
-                            <SelectItem value="completed">Terminé</SelectItem>
-                            <SelectItem value="canceled">Annulé</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="relative mt-4">
+                        <Command className="rounded-lg border">
+                            <CommandInput
+                                placeholder="Rechercher un statut..."
+                                className="h-10"
+                            />
+                            <ScrollArea className="h-48 rounded-b-md">
+                                <CommandGroup>
+                                    {[
+                                        { value: 'pending', label: 'En attente', color: 'bg-yellow-50 text-yellow-800 border-yellow-300' },
+                                        { value: 'assigned', label: 'Assigné', color: 'bg-blue-50 text-blue-800 border-blue-300' },
+                                        { value: 'completed', label: 'Terminé', color: 'bg-gray-50 text-gray-800 border-gray-300' },
+                                        { value: 'canceled', label: 'Annulé', color: 'bg-red-50 text-red-800 border-red-300' }
+                                    ].map((status) => (
+                                        <CommandItem
+                                            key={status.value}
+                                            onSelect={() => setNewStatus(status.value)}
+                                            className={cn(
+                                                "flex items-center gap-2 px-4 py-2 cursor-pointer transition-colors",
+                                                status.value === newStatus
+                                                    ? "bg-accent text-accent-foreground"
+                                                    : "hover:bg-accent hover:text-accent-foreground"
+                                            )}
+                                        >
+                                            <Check
+                                                className={cn(
+                                                    "h-4 w-4",
+                                                    status.value === newStatus ? "opacity-100" : "opacity-0"
+                                                )}
+                                            />
+                                            <Badge
+                                                variant="outline"
+                                                className={`${status.color} min-w-[80px] justify-center`}
+                                            >
+                                                {status.label}
+                                            </Badge>
+                                            <span className="ml-2">{status.label}</span>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </ScrollArea>
+                        </Command>
+                    </div>
+
+                    {newStatus && (
+                        <div className="mt-2 px-3 py-2 bg-accent/50 rounded-md text-sm">
+                            <span className="font-medium">Nouveau statut :</span> {
+                                ['pending', 'assigned', 'completed', 'canceled'].find(s => s === newStatus)?.toUpperCase() || newStatus
+                            }
+                        </div>
+                    )}
 
                     <AlertDialogFooter>
                         <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleStatusChange}>
+                        <AlertDialogAction
+                            onClick={handleStatusChange}
+                            disabled={!newStatus || newStatus === scheduleToChangeStatus?.status}
+                        >
                             Confirmer
                         </AlertDialogAction>
                     </AlertDialogFooter>

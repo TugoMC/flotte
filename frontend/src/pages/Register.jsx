@@ -67,7 +67,7 @@ const Register = () => {
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-            <Card className="w-full max-w-md shadow-lg">
+            <Card className="w-full max-w-md ">
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold text-center text-gray-800">Inscription</CardTitle>
                     <CardDescription className="text-center text-gray-600">

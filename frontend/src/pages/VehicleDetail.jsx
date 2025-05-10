@@ -274,12 +274,12 @@ const VehicleDetail = () => {
 
         switch (status) {
             case 'active':
-                return <Badge variant="outline" className="bg-green-50 text-green-800 border-green-300">actif</Badge>;
+                return <Badge variant="outline" className="bg-green-50 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">actif</Badge>;
 
             case 'inactive':
-                return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">inactif</Badge>;
+                return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800">inactif</Badge>;
             case 'maintenance':
-                return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">en maintenance</Badge>;
+                return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">en maintenance</Badge>;
             default:
                 variant = 'default';
         }
@@ -328,7 +328,7 @@ const VehicleDetail = () => {
     if (!vehicle) return null;
 
     return (
-        <div className="container max-w-6xl py-4">
+        <div className="bg-card text-card-foreground rounded-lg p-6 border">
             <Button
                 variant="outline"
                 onClick={() => navigate(-1)}
@@ -467,7 +467,7 @@ const VehicleDetail = () => {
             </div>
 
             {/* Vehicle Details Container */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="bg-card text-card-foreground rounded-lg p-6 border">
                 {/* Header with title and edit button */}
                 <div className="flex justify-between items-center mb-6">
                     <div>

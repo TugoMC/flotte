@@ -6,6 +6,16 @@ import { fr } from 'date-fns/locale';
 import { maintenanceService } from '@/services/api';
 import { vehicleService } from '@/services/api';
 import { toast } from 'sonner';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+} from '@/components/ui/command';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Eye, PlusIcon, EditIcon, TrashIcon, SearchIcon, ImageIcon, XIcon, AlertCircleIcon, InfoIcon } from 'lucide-react';
 import {
     Card,
@@ -504,22 +514,54 @@ const MaintenancesList = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label htmlFor="vehicle">Véhicule</label>
-                                <Select
-                                    name="vehicle"
-                                    value={formData.vehicle}
-                                    onValueChange={(value) => setFormData({ ...formData, vehicle: value })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Sélectionner un véhicule" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {vehicles.map(vehicle => (
-                                            <SelectItem key={vehicle._id} value={vehicle._id}>
-                                                {vehicle.licensePlate} - {vehicle.brand} {vehicle.model}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <div className="relative">
+                                    <Command className="rounded-lg border ">
+                                        <CommandInput
+                                            placeholder="Rechercher un véhicule..."
+                                            className="h-10"
+                                        />
+                                        <ScrollArea className="h-48 rounded-b-md">
+                                            <CommandGroup>
+                                                {vehicles.map((vehicle) => (
+                                                    <CommandItem
+                                                        key={vehicle._id}
+                                                        onSelect={() => setFormData({ ...formData, vehicle: vehicle._id })}
+                                                        className={cn(
+                                                            "flex items-center gap-2 px-4 py-2 cursor-pointer transition-colors",
+                                                            vehicle._id === formData.vehicle
+                                                                ? "bg-accent text-accent-foreground"
+                                                                : "hover:bg-accent hover:text-accent-foreground"
+                                                        )}
+                                                    >
+                                                        <Check
+                                                            className={cn(
+                                                                "h-4 w-4",
+                                                                vehicle._id === formData.vehicle ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                        />
+                                                        <div className="flex-1">
+                                                            <p className="font-medium">{vehicle.licensePlate}</p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {vehicle.brand} {vehicle.model} • {vehicle.type}
+                                                            </p>
+                                                        </div>
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </ScrollArea>
+                                    </Command>
+                                </div>
+                                {formData.vehicle && (
+                                    <div className="mt-2 px-3 py-2 bg-accent/50 rounded-md text-sm">
+                                        <span className="font-medium">Sélectionné :</span> {
+                                            vehicles.find(v => v._id === formData.vehicle)?.licensePlate
+                                        } - {
+                                            vehicles.find(v => v._id === formData.vehicle)?.brand
+                                        } {
+                                            vehicles.find(v => v._id === formData.vehicle)?.model
+                                        }
+                                    </div>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <label htmlFor="maintenanceType">Type de maintenance</label>
@@ -540,167 +582,167 @@ const MaintenancesList = () => {
                                 </Select>
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label htmlFor="maintenanceNature">Nature de maintenance</label>
-                                <Select
-                                    name="maintenanceNature"
-                                    value={formData.maintenanceNature}
-                                    onValueChange={(value) => setFormData({ ...formData, maintenanceNature: value })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Sélectionner une nature" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="preventive">Préventive</SelectItem>
-                                        <SelectItem value="corrective">Corrective</SelectItem>
-                                        <SelectItem value="predictive">Prédictive</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <label htmlFor="technicianName">Technicien</label>
-                                <Input
-                                    name="technicianName"
-                                    value={formData.technicianName}
-                                    onChange={handleInputChange}
-                                    placeholder="Nom du technicien"
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label htmlFor="maintenanceDate">Date de début</label>
-                                <Input
-                                    type="date"
-                                    name="maintenanceDate"
-                                    value={formData.maintenanceDate}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label htmlFor="completionDate">Date de fin</label>
-                                <Input
-                                    type="date"
-                                    name="completionDate"
-                                    value={formData.completionDate}
-                                    onChange={handleInputChange}
-                                    disabled={!formData.completed}
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label htmlFor="cost">Coût (FCFA)</label>
-                                <Input
-                                    type="number"
-                                    name="cost"
-                                    value={formData.cost}
-                                    onChange={handleInputChange}
-                                    min="0"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label htmlFor="duration">Durée (Jours)</label>
-                                <Input
-                                    type="number"
-                                    name="duration"
-                                    value={formData.duration}
-                                    onChange={handleInputChange}
-                                    min="1"
-                                />
-                            </div>
-                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label htmlFor="completed">Statut</label>
+                            <label htmlFor="maintenanceNature">Nature de maintenance</label>
                             <Select
-                                name="completed"
-                                value={formData.completed ? 'true' : 'false'}
-                                onValueChange={(value) => setFormData({ ...formData, completed: value === 'true' })}
+                                name="maintenanceNature"
+                                value={formData.maintenanceNature}
+                                onValueChange={(value) => setFormData({ ...formData, maintenanceNature: value })}
                             >
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Sélectionner un statut" />
+                                    <SelectValue placeholder="Sélectionner une nature" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="false">En cours</SelectItem>
-                                    <SelectItem value="true">Terminée</SelectItem>
+                                    <SelectItem value="preventive">Préventive</SelectItem>
+                                    <SelectItem value="corrective">Corrective</SelectItem>
+                                    <SelectItem value="predictive">Prédictive</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <label htmlFor="notes">Notes</label>
-                            <textarea
-                                name="notes"
-                                value={formData.notes}
+                            <label htmlFor="technicianName">Technicien</label>
+                            <Input
+                                name="technicianName"
+                                value={formData.technicianName}
                                 onChange={handleInputChange}
-                                rows={3}
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                placeholder="Ajouter une note..."
+                                placeholder="Nom du technicien"
                             />
                         </div>
-
-                        {/* Section de gestion des photos */}
-                        <div className="space-y-4 mt-2">
-                            <div className="flex items-center justify-between">
-                                <label className="text-base font-medium">Photos de la maintenance</label>
-                                <Button variant="outline" asChild>
-                                    <label className="cursor-pointer">
-                                        <ImageIcon className="mr-2 h-4 w-4" />
-                                        Ajouter des photos
-                                        <input
-                                            type="file"
-                                            accept="image/jpeg, image/png"
-                                            multiple
-                                            hidden
-                                            onChange={handleFileSelect}
-                                        />
-                                    </label>
-                                </Button>
-                            </div>
-
-                            {/* Message d'information pour les photos */}
-                            <div className="bg-blue-50 p-3 rounded-md text-sm flex items-start gap-2">
-                                <InfoIcon className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                                <div>
-                                    <p className="font-medium text-blue-800 mb-1">Conseils pour les photos</p>
-                                    <p className="text-blue-700">
-                                        Pour une qualité optimale, utilisez des images d'une résolution minimale de 1200×800 pixels
-                                        et d'un rapport 3:2. Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Prévisualisation des photos */}
-                            {photosPreviews.length > 0 && (
-                                <div className="mt-3">
-                                    <p className="text-sm text-gray-500 mb-2">
-                                        {photosPreviews.length} photo(s) sélectionnée(s)
-                                    </p>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        {photosPreviews.map((item, index) => (
-                                            <div
-                                                key={index}
-                                                className="relative aspect-[3/2] bg-gray-100 rounded-md overflow-hidden group"
-                                            >
-                                                <img
-                                                    src={item.preview}
-                                                    alt={`Aperçu ${index + 1}`}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removePhoto(index)}
-                                                    className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    title="Supprimer"
-                                                >
-                                                    <XIcon className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label htmlFor="maintenanceDate">Date de début</label>
+                            <Input
+                                type="date"
+                                name="maintenanceDate"
+                                value={formData.maintenanceDate}
+                                onChange={handleInputChange}
+                            />
                         </div>
+                        <div className="space-y-2">
+                            <label htmlFor="completionDate">Date de fin</label>
+                            <Input
+                                type="date"
+                                name="completionDate"
+                                value={formData.completionDate}
+                                onChange={handleInputChange}
+                                disabled={!formData.completed}
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label htmlFor="cost">Coût (FCFA)</label>
+                            <Input
+                                type="number"
+                                name="cost"
+                                value={formData.cost}
+                                onChange={handleInputChange}
+                                min="0"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label htmlFor="duration">Durée (Jours)</label>
+                            <Input
+                                type="number"
+                                name="duration"
+                                value={formData.duration}
+                                onChange={handleInputChange}
+                                min="1"
+                            />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label htmlFor="completed">Statut</label>
+                        <Select
+                            name="completed"
+                            value={formData.completed ? 'true' : 'false'}
+                            onValueChange={(value) => setFormData({ ...formData, completed: value === 'true' })}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Sélectionner un statut" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="false">En cours</SelectItem>
+                                <SelectItem value="true">Terminée</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <label htmlFor="notes">Notes</label>
+                        <textarea
+                            name="notes"
+                            value={formData.notes}
+                            onChange={handleInputChange}
+                            rows={3}
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm  placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            placeholder="Ajouter une note..."
+                        />
+                    </div>
+
+                    {/* Section de gestion des photos */}
+                    <div className="space-y-4 mt-2">
+                        <div className="flex items-center justify-between">
+                            <label className="text-base font-medium">Photos de la maintenance</label>
+                            <Button variant="outline" asChild>
+                                <label className="cursor-pointer">
+                                    <ImageIcon className="mr-2 h-4 w-4" />
+                                    Ajouter des photos
+                                    <input
+                                        type="file"
+                                        accept="image/jpeg, image/png"
+                                        multiple
+                                        hidden
+                                        onChange={handleFileSelect}
+                                    />
+                                </label>
+                            </Button>
+                        </div>
+
+                        {/* Message d'information pour les photos */}
+                        <div className="bg-blue-50 p-3 rounded-md text-sm flex items-start gap-2">
+                            <InfoIcon className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="font-medium text-blue-800 mb-1">Conseils pour les photos</p>
+                                <p className="text-blue-700">
+                                    Pour une qualité optimale, utilisez des images d'une résolution minimale de 1200×800 pixels
+                                    et d'un rapport 3:2. Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Prévisualisation des photos */}
+                        {photosPreviews.length > 0 && (
+                            <div className="mt-3">
+                                <p className="text-sm text-gray-500 mb-2">
+                                    {photosPreviews.length} photo(s) sélectionnée(s)
+                                </p>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {photosPreviews.map((item, index) => (
+                                        <div
+                                            key={index}
+                                            className="relative aspect-[3/2] bg-gray-100 rounded-md overflow-hidden group"
+                                        >
+                                            <img
+                                                src={item.preview}
+                                                alt={`Aperçu ${index + 1}`}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => removePhoto(index)}
+                                                className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="Supprimer"
+                                            >
+                                                <XIcon className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <div className="flex justify-end gap-2">
                         <Button variant="outline" onClick={() => setIsFormOpen(false)}>
@@ -730,7 +772,7 @@ const MaintenancesList = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
+        </div >
     );
 };
 

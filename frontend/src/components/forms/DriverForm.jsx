@@ -122,7 +122,10 @@ const DriverForm = ({ driver, vehicles, onSuccess, onCancel }) => {
             onSuccess();
         } catch (error) {
             console.error('Erreur lors de la sauvegarde du chauffeur:', error);
-            toast.error(error.response?.data?.message || "Une erreur est survenue lors de l'enregistrement");
+            const errorMessage = error.response?.data?.message ||
+                error.message ||
+                "Une erreur est survenue lors de l'enregistrement";
+            toast.error(errorMessage);
         }
     };
 
