@@ -572,3 +572,74 @@ exports.getStats = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+
+exports.getDailyMaintenanceCosts = async (req, res) => {
+    console.log('[MaintenanceController] Début de getDailyMaintenanceCosts - Récupération des coûts journaliers de maintenance');
+    try {
+        const { start, end } = req.query;
+
+        // Vérifier les dates si fournies
+        const startDate = start ? new Date(start) : new Date();
+        startDate.setHours(0, 0, 0, 0);
+
+        const endDate = end ? new Date(end) : new Date();
+        endDate.setHours(23, 59, 59, 999);
+
+        // Si aucune date de début n'est fournie, prendre les 30 derniers jours par défaut
+        if (!start) {
+            startDate.setDate(startDate.getDate() - 30);
+        }
+
+        console.log(`[MaintenanceController] getDailyMaintenanceCosts - Période: ${startDate} à ${endDate}`);
+
+        // Agréger les maintenances par jour
+        const dailyCosts = await Maintenance.aggregate([
+            {
+                $match: {
+                    maintenanceDate: { $gte: startDate, $lte: endDate },
+                    cost: { $gt: 0 } // Seulement les maintenances avec un coût > 0
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        $dateToString: { format: "%Y-%m-%d", date: "$maintenanceDate" }
+                    },
+                    date: { $first: "$maintenanceDate" },
+                    totalCost: { $sum: "$cost" },
+                    count: { $sum: 1 },
+                    types: { $addToSet: "$maintenanceType" }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    date: 1,
+                    totalCost: 1,
+                    count: 1,
+                    types: 1,
+                    formattedDate: "$_id"
+                }
+            },
+            { $sort: { date: 1 } }
+        ]);
+
+        console.log(`[MaintenanceController] getDailyMaintenanceCosts - ${dailyCosts.length} jours de données trouvés`);
+
+        res.json({
+            success: true,
+            period: {
+                start: startDate,
+                end: endDate
+            },
+            data: dailyCosts
+        });
+    } catch (error) {
+        console.error('[MaintenanceController] Erreur getDailyMaintenanceCosts:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

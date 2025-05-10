@@ -1,21 +1,18 @@
 // src/pages/Dashboard.jsx
 import { React, useState, useEffect } from "react";
+import { RevenueChart, MaintenanceChart } from "@/components/ChartDashboardStats"
 import { toast } from "sonner";
+import { useNavigate } from 'react-router-dom';
+
+import { ErrorBoundary } from 'react-error-boundary';
 import {
-    LayoutDashboard,
     Users,
     CalendarClock,
-    Wallet,
     Car,
     Wrench,
-    Bell,
-    UserCircle,
     CreditCard,
-    LogOut,
     Activity
 } from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
 import {
     Card,
     CardHeader,
@@ -25,22 +22,16 @@ import {
     CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
 import { historyService } from "@/services/api";
-
-// Import the chart component
-import { ChartAreaInteractive } from "@/components/chart-area-interactive";
-
-// Assuming you have this component or similar
 import { SectionCards } from "@/components/section-cards";
 
-const Spinner = () => (
-    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-);
+
+
 
 const Dashboard = () => {
     const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchRecentActivities = async () => {
@@ -70,38 +61,6 @@ const Dashboard = () => {
         return icons[activity.module] || <Activity className="h-4 w-4 text-primary" />;
     };
 
-    const formatTimeAgo = (dateInput) => {
-        if (!dateInput) return "Just now";
-
-        // Gestion spéciale pour les dates MongoDB
-        let date;
-        if (dateInput?.$date) {
-            date = new Date(dateInput.$date);
-        } else if (typeof dateInput === 'string' || dateInput instanceof Date) {
-            date = new Date(dateInput);
-        } else {
-            return "Just now";
-        }
-
-        if (isNaN(date.getTime())) {
-            console.error("Invalid date:", dateInput);
-            return "Just now";
-        }
-
-        const now = new Date();
-        const diffInSeconds = Math.floor((now - date) / 1000);
-
-        if (diffInSeconds < 60) return "Just now";
-        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-
-        return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    };
-
-
-
-
-
 
 
     return (
@@ -111,21 +70,37 @@ const Dashboard = () => {
                 {/* Chart section - Top alone */}
                 <h2 className="text-lg font-semibold mb-4">Tableau de bord</h2>
                 <div className="px-4 py-6 lg:px-6">
-                    <ChartAreaInteractive />
+                    <ErrorBoundary
+                        fallback={<div className="text-red-500">Erreur d'affichage des statistiques</div>}
+                        onError={(error) => console.error("ChartDashboardStats error:", error)}
+                    >
+                        <RevenueChart />
+                    </ErrorBoundary>
                 </div>
 
-                {/* Stats cards - 4 in horizontal row */}
                 <div className="px-4 py-6 lg:px-6">
+                    <ErrorBoundary
+                        fallback={<div className="text-red-500">Erreur d'affichage des statistiques</div>}
+                        onError={(error) => console.error("ChartDashboardStats error:", error)}
+                    >
+                        <MaintenanceChart />
+                    </ErrorBoundary>
+                </div>
+
+
+
+                {/* Stats cards - 4 in horizontal row */}
+                < div className="px-4 py-6 lg:px-6" >
 
                     <div >
                         <SectionCards />
                     </div>
-                </div>
+                </div >
 
                 {/* Bottom section - Grid 2 */}
-                <div className="grid gap-6 px-4 py-6 lg:grid-cols-2 lg:px-6">
+                < div className="grid gap-6 px-4 py-6 lg:grid-cols-2 lg:px-6" >
                     {/* Recent Events card */}
-                    <Card>
+                    < Card >
                         <CardHeader>
                             <CardTitle>Evenements recents</CardTitle>
                             <CardDescription>
@@ -151,23 +126,25 @@ const Dashboard = () => {
                                             <p className="text-sm font-medium leading-none">
                                                 {activity.description || `${activity.eventType.replace('_', ' ')}`}
                                             </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {formatTimeAgo(activity.eventDate)}
-                                            </p>
+
                                         </div>
                                     </div>
                                 ))
                             )}
                         </CardContent>
                         <CardFooter>
-                            <Button variant="outline" className="w-full">
-                                View all activity
+                            <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => navigate("/history")}
+                            >
+                                Voir plus
                             </Button>
                         </CardFooter>
-                    </Card>
+                    </Card >
 
                     {/* Upcoming schedules card */}
-                    <Card>
+                    < Card >
                         <CardHeader>
                             <CardTitle>Upcoming Schedules</CardTitle>
                             <CardDescription>
@@ -198,8 +175,8 @@ const Dashboard = () => {
                         <CardFooter>
                             <Button variant="outline" className="w-full">View all schedules</Button>
                         </CardFooter>
-                    </Card>
-                </div>
+                    </Card >
+                </div >
             </main >
         </div >
     );

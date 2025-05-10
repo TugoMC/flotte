@@ -5,6 +5,7 @@ import {
 } from "@/components/ui/dialog";
 import { Info as InfoIcon } from "lucide-react";
 import { Lightbox } from "../components/Lightbox";
+import { ChartVehicleRevenue } from '@/components/ChartVehicleRevenue';
 import { useParams, useNavigate } from 'react-router-dom';
 import { vehicleService } from '../services/vehicleService';
 import { format } from 'date-fns';
@@ -903,6 +904,9 @@ const VehicleDetail = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <div className="mt-8">
+                <ChartVehicleRevenue vehicleId={id} />
+            </div>
         </div>
     );
 }

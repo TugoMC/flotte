@@ -20,7 +20,10 @@ exports.getAll = async (req, res) => {
             .limit(parseInt(limit))
             .populate('performedBy', 'username email firstName lastName');
 
-        res.json(history);
+        res.json({
+            activities: history,
+            totalPages: 1 // Ou calculez les pages si vous avez la pagination
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

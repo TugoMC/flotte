@@ -5,6 +5,7 @@ import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
+
 // Pages principales
 import Dashboard from '@/pages/Dashboard';
 import Login from '@/pages/Login';
@@ -22,6 +23,7 @@ import VehiclesList from '@/pages/VehiclesList';
 import VehicleDetail from '@/pages/VehicleDetail';
 import MaintenancesList from './pages/MaintenancesList';
 import MaintenanceDetail from './pages/MaintenanceDetail';
+import HistoryList from '@/pages/HistoryList';
 
 // Pages d'erreur
 import ErrorPage from '@/pages/ErrorPage';
@@ -110,6 +112,12 @@ function App() {
             <Route path="maintenances/:id" element={
               <ProtectedRoute requiredRole="manager">
                 <MaintenanceDetail />
+              </ProtectedRoute>
+            } />
+
+            <Route path="history" element={
+              <ProtectedRoute requiredRole="manager">
+                <HistoryList />
               </ProtectedRoute>
             } />
 

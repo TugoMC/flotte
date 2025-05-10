@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { InfoIcon } from 'lucide-react';
 import { maintenanceService } from '@/services/api';
 import { vehicleService } from '@/services/api';
 import { toast } from 'sonner';

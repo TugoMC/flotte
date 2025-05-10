@@ -969,6 +969,74 @@ exports.getStats = async (req, res) => {
     }
 };
 
+exports.getDailyRevenue = async (req, res) => {
+    console.log('[PaymentController] Début de getDailyRevenue - Récupération des revenus journaliers');
+    try {
+        const { start, end } = req.query;
+
+        // Vérifier les dates si fournies
+        const startDate = start ? new Date(start) : new Date();
+        startDate.setHours(0, 0, 0, 0);
+
+        const endDate = end ? new Date(end) : new Date();
+        endDate.setHours(23, 59, 59, 999);
+
+        // Si aucune date de début n'est fournie, prendre les 30 derniers jours par défaut
+        if (!start) {
+            startDate.setDate(startDate.getDate() - 30);
+        }
+
+        console.log(`[PaymentController] getDailyRevenue - Période: ${startDate} à ${endDate}`);
+
+        // Agréger les paiements par jour
+        const dailyRevenue = await Payment.aggregate([
+            {
+                $match: {
+                    paymentDate: { $gte: startDate, $lte: endDate },
+                    status: 'confirmed' // Seulement les paiements confirmés
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        $dateToString: { format: "%Y-%m-%d", date: "$paymentDate" }
+                    },
+                    date: { $first: "$paymentDate" },
+                    totalAmount: { $sum: "$amount" },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    date: 1,
+                    totalAmount: 1,
+                    count: 1,
+                    formattedDate: "$_id"
+                }
+            },
+            { $sort: { date: 1 } }
+        ]);
+
+        console.log(`[PaymentController] getDailyRevenue - ${dailyRevenue.length} jours de données trouvés`);
+
+        res.json({
+            success: true,
+            period: {
+                start: startDate,
+                end: endDate
+            },
+            data: dailyRevenue
+        });
+    } catch (error) {
+        console.error('[PaymentController] Erreur getDailyRevenue:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
 // Statistiques journalières
 exports.getDailyStats = async (req, res) => {
     console.log('[PaymentController] Début de getDailyStats - Calcul des statistiques journalières');

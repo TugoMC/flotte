@@ -22,11 +22,13 @@ router.get('/stats/general', protect, manager, paymentController.getStats);
 router.get('/stats/daily', protect, manager, paymentController.getDailyStats);
 router.get('/stats/drivers', protect, manager, paymentController.getDriverStats);
 router.get('/stats/vehicles', protect, manager, paymentController.getVehicleStats);
+router.get('/stats/daily-revenue', protect, manager, paymentController.getDailyRevenue);
 
 // Routes POST
 router.post('/', protect, manager, paymentController.create);
 router.post('/confirm-multiple', protect, manager, paymentController.confirmMultiplePayments);
 router.post('/:id/status', protect, manager, paymentController.changeStatus);
+
 
 // Routes pour la gestion des photos
 router.post('/:id/photos', protect, manager, uploadMultipleFiles, paymentController.uploadPhotos);

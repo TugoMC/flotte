@@ -125,12 +125,19 @@ const SchedulesList = () => {
         fetchData();
     }, []);
 
+    const isReadOnlySchedule = (schedule) => {
+        return schedule.status === 'completed' || schedule.status === 'canceled';
+    };
+
     // Filtrer les plannings en fonction des critères
 
     const filteredSchedules = schedules.filter(schedule => {
 
         if (activeTab === 'current') {
-            if (schedule.status === 'canceled') return false;
+            // Exclure les plannings annulés ou terminés
+            if (schedule.status === 'canceled' || schedule.status === 'completed') return false;
+
+            // Vérifier les dates
             if ((!isToday(parseISO(schedule.scheduleDate)) && isBefore(parseISO(schedule.scheduleDate), new Date())) ||
                 (schedule.endDate && isBefore(parseISO(schedule.endDate), new Date()))) {
                 return false;
@@ -161,6 +168,7 @@ const SchedulesList = () => {
         if (searchTerm && !driverName.includes(searchLower) && !vehicleInfo.includes(searchLower)) {
             return false;
         }
+
 
         // Filtrer par date
         if (filterDate && !isToday(parseISO(schedule.scheduleDate), filterDate)) {
@@ -235,14 +243,18 @@ const SchedulesList = () => {
     const handleStatusChange = async () => {
         if (!scheduleToChangeStatus || !newStatus) return;
 
+        // Vérification de sécurité supplémentaire
+        if (scheduleToChangeStatus.status === 'completed' || scheduleToChangeStatus.status === 'canceled') {
+            toast.error("Impossible de modifier le statut d'un planning terminé ou annulé");
+            setStatusChangeDialogOpen(false);
+            return;
+        }
+
         try {
             await scheduleService.changeStatus(scheduleToChangeStatus._id, newStatus);
-
-            // Mettre à jour le planning dans la liste
             setSchedules(schedules.map(s =>
                 s._id === scheduleToChangeStatus._id ? { ...s, status: newStatus } : s
             ));
-
             toast.success(`Le statut du planning a été mis à jour avec succès`);
         } catch (error) {
             console.error('Erreur lors du changement de statut:', error);
@@ -445,6 +457,8 @@ const SchedulesList = () => {
                                                         setNewStatus(schedule.status);
                                                         setStatusChangeDialogOpen(true);
                                                     }}
+                                                    disabled={schedule.status === 'completed' || schedule.status === 'canceled'}
+                                                    title={schedule.status === 'completed' || schedule.status === 'canceled' ? "Impossible de modifier un planning terminé ou annulé" : "Changer le statut"}
                                                 >
                                                     <CheckIcon className="h-4 w-4" />
                                                 </Button>
@@ -455,6 +469,8 @@ const SchedulesList = () => {
                                                         setSelectedSchedule(schedule);
                                                         setIsFormOpen(true);
                                                     }}
+                                                    disabled={isReadOnlySchedule(schedule)}
+                                                    title={isReadOnlySchedule(schedule) ? "Modification non autorisée" : "Modifier"}
                                                 >
                                                     <EditIcon className="h-4 w-4" />
                                                 </Button>
@@ -521,7 +537,7 @@ const SchedulesList = () => {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Changer le statut</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Sélectionnez le nouveau statut pour ce planning.
+                            Attention : Cette action est irréversible.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
 
@@ -534,18 +550,17 @@ const SchedulesList = () => {
                             <ScrollArea className="h-48 rounded-b-md">
                                 <CommandGroup>
                                     {[
-                                        { value: 'pending', label: 'En attente', color: 'bg-yellow-50 text-yellow-800 border-yellow-300' },
-                                        { value: 'assigned', label: 'Assigné', color: 'bg-blue-50 text-blue-800 border-blue-300' },
-                                        { value: 'completed', label: 'Terminé', color: 'bg-gray-50 text-gray-800 border-gray-300' },
-                                        { value: 'canceled', label: 'Annulé', color: 'bg-red-50 text-red-800 border-red-300' }
+
+                                        { value: 'completed', label: 'Terminé', color: 'bg-gray-50 text-gray-800 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800' },
+                                        { value: 'canceled', label: 'Annulé', color: 'bg-red-50 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800' }
                                     ].map((status) => (
                                         <CommandItem
                                             key={status.value}
                                             onSelect={() => setNewStatus(status.value)}
                                             className={cn(
-                                                "flex items-center gap-2 px-4 py-2 cursor-pointer transition-colors",
+                                                "flex items-center gap-2 px-4 py-2 cursor-pointer transition-colors ",
                                                 status.value === newStatus
-                                                    ? "bg-accent text-accent-foreground"
+                                                    ? "bg-accent text-accent-foreground "
                                                     : "hover:bg-accent hover:text-accent-foreground"
                                             )}
                                         >
@@ -572,7 +587,7 @@ const SchedulesList = () => {
                     {newStatus && (
                         <div className="mt-2 px-3 py-2 bg-accent/50 rounded-md text-sm">
                             <span className="font-medium">Nouveau statut :</span> {
-                                ['pending', 'assigned', 'completed', 'canceled'].find(s => s === newStatus)?.toUpperCase() || newStatus
+                                ['completed', 'canceled'].find(s => s === newStatus)?.toUpperCase() || newStatus
                             }
                         </div>
                     )}

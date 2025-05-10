@@ -286,10 +286,12 @@ export const paymentService = {
     getByPeriod: (start, end) => api.get(`/payments/period?start=${start}&end=${end}`),
 
     // Statistiques
-    getStats: () => api.get('/payments/stats/general'),
-    getDailyStats: () => api.get('/payments/stats/daily'),
+    getStats: () => api.get('/payments/stats'),
+    getDailyRevenue: (start, end) => api.get(`/payments/stats/daily-revenue?${start ? `start=${start}` : ''}${end ? `&end=${end}` : ''}`),
     getDriverStats: () => api.get('/payments/stats/drivers'),
-    getVehicleStats: () => api.get('/payments/stats/vehicles')
+    getVehicleStats: () => api.get('/payments/stats/vehicles'),
+    getDashboardStats: () => api.get('/payments/dashboard-stats'),
+
 };
 /*
 export const expenseService = {
@@ -339,14 +341,40 @@ export const maintenanceService = {
     // Routes statistiques et de validation
     getStats: () => api.get('/maintenances/stats'),
     checkStatusConsistency: () => api.get('/maintenances/check-status'),
-    validateDates: () => api.get('/maintenances/validate-dates')
+    validateDates: () => api.get('/maintenances/validate-dates'),
+    getDailyCosts: (start, end) => api.get(`/maintenances/daily-costs?${start ? `start=${start}` : ''}${end ? `&end=${end}` : ''}`),
 };
 
 
 export const historyService = {
     getRecentActivities: (limit = 5) => api.get(`/history/recent?limit=${limit}`),
     getByEntity: (id) => api.get(`/history/entity/${id}`),
-    getStats: () => api.get('/history/stats')
+    getStats: () => api.get('/history/stats'),
+    getAll: async (params) => {
+        const queryParams = new URLSearchParams();
+        for (const key in params) {
+            if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+                queryParams.append(key, params[key]);
+            }
+        }
+
+        try {
+            const response = await api.get(`/history?${queryParams.toString()}`);
+            return {
+                data: {
+                    activities: response.data.activities || [],
+                    totalPages: response.data.totalPages || 1
+                }
+            };
+        } catch (error) {
+            return {
+                data: {
+                    activities: [],
+                    totalPages: 1
+                }
+            };
+        }
+    },
 };
 /*
 export const documentService = {
