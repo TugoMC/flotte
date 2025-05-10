@@ -329,12 +329,12 @@ const MaintenanceDetail = () => {
 
     const renderStatus = (completed) => {
         return completed ? (
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
                 <CheckCircle2 className="w-4 h-4 mr-1" />
                 Terminée
             </Badge>
         ) : (
-            <Badge variant="outline" className="ml-2 bg-yellow-50 text-yellow-700 border-yellow-200">
+            <Badge variant="outline" className="ml-2 bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">
                 <Wrench className="w-4 h-4 mr-1" />
                 En cours
             </Badge>
@@ -517,7 +517,7 @@ const MaintenanceDetail = () => {
             </div>
 
             {/* Maintenance Details Container */}
-            <div className="bg-white rounded-lg p-6 ">
+            <div className="bg-card text-card-foreground rounded-lg p-6 border">
                 {/* Header with title and action buttons */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
