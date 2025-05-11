@@ -551,6 +551,7 @@ exports.delete = async (req, res) => {
     }
 };
 // Changer le statut d'un planning
+// Changer le statut d'un planning
 exports.changeStatus = async (req, res) => {
     try {
         const { status } = req.body;
@@ -582,9 +583,36 @@ exports.changeStatus = async (req, res) => {
             }
         }
 
+        // Préparer les mises à jour
+        const updateData = { status };
+
+        // Si le statut est "completed" ou "canceled" et qu'il n'y a pas de date de fin,
+        // définir la date de fin sur la date actuelle
+        if ((status === 'completed' || status === 'canceled') && !existingSchedule.endDate) {
+            const now = new Date();
+            // Si le planning n'a pas de shiftEnd précisé, on utilise la date du jour à 23:59:59
+            // Sinon, on utilise la date du jour avec l'heure de fin de service
+            if (!existingSchedule.shiftEnd) {
+                updateData.endDate = new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    now.getDate(),
+                    23, 59, 59, 999
+                );
+            } else {
+                const [hours, minutes] = existingSchedule.shiftEnd.split(':').map(Number);
+                updateData.endDate = new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    now.getDate(),
+                    hours, minutes, 0, 0
+                );
+            }
+        }
+
         const schedule = await Schedule.findByIdAndUpdate(
             req.params.id,
-            { status },
+            updateData,
             { new: true, runValidators: true }
         )
             .populate('driver', 'firstName lastName')
@@ -605,6 +633,7 @@ exports.changeStatus = async (req, res) => {
             entityId: req.params.id,
             oldData: {
                 status: existingSchedule.status,
+                endDate: existingSchedule.endDate,
                 driver: {
                     firstName: existingSchedule.driver.firstName,
                     lastName: existingSchedule.driver.lastName
@@ -617,6 +646,7 @@ exports.changeStatus = async (req, res) => {
             },
             newData: {
                 status,
+                endDate: updateData.endDate || existingSchedule.endDate,
                 driver: {
                     firstName: schedule.driver.firstName,
                     lastName: schedule.driver.lastName
@@ -628,11 +658,12 @@ exports.changeStatus = async (req, res) => {
                 }
             },
             performedBy: req.user?._id,
-            description: `Changement de statut du planning pour ${schedule.driver.firstName} ${schedule.driver.lastName} de "${existingSchedule.status}" à "${status}"`,
+            description: `Changement de statut du planning pour ${schedule.driver.firstName} ${schedule.driver.lastName} de "${existingSchedule.status}" à "${status}"${updateData.endDate ? ` avec date de fin automatique le ${updateData.endDate.toLocaleDateString()}` : ''}`,
             ipAddress: req.ip,
             metadata: {
                 oldStatus: existingSchedule.status,
-                newStatus: status
+                newStatus: status,
+                endDateUpdated: !!updateData.endDate
             }
         });
 

@@ -783,16 +783,21 @@ const MaintenanceDetail = () => {
                         <DialogTitle>Modifier la maintenance</DialogTitle>
                         <DialogDescription>
                             Modifiez les détails de cette maintenance. Les champs marqués d'un * sont obligatoires.
+                            <br />
+                            Pour modifier la date de fin, changez le statut de la maintenance à "Terminée".
+                            <br />
+                            La durée d'immobilisation n'a aucun lien avec la periode de maintenance.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4 overflow-y-auto">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="vehicle">Véhicule</Label>
+                                <Label htmlFor="vehicle" className="required">Véhicule</Label>
                                 <Select
                                     name="vehicle"
                                     value={formData.vehicle}
                                     onValueChange={(value) => setFormData({ ...formData, vehicle: value })}
+                                    required
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sélectionner un véhicule" />
@@ -807,11 +812,12 @@ const MaintenanceDetail = () => {
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="maintenanceType">Type de maintenance *</Label>
+                                <Label htmlFor="maintenanceType" className="required">Type de maintenance</Label>
                                 <Select
                                     name="maintenanceType"
                                     value={formData.maintenanceType}
                                     onValueChange={(value) => setFormData({ ...formData, maintenanceType: value })}
+                                    required
                                 >
                                     <SelectTrigger className={formErrors.maintenanceType ? "border-red-500" : ""}>
                                         <SelectValue placeholder="Sélectionner un type" />
@@ -828,11 +834,12 @@ const MaintenanceDetail = () => {
                                 )}
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="maintenanceNature">Nature de maintenance *</Label>
+                                <Label htmlFor="maintenanceNature" className="required">Nature de maintenance</Label>
                                 <Select
                                     name="maintenanceNature"
                                     value={formData.maintenanceNature}
                                     onValueChange={(value) => setFormData({ ...formData, maintenanceNature: value })}
+                                    required
                                 >
                                     <SelectTrigger className={formErrors.maintenanceNature ? "border-red-500" : ""}>
                                         <SelectValue placeholder="Sélectionner une nature" />
@@ -848,16 +855,18 @@ const MaintenanceDetail = () => {
                                 )}
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="technicianName">Technicien</Label>
+                                <Label htmlFor="technicianName" className="required">Technicien</Label>
                                 <Input
                                     id="technicianName"
                                     name="technicianName"
                                     value={formData.technicianName}
                                     onChange={handleInputChange}
+                                    placeholder="Nom du technicien ou structure"
+                                    required
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="maintenanceDate">Date de début de maintenance *</Label>
+                                <Label htmlFor="maintenanceDate" className="required">Date de début de maintenance</Label>
                                 <Input
                                     id="maintenanceDate"
                                     name="maintenanceDate"
@@ -865,6 +874,7 @@ const MaintenanceDetail = () => {
                                     value={formData.maintenanceDate}
                                     onChange={handleInputChange}
                                     className={formErrors.maintenanceDate ? "border-red-500" : ""}
+                                    required
                                 />
                                 {formErrors.maintenanceDate && (
                                     <p className="text-sm text-red-500">Ce champ est obligatoire</p>
@@ -892,7 +902,7 @@ const MaintenanceDetail = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="duration">Durée d'immobilisation du véhicule (Sans travailler) en jours</Label>
+                                <Label htmlFor="duration" className="required">Durée d'immobilisation du véhicule (Sans travailler) en jours</Label>
                                 <Input
                                     id="duration"
                                     name="duration"
@@ -900,6 +910,7 @@ const MaintenanceDetail = () => {
                                     value={formData.duration}
                                     onChange={handleInputChange}
                                     className={formErrors.maintenanceDate ? "border-red-500" : ""}
+                                    required
                                 />
 
                                 {formErrors.maintenanceDate && (
@@ -907,11 +918,12 @@ const MaintenanceDetail = () => {
                                 )}
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="completed">Statut</Label>
+                                <Label htmlFor="completed" className="required">Statut</Label>
                                 <Select
                                     name="completed"
                                     value={formData.completed ? 'true' : 'false'}
                                     onValueChange={(value) => setFormData({ ...formData, completed: value === 'true' })}
+                                    required
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sélectionner un statut" />

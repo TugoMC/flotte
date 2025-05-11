@@ -148,9 +148,14 @@ const MaintenancesList = () => {
                     setConflicts(foundConflicts);
 
                     if (foundConflicts.length > 0) {
-                        toast.warning(`Found ${foundConflicts.length} scheduling conflicts`, {
-                            description: 'Please review the conflicts before proceeding'
+                        toast.error("Impossible de créer la maintenance avec des conflits de planning", {
+                            description: "Veuillez d'abord résoudre les conflits en modifiant le statut des plannings concernés",
+                            action: {
+                                label: "Voir les conflits",
+                                onClick: () => setConflictsDialogOpen(true)
+                            }
                         });
+                        return;
                     }
                 } catch (error) {
                     console.error('Conflict check error:', error);
@@ -313,16 +318,26 @@ const MaintenancesList = () => {
             );
 
             if (foundConflicts.length > 0) {
-                // Demander confirmation si conflits trouvés
                 const proceed = window.confirm(
-                    `Il y a ${foundConflicts.length} conflit(s) avec des plannings existants. Voulez-vous quand même créer la maintenance?`
+                    `Il y a ${foundConflicts.length} conflit(s) avec des plannings existants. Voulez-vous vraiment créer cette maintenance malgré les conflits?`
                 );
                 if (!proceed) return;
             }
 
+            // Créer ou mettre à jour la maintenance
+            let maintenanceId;
+            if (selectedMaintenance) {
+                const response = await maintenanceService.update(selectedMaintenance._id, formData);
+                maintenanceId = selectedMaintenance._id;
+                toast.success("Maintenance mise à jour avec succès");
+            } else {
+                const response = await maintenanceService.create(formData);
+                maintenanceId = response.data._id;
+                toast.success("Maintenance créée avec succès");
+            }
+
             // Upload des photos si des fichiers ont été sélectionnés
-            if (selectedFiles.length > 0 && (selectedMaintenance || formData._id)) {
-                const maintenanceId = selectedMaintenance?._id || formData._id;
+            if (selectedFiles.length > 0 && maintenanceId) {
                 await maintenanceService.uploadPhotos(maintenanceId, selectedFiles);
                 toast.success(`${selectedFiles.length} photo(s) ajoutée(s) avec succès`);
             }
@@ -701,11 +716,18 @@ const MaintenancesList = () => {
                             <div className="flex items-start gap-2 p-3 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-md dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">
                                 <AlertTriangleIcon className="h-5 w-5 flex-shrink-0 mt-0.5 text-yellow-600 dark:text-yellow-400" />
                                 <div>
-                                    <p className="font-medium">Attention: Conflit détecté</p>
+                                    <p className="font-medium">Attention: Conflit de planning détecté</p>
                                     <p className="text-sm">
                                         Cette maintenance entre en conflit avec {conflicts.length} planning(s) existant(s).
-                                        Les plannings concernés pour le véhicule seront automatiquement annulés.
+                                        Avant de continuer, veuillez modifier le statut des plannings concernés à "Terminé" ou "Annulé".
                                     </p>
+                                    <Button
+                                        variant="link"
+                                        className="text-yellow-700 dark:text-yellow-300 p-0 h-auto mt-1"
+                                        onClick={() => setConflictsDialogOpen(true)}
+                                    >
+                                        Voir les détails des conflits
+                                    </Button>
                                 </div>
                             </div>
                         )}
@@ -837,18 +859,22 @@ const MaintenancesList = () => {
             <Dialog open={conflictsDialogOpen} onOpenChange={setConflictsDialogOpen}>
                 <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
-                        <DialogTitle>Conflits détectés</DialogTitle>
+                        <DialogTitle>Conflits de planning détectés</DialogTitle>
                         <DialogDescription>
-                            Cette maintenance entre en conflit avec des plannings existants
+                            Résolvez ces conflits avant de créer la maintenance
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-yellow-600">
-                            <AlertTriangleIcon className="h-5 w-5" />
-                            <p className="font-medium">
-                                {conflicts.length} conflit(s) trouvé(s)
-                            </p>
+                        <div className="flex items-start gap-3 p-3 bg-yellow-50 text-yellow-700 rounded-md dark:bg-yellow-900/30 dark:text-yellow-300">
+                            <AlertCircleIcon className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="font-medium">Action requise</p>
+                                <p className="text-sm">
+                                    Pour créer cette maintenance, vous devez d'abord modifier le statut des plannings
+                                    conflictuels à "Terminé" ou "Annulé" dans la section Planning.
+                                </p>
+                            </div>
                         </div>
 
                         <div className="max-h-[300px] overflow-y-auto">
@@ -887,8 +913,14 @@ const MaintenancesList = () => {
                     </div>
 
                     <DialogFooter>
-                        <Button onClick={() => setConflictsDialogOpen(false)}>
+                        <Button variant="outline" onClick={() => setConflictsDialogOpen(false)}>
                             Fermer
+                        </Button>
+                        <Button onClick={() => {
+                            setConflictsDialogOpen(false);
+                            navigate('/schedules'); // Redirige vers la page des plannings
+                        }}>
+                            Aller aux plannings
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -72,11 +72,11 @@ exports.create = async (req, res) => {
         }
 
         const activeMaintenance = await Maintenance.findOne({
-            vehicle: vehicleId,
+            vehicle: vehicle, // utiliser la variable 'vehicle' qui est définie
             completed: false,
             $or: [
-                { maintenanceDate: { $lte: endDate || scheduleDate } },
-                { completionDate: { $gte: scheduleDate } }
+                { maintenanceDate: { $lte: req.body.completionDate || req.body.maintenanceDate } },
+                { completionDate: { $gte: req.body.maintenanceDate } }
             ]
         });
 
@@ -211,15 +211,44 @@ exports.update = async (req, res) => {
 };
 
 // Supprimer une maintenance
+// Supprimer une maintenance
 exports.delete = async (req, res) => {
     try {
-        const maintenance = await Maintenance.findByIdAndDelete(req.params.id);
+        const maintenance = await Maintenance.findById(req.params.id);
 
         if (!maintenance) {
             return res.status(404).json({ message: 'Maintenance non trouvée' });
         }
 
-        res.json({ message: 'Maintenance supprimée avec succès' });
+        // Récupérer l'ID du véhicule avant la suppression
+        const vehicleId = maintenance.vehicle;
+
+        // Supprimer la maintenance
+        await Maintenance.findByIdAndDelete(req.params.id);
+
+        // Vérifier s'il existe d'autres maintenances actives pour ce véhicule
+        const otherActiveMaintenance = await Maintenance.findOne({
+            vehicle: vehicleId,
+            completed: false
+        });
+
+        // Si aucune autre maintenance active n'est trouvée, mettre à jour le statut du véhicule
+        if (!otherActiveMaintenance) {
+            // Trouver et mettre à jour le véhicule (seulement s'il est actuellement en maintenance)
+            const vehicle = await Vehicle.findById(vehicleId);
+            if (vehicle && vehicle.status === 'maintenance') {
+                await Vehicle.findByIdAndUpdate(
+                    vehicleId,
+                    { status: 'active' },
+                    { new: true }
+                );
+            }
+        }
+
+        res.json({
+            message: 'Maintenance supprimée avec succès',
+            vehicleUpdated: !otherActiveMaintenance
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
