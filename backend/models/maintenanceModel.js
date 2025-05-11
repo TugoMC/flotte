@@ -51,7 +51,12 @@ const maintenanceSchema = new mongoose.Schema({
     photos: {
         type: [String],  // Tableau de chemins/URLs vers les photos
         default: []
-    }
+    },
+    affectedSchedules: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Schedule' }],
+
+    isPlanned: { type: Boolean, default: false },
+    planningConflictResolved: { type: Boolean, default: false }
+
 }, {
     timestamps: true
 });

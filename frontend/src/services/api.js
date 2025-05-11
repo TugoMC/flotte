@@ -343,6 +343,11 @@ export const maintenanceService = {
     checkStatusConsistency: () => api.get('/maintenances/check-status'),
     validateDates: () => api.get('/maintenances/validate-dates'),
     getDailyCosts: (start, end) => api.get(`/maintenances/daily-costs?${start ? `start=${start}` : ''}${end ? `&end=${end}` : ''}`),
+    checkConflicts: (vehicleId, startDate, endDate = null) => {
+        const params = { vehicleId, startDate };
+        if (endDate) params.endDate = endDate;
+        return api.get('/maintenances/check-conflicts', { params });
+    },
 };
 
 

@@ -22,7 +22,6 @@ router.post('/', protect, manager, scheduleController.create);
 router.get('/:id', protect, manager, scheduleController.getById);
 
 // Routes réservées aux managers/admin
-router.post('/', protect, manager, scheduleController.create);
 router.put('/:id', protect, manager, scheduleController.update);
 router.delete('/:id', protect, manager, scheduleController.delete);
 router.put('/:id/status', protect, manager, scheduleController.changeStatus);

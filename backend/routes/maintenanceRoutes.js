@@ -11,6 +11,7 @@ router.get('/stats', protect, manager, maintenanceController.getStats);
 router.get('/check-status', protect, manager, maintenanceController.checkStatusConsistency);
 router.get('/validate-dates', protect, manager, maintenanceController.validateDates);
 router.get('/daily-costs', protect, manager, maintenanceController.getDailyMaintenanceCosts);
+router.get('/check-conflicts', protect, manager, maintenanceController.checkMaintenanceConflicts);
 
 // Routes par véhicule et par type
 router.get('/vehicle/:vehicleId', protect, maintenanceController.getByVehicle);

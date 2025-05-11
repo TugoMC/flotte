@@ -1,5 +1,7 @@
 // src/pages/MaintenancesList.jsx
 import { useState, useEffect } from 'react';
+import { scheduleService } from '@/services/api';
+import { AlertTriangleIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -30,6 +32,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogDescription,
+    DialogFooter
 } from '@/components/ui/dialog';
 import {
     Select,
@@ -78,6 +81,9 @@ const MaintenancesList = () => {
     const [filterVehicle, setFilterVehicle] = useState('all');
     const [filterType, setFilterType] = useState('all');
 
+    const [conflicts, setConflicts] = useState([]);
+    const [conflictsDialogOpen, setConflictsDialogOpen] = useState(false);
+
     // États pour les modales
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedMaintenance, setSelectedMaintenance] = useState(null);
@@ -106,6 +112,54 @@ const MaintenancesList = () => {
         fetchData();
         fetchVehicles();
     }, [activeTab]);
+
+
+    const checkForConflicts = async (vehicleId, startDate, duration) => {
+        try {
+            if (!vehicleId || !startDate) return [];
+
+            const endDate = duration
+                ? new Date(new Date(startDate).getTime() + duration * 86400000)
+                : null;
+
+            const response = await maintenanceService.checkConflicts(
+                vehicleId,
+                new Date(startDate).toISOString(),
+                endDate ? new Date(endDate).toISOString() : null
+            );
+
+            return response.data.conflicts || [];
+        } catch (error) {
+            console.error('Error checking conflicts:', error);
+            toast.error("Error checking for conflicts");
+            return [];
+        }
+    };
+
+    useEffect(() => {
+        if (formData.vehicle && formData.maintenanceDate) {
+            const timer = setTimeout(async () => {
+                try {
+                    const foundConflicts = await checkForConflicts(
+                        formData.vehicle,
+                        formData.maintenanceDate,
+                        formData.duration
+                    );
+                    setConflicts(foundConflicts);
+
+                    if (foundConflicts.length > 0) {
+                        toast.warning(`Found ${foundConflicts.length} scheduling conflicts`, {
+                            description: 'Please review the conflicts before proceeding'
+                        });
+                    }
+                } catch (error) {
+                    console.error('Conflict check error:', error);
+                }
+            }, 500);
+
+            return () => clearTimeout(timer);
+        }
+    }, [formData.vehicle, formData.maintenanceDate, formData.duration]);
 
     // Créer des URL d'aperçu lorsque les fichiers sont sélectionnés
     useEffect(() => {
@@ -251,12 +305,19 @@ const MaintenancesList = () => {
 
     const handleSubmit = async () => {
         try {
-            if (selectedMaintenance) {
-                await maintenanceService.update(selectedMaintenance._id, formData);
-                toast.success("Maintenance mise à jour avec succès");
-            } else {
-                await maintenanceService.create(formData);
-                toast.success("Maintenance crée avec succès");
+            // Vérifier les conflits avant de soumettre
+            const foundConflicts = await checkForConflicts(
+                formData.vehicle,
+                formData.maintenanceDate,
+                formData.duration
+            );
+
+            if (foundConflicts.length > 0) {
+                // Demander confirmation si conflits trouvés
+                const proceed = window.confirm(
+                    `Il y a ${foundConflicts.length} conflit(s) avec des plannings existants. Voulez-vous quand même créer la maintenance?`
+                );
+                if (!proceed) return;
             }
 
             // Upload des photos si des fichiers ont été sélectionnés
@@ -513,12 +574,13 @@ const MaintenancesList = () => {
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label htmlFor="vehicle">Véhicule</label>
+                                <label htmlFor="vehicle" className='required'>Véhicule</label>
                                 <div className="relative">
                                     <Command className="rounded-lg border ">
                                         <CommandInput
                                             placeholder="Rechercher un véhicule..."
                                             className="h-10"
+                                            required
                                         />
                                         <ScrollArea className="h-48 rounded-b-md">
                                             <CommandGroup>
@@ -564,11 +626,12 @@ const MaintenancesList = () => {
                                 )}
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="maintenanceType">Type de maintenance</label>
+                                <label htmlFor="maintenanceType" className='required'>Type de maintenance</label>
                                 <Select
                                     name="maintenanceType"
                                     value={formData.maintenanceType}
                                     onValueChange={(value) => setFormData({ ...formData, maintenanceType: value })}
+                                    required
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sélectionner un type" />
@@ -585,11 +648,12 @@ const MaintenancesList = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label htmlFor="maintenanceNature">Nature de maintenance</label>
+                            <label htmlFor="maintenanceNature" className='required'>Nature de maintenance</label>
                             <Select
                                 name="maintenanceNature"
                                 value={formData.maintenanceNature}
                                 onValueChange={(value) => setFormData({ ...formData, maintenanceNature: value })}
+                                required
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Sélectionner une nature" />
@@ -602,23 +666,25 @@ const MaintenancesList = () => {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <label htmlFor="technicianName">Technicien</label>
+                            <label htmlFor="technicianName " className='required'>Technicien</label>
                             <Input
                                 name="technicianName"
                                 value={formData.technicianName}
                                 onChange={handleInputChange}
                                 placeholder="Nom du technicien"
+                                required
                             />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label htmlFor="maintenanceDate">Date de début</label>
+                            <label htmlFor="maintenanceDate" className='required'>Date de début</label>
                             <Input
                                 type="date"
                                 name="maintenanceDate"
                                 value={formData.maintenanceDate}
                                 onChange={handleInputChange}
+                                required
                             />
                         </div>
                         <div className="space-y-2">
@@ -631,6 +697,18 @@ const MaintenancesList = () => {
                                 disabled={!formData.completed}
                             />
                         </div>
+                        {conflicts.length > 0 && (
+                            <div className="flex items-start gap-2 p-3 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-md dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">
+                                <AlertTriangleIcon className="h-5 w-5 flex-shrink-0 mt-0.5 text-yellow-600 dark:text-yellow-400" />
+                                <div>
+                                    <p className="font-medium">Attention: Conflit détecté</p>
+                                    <p className="text-sm">
+                                        Cette maintenance entre en conflit avec {conflicts.length} planning(s) existant(s).
+                                        Les plannings concernés pour le véhicule seront automatiquement annulés.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -752,6 +830,67 @@ const MaintenancesList = () => {
                             {selectedMaintenance ? 'Mettre à jour' : 'Créer'}
                         </Button>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialogue pour afficher les conflits */}
+            <Dialog open={conflictsDialogOpen} onOpenChange={setConflictsDialogOpen}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>Conflits détectés</DialogTitle>
+                        <DialogDescription>
+                            Cette maintenance entre en conflit avec des plannings existants
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-yellow-600">
+                            <AlertTriangleIcon className="h-5 w-5" />
+                            <p className="font-medium">
+                                {conflicts.length} conflit(s) trouvé(s)
+                            </p>
+                        </div>
+
+                        <div className="max-h-[300px] overflow-y-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Chauffeur</TableHead>
+                                        <TableHead>Véhicule</TableHead>
+                                        <TableHead>Période</TableHead>
+                                        <TableHead>Statut</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {conflicts.map((conflict) => (
+                                        <TableRow key={conflict._id}>
+                                            <TableCell>
+                                                {conflict.driver?.firstName} {conflict.driver?.lastName}
+                                            </TableCell>
+                                            <TableCell>
+                                                {conflict.vehicle?.licensePlate}
+                                            </TableCell>
+                                            <TableCell>
+                                                {format(new Date(conflict.scheduleDate), 'dd/MM/yyyy')}
+                                                {conflict.endDate && ` - ${format(new Date(conflict.endDate), 'dd/MM/yyyy')}`}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline">
+                                                    {conflict.status}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button onClick={() => setConflictsDialogOpen(false)}>
+                            Fermer
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

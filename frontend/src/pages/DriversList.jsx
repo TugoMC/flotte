@@ -212,9 +212,9 @@ const DriversList = () => {
             case 'active':
                 return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Actif</Badge>;
             case 'maintenance':
-                return <Badge variant="outline" className="ml-2 bg-yellow-50 text-yellow-700 border-yellow-200">Maintenance</Badge>;
+                return <Badge variant="outline" className="ml-2 bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">Maintenance</Badge>;
             case 'inactive':
-                return <Badge variant="outline" className="ml-2 bg-red-50 text-red-700 border-red-200">Inactif</Badge>;
+                return <Badge variant="outline" className="ml-2 bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">Inactif</Badge>;
             default:
                 return null;
         }

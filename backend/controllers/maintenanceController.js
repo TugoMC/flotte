@@ -1,6 +1,7 @@
 // controllers/maintenanceController.js
 const Maintenance = require('../models/maintenanceModel');
 const Vehicle = require('../models/vehicleModel');
+const Schedule = require('../models/scheduleModel');
 const mongoose = require('mongoose');
 
 // Récupérer toutes les maintenances
@@ -68,6 +69,22 @@ exports.create = async (req, res) => {
 
         if (req.body.duration && req.body.duration <= 0) {
             return res.status(400).json({ message: 'La durée doit être positive' });
+        }
+
+        const activeMaintenance = await Maintenance.findOne({
+            vehicle: vehicleId,
+            completed: false,
+            $or: [
+                { maintenanceDate: { $lte: endDate || scheduleDate } },
+                { completionDate: { $gte: scheduleDate } }
+            ]
+        });
+
+        if (activeMaintenance) {
+            return res.status(400).json({
+                message: 'Le véhicule est en maintenance pendant cette période',
+                maintenance: activeMaintenance
+            });
         }
 
         // Créer la maintenance
@@ -642,4 +659,111 @@ exports.getDailyMaintenanceCosts = async (req, res) => {
             message: error.message
         });
     }
+};
+
+exports.checkScheduleConflicts = async (req, res) => {
+    const maintenance = await Maintenance.findById(req.params.id).populate('vehicle');
+    const conflicts = await Schedule.find({
+        vehicle: maintenance.vehicle,
+        status: { $in: ['pending', 'assigned'] },
+        $or: [
+            { scheduleDate: { $lte: maintenance.completionDate || new Date(maintenance.maintenanceDate.getTime() + maintenance.duration * 86400000) } },
+            { endDate: { $gte: maintenance.maintenanceDate } }
+        ]
+    });
+    res.json({ conflicts });
+};
+
+exports.resolveConflicts = async (req, res) => {
+    const maintenance = await Maintenance.findById(req.params.id);
+    const conflicts = await Schedule.find({
+        vehicle: maintenance.vehicle,
+        status: { $in: ['pending', 'assigned'] },
+        $or: [
+            { scheduleDate: { $lte: maintenance.completionDate || new Date(maintenance.maintenanceDate.getTime() + maintenance.duration * 86400000) } },
+            { endDate: { $gte: maintenance.maintenanceDate } }
+        ]
+    });
+
+    for (const schedule of conflicts) {
+        if (schedule.status === 'assigned') {
+            await updateDriverVehicleRelationship(schedule.driver, schedule.vehicle, false);
+        }
+        schedule.status = 'canceled';
+        schedule.cancelReason = `Automatic cancellation due to maintenance ${maintenance._id}`;
+        await schedule.save();
+
+        maintenance.affectedSchedules.push(schedule._id);
+    }
+
+    maintenance.planningConflictResolved = true;
+    await maintenance.save();
+
+    res.json({ message: `${conflicts.length} plannings mis à jour` });
+};
+
+exports.checkMaintenanceConflicts = async (req, res) => {
+    try {
+        const { vehicleId, startDate, endDate } = req.query;
+
+        // Validate inputs
+        if (!vehicleId || !startDate) {
+            return res.status(400).json({ message: 'vehicleId and startDate are required' });
+        }
+
+        const conflicts = await Schedule.find({
+            vehicle: vehicleId,
+            status: { $in: ['pending', 'assigned'] },
+            $or: [
+                { scheduleDate: { $lte: endDate || startDate } },
+                { endDate: { $gte: startDate } }
+            ]
+        }).populate('driver vehicle');
+
+        res.json({ conflicts });
+    } catch (error) {
+        console.error('Error checking maintenance conflicts:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.schedulePreventiveMaintenance = async (req, res) => {
+    const { vehicleId, maintenanceType, intervalDays, startDate } = req.body;
+
+    const vehicle = await Vehicle.findById(vehicleId);
+    if (!vehicle) return res.status(404).json({ message: 'Véhicule non trouvé' });
+
+    const maintenanceDate = new Date(startDate);
+    const maintenances = [];
+
+    for (let i = 0; i < 12; i++) { // Planifier pour 1 an
+        const maintenance = new Maintenance({
+            vehicle: vehicleId,
+            maintenanceType,
+            maintenanceNature: 'preventive',
+            maintenanceDate: new Date(maintenanceDate),
+            isPlanned: true
+        });
+
+        await maintenance.save();
+        maintenances.push(maintenance);
+
+        // Vérifier les conflits avec les plannings existants
+        const conflicts = await checkMaintenanceConflicts(
+            vehicleId,
+            maintenanceDate,
+            new Date(maintenanceDate.getTime() + 86400000) // +1 jour
+        );
+
+        if (conflicts.length > 0) {
+            await exports.resolveConflicts({
+                params: { id: maintenance._id },
+                body: {}
+            }, { json: () => { } });
+        }
+
+        maintenanceDate.setDate(maintenanceDate.getDate() + intervalDays);
+    }
+
+    res.json({ message: `${maintenances.length} maintenances préventives planifiées` });
 };
