@@ -5,6 +5,14 @@ const { uploadMultipleFiles } = require('../services/fileUploadService');
 const { protect } = require('../middlewares/authMiddleware');
 const { manager } = require('../middlewares/roleMiddleware');
 
+// Routes statistiques
+router.get('/stats', paymentController.getStats);
+
+router.get('/stats/daily', protect, manager, paymentController.getDailyStats);
+router.get('/stats/drivers', protect, manager, paymentController.getDriverStats);
+router.get('/stats/vehicles', protect, manager, paymentController.getVehicleStats);
+router.get('/stats/daily-revenue', protect, manager, paymentController.getDailyRevenue);
+
 // Routes GET
 router.get('/', protect, manager, paymentController.getAll);
 router.get('/pending', protect, manager, paymentController.getPendingPayments);
@@ -17,12 +25,7 @@ router.get('/vehicle/:vehicleId', protect, manager, paymentController.getByVehic
 router.get('/date/:date', protect, manager, paymentController.getByDate);
 router.get('/period', protect, manager, paymentController.getByPeriod);
 
-// Routes statistiques
-router.get('/stats/general', protect, manager, paymentController.getStats);
-router.get('/stats/daily', protect, manager, paymentController.getDailyStats);
-router.get('/stats/drivers', protect, manager, paymentController.getDriverStats);
-router.get('/stats/vehicles', protect, manager, paymentController.getVehicleStats);
-router.get('/stats/daily-revenue', protect, manager, paymentController.getDailyRevenue);
+
 
 // Routes POST
 router.post('/', protect, manager, paymentController.create);

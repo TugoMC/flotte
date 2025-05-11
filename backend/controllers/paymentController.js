@@ -3,6 +3,7 @@ const Payment = require('../models/paymentModel');
 const Schedule = require('../models/scheduleModel');
 const Vehicle = require('../models/vehicleModel');
 const Driver = require('../models/driverModel');
+const History = require('../models/historyModel');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
@@ -239,8 +240,23 @@ exports.create = async (req, res) => {
             isMeetingTarget
         });
 
+        // Sauvegarder d'abord le paiement
         const savedPayment = await payment.save();
+
+        // Ensuite créer l'entrée d'historique
+        await History.create({
+            eventType: 'payment_create',
+            module: 'payment',
+            entityId: savedPayment._id,
+            newData: savedPayment.toObject(),
+            performedBy: req.user?._id,
+            description: `Création d'un paiement de ${amount}€ pour le planning ${scheduleId}`,
+            ipAddress: req.ip
+        });
+
         console.log(`[PaymentController] create - Paiement créé avec l'ID ${savedPayment._id}`);
+
+
 
         // Vérifier si c'est le dernier paiement du planning
         const isLastPayment = await isLastPaymentForSchedule(scheduleId, paymentDate);
@@ -374,6 +390,17 @@ exports.update = async (req, res) => {
             }
         }
 
+        await History.create({
+            eventType: 'payment_update',
+            module: 'payment',
+            entityId: payment._id,
+            oldData: existingPayment.toObject(),
+            newData: payment.toObject(),
+            performedBy: req.user?._id,
+            description: `Mise à jour du paiement ${payment._id} (${existingPayment.amount}€ → ${payment.amount}€)`,
+            ipAddress: req.ip
+        });
+
         res.json(payment);
     } catch (error) {
         console.error(`[PaymentController] Erreur update pour le paiement ${req.params.id}:`, error);
@@ -491,6 +518,16 @@ exports.delete = async (req, res) => {
         // Garder une référence au scheduleId avant suppression
         const scheduleId = payment.schedule;
         console.log(`[PaymentController] delete - Planning associé: ${scheduleId}`);
+
+        await History.create({
+            eventType: 'payment_delete',
+            module: 'payment',
+            entityId: payment._id,
+            oldData: payment.toObject(),
+            performedBy: req.user?._id,
+            description: `Suppression du paiement ${payment._id} (${payment.amount}€) pour le planning ${scheduleId}`,
+            ipAddress: req.ip
+        });
 
         // Supprimer le paiement
         await Payment.findByIdAndDelete(req.params.id);
@@ -622,6 +659,9 @@ exports.confirmMultiplePayments = async (req, res) => {
 
                 console.log(`[PaymentController] confirmMultiplePayments - Paiement ${id} - Objectif atteint: ${isMeetingTarget}`);
 
+
+
+
                 // Mettre à jour le paiement
                 const updatedPayment = await Payment.findByIdAndUpdate(
                     id,
@@ -634,6 +674,17 @@ exports.confirmMultiplePayments = async (req, res) => {
                     },
                     { new: true }
                 );
+
+                await History.create({
+                    eventType: 'payment_confirm',
+                    module: 'payment',
+                    entityId: updatedPayment._id,
+                    oldData: { status: 'pending', amount: existingPayment.amount },
+                    newData: { status: 'confirmed', amount: updatedPayment.amount },
+                    performedBy: req.user?._id,
+                    description: `Paiement confirmé de ${updatedPayment.amount}€ pour le planning ${existingPayment.schedule}`,
+                    ipAddress: req.ip
+                });
 
                 console.log(`[PaymentController] confirmMultiplePayments - Paiement ${id} confirmé avec succès`);
 
@@ -649,10 +700,13 @@ exports.confirmMultiplePayments = async (req, res) => {
                     existingPayment.paymentDate
                 );
 
+
                 if (isLastPayment) {
                     console.log(`[PaymentController] confirmMultiplePayments - Dernier paiement détecté pour le planning ${existingPayment.schedule}`);
                     await completeScheduleIfAllPaid(existingPayment.schedule);
                 }
+
+
 
             } catch (error) {
                 console.error(`[PaymentController] Erreur lors du traitement du paiement ${paymentInfo.id}:`, error);
@@ -723,13 +777,13 @@ exports.changeStatus = async (req, res) => {
         }
 
         await History.create({
-            eventType: 'payment_confirm',
+            eventType: `payment_${status}`,
             module: 'payment',
             entityId: payment._id,
-            oldData: { status: 'pending' },
-            newData: { status: 'confirmed', amount: payment.amount },
-            performedBy: req.user ? req.user._id : null,
-            description: `Paiement confirmé de ${payment.amount}€ pour le planning ${payment.schedule._id}`,
+            oldData: { status: existingPayment.status },
+            newData: { status: payment.status },
+            performedBy: req.user?._id,
+            description: `Changement de statut du paiement ${payment._id} (${existingPayment.status} → ${payment.status})`,
             ipAddress: req.ip
         });
 
@@ -920,52 +974,57 @@ exports.getMissingPaymentsForSchedule = async (req, res) => {
 };
 
 exports.getStats = async (req, res) => {
-    console.log('[PaymentController] Début de getStats - Calcul des statistiques globales');
     try {
-        // Total des paiements
-        const totalPayments = await Payment.countDocuments();
-        console.log(`[PaymentController] getStats - Total des paiements: ${totalPayments}`);
+        console.log('Début de getStats'); // Debug log
 
-        // Somme totale des paiements
-        const totalAmountResult = await Payment.aggregate([
-            { $group: { _id: null, total: { $sum: "$amount" } } }
+        const stats = await Payment.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    totalAmount: { $sum: "$amount" },
+                    count: { $sum: 1 },
+                    targetMet: {
+                        $sum: {
+                            $cond: [{ $eq: ["$isMeetingTarget", true] }, 1, 0]
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    totalAmount: 1,
+                    averageAmount: { $divide: ["$totalAmount", "$count"] },
+                    totalPayments: "$count",
+                    targetMet: 1,
+                    targetMetPercentage: {
+                        $multiply: [
+                            { $divide: ["$targetMet", "$count"] },
+                            100
+                        ]
+                    }
+                }
+            }
         ]);
-        const totalAmount = totalAmountResult.length > 0 ? totalAmountResult[0].total : 0;
-        console.log(`[PaymentController] getStats - Montant total: ${totalAmount}`);
 
-        // Moyenne des paiements
-        const averageAmount = totalPayments > 0 ? totalAmount / totalPayments : 0;
-        console.log(`[PaymentController] getStats - Moyenne des paiements: ${averageAmount}`);
+        console.log('Résultats de l\'agrégation:', stats); // Debug log
 
-        // Répartition par type de paiement
-        const paymentTypeStats = await Payment.aggregate([
-            { $group: { _id: "$paymentType", count: { $sum: 1 }, total: { $sum: "$amount" } } }
-        ]);
-        console.log('[PaymentController] getStats - Statistiques par type de paiement calculées');
+        const result = stats[0] || {
+            totalAmount: 0,
+            averageAmount: 0,
+            totalPayments: 0,
+            targetMet: 0,
+            targetMetPercentage: 0
+        };
 
-        // Répartition par statut
-        const statusStats = await Payment.aggregate([
-            { $group: { _id: "$status", count: { $sum: 1 }, total: { $sum: "$amount" } } }
-        ]);
-        console.log('[PaymentController] getStats - Statistiques par statut calculées');
-
-        // Nombre de paiements atteignant l'objectif
-        const targetMet = await Payment.countDocuments({ isMeetingTarget: true });
-        const targetMetPercentage = totalPayments > 0 ? (targetMet / totalPayments) * 100 : 0;
-        console.log(`[PaymentController] getStats - Objectifs atteints: ${targetMet} (${targetMetPercentage.toFixed(2)}%)`);
-
-        res.json({
-            totalPayments,
-            totalAmount,
-            averageAmount,
-            paymentTypeStats,
-            statusStats,
-            targetMet,
-            targetMetPercentage
-        });
+        res.json(result);
     } catch (error) {
-        console.error('[PaymentController] Erreur getStats:', error);
-        res.status(500).json({ message: error.message });
+        console.error('Erreur dans getStats:', error);
+        res.status(500).json({
+            message: 'Erreur lors du calcul des statistiques',
+            error: error.message,
+            stack: error.stack // Ajout de la stack pour le débogage
+        });
     }
 };
 

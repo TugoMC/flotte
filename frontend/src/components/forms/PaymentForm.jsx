@@ -201,33 +201,46 @@ const PaymentForm = ({ payment, onSubmitSuccess, onCancel }) => {
 
         setLoading(true);
         try {
-            let response;
+            // Préparer les données pour l'API
+            const payload = {
+                scheduleId: formData.scheduleId,
+                amount: formData.amount,
+                paymentDate: formData.paymentDate.toISOString(),
+                paymentType: formData.paymentType,
+                comments: formData.comments,
+                ...(payment && { status: formData.status })
+            };
 
+            console.log('Payload envoyé:', payload); // Pour débogage
+
+            let response;
             if (payment) {
-                // Mise à jour d'un paiement existant
-                response = await paymentService.update(payment._id, formData);
+                response = await paymentService.update(payment._id, payload);
                 toast.success('Paiement mis à jour avec succès');
             } else {
-                // Création d'un nouveau paiement
-                response = await paymentService.create(formData);
+                response = await paymentService.create(payload);
                 toast.success('Paiement créé avec succès');
             }
 
-            // Si le paiement a un statut spécifique à définir (pour un paiement existant)
-            if (payment && formData.status !== payment.status) {
-                await paymentService.changeStatus(payment._id, formData.status);
-            }
-
-            // Upload des photos si des fichiers ont été sélectionnés
+            // Upload des photos si nécessaire
             if (selectedFiles.length > 0 && response.data._id) {
-                await paymentService.uploadPhotos(response.data._id, selectedFiles);
+                const formData = new FormData();
+                selectedFiles.forEach(file => {
+                    formData.append('photos', file);
+                });
+
+                await paymentService.uploadPhotos(response.data._id, formData);
                 toast.success(`${selectedFiles.length} photo(s) ajoutée(s) avec succès`);
             }
 
             onSubmitSuccess();
         } catch (error) {
-            console.error('Erreur lors de la soumission:', error);
-            toast.error(error.response?.data?.message || 'Erreur lors de la soumission');
+            console.error('Détails de l\'erreur:', {
+                message: error.message,
+                response: error.response?.data,
+                stack: error.stack
+            });
+            toast.error(error.response?.data?.message || error.message || 'Erreur lors de la soumission');
         } finally {
             setLoading(false);
         }

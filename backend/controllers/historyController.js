@@ -199,6 +199,37 @@ exports.getEventDescription = (item) => {
         return `${readableAction}${details}`;
     }
 
+    if (module === 'payment') {
+        let details = '';
+        const actionMap = {
+            create: 'Création',
+            update: 'Mise à jour',
+            delete: 'Suppression',
+            confirm: 'Confirmation',
+            reject: 'Rejet',
+            pending: 'Mise en attente'
+        };
+
+        const readableAction = actionMap[action] || action;
+
+        if (item.newData) {
+            if (action === 'create') {
+                details = ` de ${item.newData.amount}FCFA pour le planning ${item.entityId.substring(0, 8)}
+`;
+            } else if (action === 'update') {
+                details = ` du paiement ${item.entityId.substring(0, 8)}
+ ${item.oldData?.amount}FCFA → ${item.newData.amount}FCFA`;
+            } else if (action === 'confirm') {
+                details = ` du paiement ${item.entityId.substring(0, 8)}
+ ${item.newData.amount}FCFA`;
+            } else if (action === 'delete') {
+                details = ` du paiement ${item.entityId.substring(0, 8)}
+ ${item.oldData?.amount}FCFA`;
+            }
+        }
+        return `${readableAction} de paiement${details}`;
+    }
+
     return `${readableAction} ${this.getModuleName(module)}`;
 };
 

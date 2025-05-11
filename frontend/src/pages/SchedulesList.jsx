@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { AlertTriangleIcon } from 'lucide-react';
 import {
     Card,
     CardContent,
@@ -513,13 +514,22 @@ const SchedulesList = () => {
                 </DialogContent>
             </Dialog>
 
+
             {/* Dialogue de confirmation de suppression */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                        Êtes-vous sûr de vouloir supprimer ce planning ?
                         <AlertDialogDescription>
-                            Êtes-vous sûr de vouloir supprimer ce planning ? Cette action est irréversible.
+                            <div className="flex items-start mt-2 p-2 bg-red-50 rounded-md text-red-600 dark:bg-red-900/20 dark:text-red-300">
+                                <AlertTriangleIcon className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0" />
+                                <span>
+                                    Attention : Tous les paiements associés à ce planning seront également supprimés définitivement.
+                                    Cette action est irréversible.
+                                </span>
+                            </div>
+
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
