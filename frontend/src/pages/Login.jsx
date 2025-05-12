@@ -1,7 +1,7 @@
 // src/pages/Login.jsx
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { CardFooter } from '@/components/ui/card';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,7 +15,15 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from "@/components/ui/label";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+    CardFooter
+} from '@/components/ui/card';
 import { authService } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { AlertCircle } from 'lucide-react';
@@ -106,93 +114,111 @@ const Login = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
-            <Card className="w-full max-w-md">
-                <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold text-center">Gestion de Flotte</CardTitle>
-                    <CardDescription className="text-center">
-                        Connectez-vous avec vos identifiants
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {error && (
-                        <Alert variant="destructive" className="mb-4">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
+        <div className="flex items-center justify-center min-h-screen bg-[hsl(var(--login-bg))]">
+            <div className="flex flex-col gap-6 w-full max-w-md">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Gestion de Flotte</CardTitle>
+                        <CardDescription>
+                            Connectez-vous avec vos identifiants
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {error && (
+                            <Alert variant="destructive" className="mb-6">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
 
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                            <FormField
-                                control={form.control}
-                                name="username"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Nom d'utilisateur</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="admin"
-                                                {...field}
-                                                autoComplete="username"
-                                                className={error ? "border-red-300" : ""}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="password"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Mot de passe</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="password"
-                                                placeholder="********"
-                                                {...field}
-                                                autoComplete="current-password"
-                                                className={error ? "border-red-300" : ""}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <Button type="submit" className="w-full" disabled={loading}>
-                                {loading ? (
-                                    <>
-                                        <span className="animate-spin mr-2">⟳</span>
-                                        Connexion en cours...
-                                    </>
-                                ) : (
-                                    'Se connecter'
-                                )}
-                            </Button>
-                        </form>
-                    </Form>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
+                                <div className="grid gap-2">
+                                    <FormField
+                                        control={form.control}
+                                        name="username"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <div className="flex items-center">
+                                                    <FormLabel>Nom d'utilisateur</FormLabel>
+                                                </div>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="admin"
+                                                        {...field}
+                                                        autoComplete="username"
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <FormField
+                                        control={form.control}
+                                        name="password"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <div className="flex items-center">
+                                                    <FormLabel>Mot de passe</FormLabel>
+                                                    <Link
+                                                        to="/forgot-password"
+                                                        className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                                                    >
+                                                        Mot de passe oublié?
+                                                    </Link>
+                                                </div>
+                                                <FormControl>
+                                                    <Input
+                                                        type="password"
+                                                        placeholder="********"
+                                                        {...field}
+                                                        autoComplete="current-password"
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <Button type="submit" className="w-full" disabled={loading}>
+                                    {loading ? (
+                                        <>
+                                            <span className="animate-spin mr-2">⟳</span>
+                                            Connexion en cours...
+                                        </>
+                                    ) : (
+                                        'Se connecter'
+                                    )}
+                                </Button>
 
-                    <div className="mt-4 text-center text-sm">
-                        <p>Version de démo | Admin par défaut: admin / admin123</p>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex flex-col items-center gap-4">
-                    <p className="text-sm text-gray-600">
-                        Pas encore de compte?{' '}
-                        <Link
-                            to="/register"
-                            className="text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                            Créer un compte
-                        </Link>
-                    </p>
-                    <p className="text-xs text-gray-500">
-                        © {new Date().getFullYear()} Application de Gestion de Flotte
-                    </p>
-                </CardFooter>
-            </Card>
+                                <div className="text-center text-sm">
+                                    <p>Version de démo | Admin par défaut: admin / admin1234</p>
+                                </div>
+
+                                <div className="text-center text-sm">
+                                    Pas encore de compte?{' '}
+                                    <Link
+                                        to="/register"
+                                        className="underline underline-offset-4 hover:text-gray-800"
+                                    >
+                                        Créer un compte
+                                    </Link>
+                                </div>
+                            </form>
+                        </Form>
+                    </CardContent>
+                    <CardFooter className="flex justify-center">
+                        <p className="text-xs text-gray-500">
+                            © {new Date().getFullYear()} Application de Gestion de Flotte
+                        </p>
+                    </CardFooter>
+                </Card>
+            </div>
+            <div className="absolute top-4 right-4">
+                <ThemeToggle />
+            </div>
         </div>
     );
 };

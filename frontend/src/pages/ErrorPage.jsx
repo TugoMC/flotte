@@ -2,8 +2,11 @@
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlertTriangle, AlertCircle, RefreshCw } from 'lucide-react';
+import { useTheme } from "@/hooks/use-theme";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const ErrorPage = ({ code = 500, message, details }) => {
+    const { theme } = useTheme();
     const navigate = useNavigate();
 
     // Configuration des titres et descriptions par défaut selon le code d'erreur
@@ -45,21 +48,27 @@ const ErrorPage = ({ code = 500, message, details }) => {
     const IconComponent = config.icon;
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+        <div className={`flex flex-col items-center justify-center min-h-screen px-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+            {/* Ajoutez le bouton de changement de thème */}
+            <div className="absolute top-4 right-4">
+                <ThemeToggle />
+            </div>
+
             <div className="text-center space-y-6">
+                {/* Adaptez les couleurs en fonction du thème */}
                 <div className="flex justify-center">
-                    <IconComponent className="h-24 w-24 text-yellow-500" />
+                    <IconComponent className={`h-24 w-24 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-500'}`} />
                 </div>
 
                 <h1 className="text-5xl font-bold tracking-tight">{code}</h1>
 
                 <div className="space-y-2">
                     <h2 className="text-2xl font-semibold">{config.title}</h2>
-                    <p className="text-gray-500 max-w-md">
+                    <p className={`max-w-md ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>
                         {config.description}
                     </p>
                     {details && (
-                        <p className="text-sm text-gray-400 mt-2 max-w-md mx-auto">
+                        <p className={`text-sm mt-2 max-w-md mx-auto ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                             {details}
                         </p>
                     )}
@@ -81,7 +90,7 @@ const ErrorPage = ({ code = 500, message, details }) => {
                 </div>
             </div>
 
-            <div className="mt-12 text-sm text-gray-500">
+            <div className={`mt-12 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                 © {new Date().getFullYear()} Application de Gestion de Flotte
             </div>
         </div>

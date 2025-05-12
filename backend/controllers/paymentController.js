@@ -250,7 +250,7 @@ exports.create = async (req, res) => {
             entityId: savedPayment._id,
             newData: savedPayment.toObject(),
             performedBy: req.user?._id,
-            description: `Création d'un paiement de ${amount}€ pour le planning ${scheduleId}`,
+            description: `Création d'un paiement de ${amount}FCFA pour le planning ${scheduleId}`,
             ipAddress: req.ip
         });
 
@@ -397,7 +397,7 @@ exports.update = async (req, res) => {
             oldData: existingPayment.toObject(),
             newData: payment.toObject(),
             performedBy: req.user?._id,
-            description: `Mise à jour du paiement ${payment._id} (${existingPayment.amount}€ → ${payment.amount}€)`,
+            description: `Mise à jour du paiement #${payment._id.substring(0, 8)} (${existingPayment.amount}FCFA → ${payment.amount}FCFA)`,
             ipAddress: req.ip
         });
 
@@ -525,7 +525,7 @@ exports.delete = async (req, res) => {
             entityId: payment._id,
             oldData: payment.toObject(),
             performedBy: req.user?._id,
-            description: `Suppression du paiement ${payment._id} (${payment.amount}€) pour le planning ${scheduleId}`,
+            description: `Suppression du paiement ${payment._id} (${payment.amount}FCFA) pour le planning ${scheduleId}`,
             ipAddress: req.ip
         });
 
@@ -682,7 +682,7 @@ exports.confirmMultiplePayments = async (req, res) => {
                     oldData: { status: 'pending', amount: existingPayment.amount },
                     newData: { status: 'confirmed', amount: updatedPayment.amount },
                     performedBy: req.user?._id,
-                    description: `Paiement confirmé de ${updatedPayment.amount}€ pour le planning ${existingPayment.schedule}`,
+                    description: `Paiement confirmé de ${updatedPayment.amount}FCFA pour le planning ${existingPayment.schedule}`,
                     ipAddress: req.ip
                 });
 
@@ -1194,7 +1194,7 @@ exports.getDriverStats = async (req, res) => {
             const targetMet = payments.filter(p => p.isMeetingTarget).length;
             const targetMetPercentage = totalPayments > 0 ? (targetMet / totalPayments) * 100 : 0;
 
-            console.log(`[PaymentController] getDriverStats - Statistiques calculées pour le chauffeur ${driver._id}: ${totalPayments} paiements, ${totalAmount}€ total`);
+            console.log(`[PaymentController] getDriverStats - Statistiques calculées pour le chauffeur ${driver._id}: ${totalPayments} paiements, ${totalAmount}FCFA total`);
 
             driverStats.push({
                 driver,

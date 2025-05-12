@@ -45,19 +45,21 @@ const Dashboard = () => {
                 const activitiesResponse = await historyService.getRecentActivities(5);
                 setActivities(activitiesResponse.data);
 
-                // Fetch schedules
-                const schedulesResponse = await scheduleService.getAll();
+                // Fetch schedules - Utiliser directement la méthode getCurrent du service
+                const schedulesResponse = await scheduleService.getCurrent();
+                const currentDate = new Date();
+
+                // Filtrer pour ne garder que les plannings en cours aujourd'hui
                 const filtered = schedulesResponse.data.filter(schedule => {
-                    // Exclure les plannings annulés ou terminés
-                    if (schedule.status === 'canceled' || schedule.status === 'completed') return false;
+                    const scheduleDate = parseISO(schedule.scheduleDate);
+                    const endDate = schedule.endDate ? parseISO(schedule.endDate) : null;
 
-                    // Vérifier les dates
-                    if ((!isToday(parseISO(schedule.scheduleDate)) && isBefore(parseISO(schedule.scheduleDate), new Date())) ||
-                        (schedule.endDate && isBefore(parseISO(schedule.endDate), new Date()))) {
-                        return false;
+                    // Vérifier si le planning est en cours aujourd'hui
+                    if (endDate) {
+                        return (isBefore(scheduleDate, currentDate) || isToday(scheduleDate)) &&
+                            isAfter(endDate, currentDate);
                     }
-
-                    return true;
+                    return isToday(scheduleDate);
                 });
 
                 setCurrentSchedules(filtered.slice(0, 4)); // Prendre les 4 premiers
@@ -162,8 +164,11 @@ const Dashboard = () => {
                                     Aucun événement récent
                                 </div>
                             ) : (
-                                activities.map((activity) => (
-                                    <div key={activity._id} className="flex items-start gap-4 rounded-lg border p-3">
+                                activities.map((activity, index) => (
+                                    <div
+                                        key={`activity-${activity._id || activity.timestamp || index}`}
+                                        className="flex items-start gap-4 rounded-lg border p-3"
+                                    >
                                         <div className="rounded-full bg-primary/10 p-2">
                                             {getActivityIcon(activity)}
                                         </div>
@@ -188,6 +193,7 @@ const Dashboard = () => {
                     </Card>
 
                     {/* Current schedules card */}
+                    {/* Current schedules card */}
                     <Card>
                         <CardHeader>
                             <CardTitle>Plannings en cours</CardTitle>
@@ -195,46 +201,53 @@ const Dashboard = () => {
                                 Plannings actuellement en cours
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {loadingSchedules ? (
-                                    <div className="flex justify-center py-4">
-                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                                    </div>
-                                ) : currentSchedules.length === 0 ? (
-                                    <div className="text-center py-4 text-muted-foreground">
-                                        Aucun planning en cours
-                                    </div>
-                                ) : (
-                                    currentSchedules.map((schedule) => (
-                                        <div key={schedule._id} className="flex items-center gap-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                                                <CalendarClock className="h-5 w-5 text-primary" />
-                                            </div>
-                                            <div className="flex-1">
+                        <CardContent className="space-y-4">
+                            {loadingSchedules ? (
+                                <div className="flex justify-center py-4">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                                </div>
+                            ) : currentSchedules.length === 0 ? (
+                                <div className="text-center py-4 text-muted-foreground">
+                                    Aucun planning en cours
+                                </div>
+                            ) : (
+                                currentSchedules.map((schedule, index) => (
+                                    <div
+                                        key={`schedule-${schedule._id || schedule.scheduleDate || index}-${schedule.driver?._id || 'no-driver'}`}
+                                        className="flex items-start gap-4 p-3 rounded-lg border"
+                                    >
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 mt-1">
+                                            <CalendarClock className="h-5 w-5 text-primary" />
+                                        </div>
+                                        <div className="flex-1 space-y-1">
+                                            <div className="flex items-center justify-between">
                                                 <p className="text-sm font-medium">
                                                     {schedule.driver?.firstName
                                                         ? `${schedule.driver.firstName} ${schedule.driver.lastName}`
                                                         : 'Chauffeur non spécifié'}
                                                 </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {formatSchedulePeriod(schedule)} - {formatScheduleHours(schedule)}
-                                                </p>
-                                                <div className="mt-1">
-                                                    {getStatusBadge(schedule.status)}
-                                                </div>
+                                                {getStatusBadge(schedule.status)}
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => navigate(`/schedules`)}
-                                            >
-                                                Voir
-                                            </Button>
+                                            <p className="text-sm text-muted-foreground">
+                                                {schedule.vehicle?.brand
+                                                    ? `${schedule.vehicle.brand} ${schedule.vehicle.model}`
+                                                    : 'Véhicule non spécifié'}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {formatSchedulePeriod(schedule)} • {formatScheduleHours(schedule)}
+                                            </p>
                                         </div>
-                                    ))
-                                )}
-                            </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => navigate(`/schedules`)}
+                                            className="self-center"
+                                        >
+                                            Voir
+                                        </Button>
+                                    </div>
+                                ))
+                            )}
                         </CardContent>
                         <CardFooter>
                             <Button
