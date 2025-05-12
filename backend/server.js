@@ -23,6 +23,15 @@ const corsOptions = {
     optionsSuccessStatus: 200 // Pour les navigateurs legacy
 };
 
+// Ajoutez ceci avant les autres app.use() routes
+app.get('/api/health', (req, res) => {
+    res.status(200).json({
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    });
+});
+
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan('dev'));
@@ -36,21 +45,7 @@ app.use('/api/schedules', require('./routes/scheduleRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/maintenances', require('./routes/maintenanceRoutes'));
 app.use('/api', historyRoutes);
-app.get('/api/health', (req, res) => {
-    const healthcheck = {
-        uptime: process.uptime(),
-        message: 'OK',
-        timestamp: Date.now(),
-        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-    };
 
-    try {
-        res.status(200).json(healthcheck);
-    } catch (error) {
-        healthcheck.message = error;
-        res.status(503).json(healthcheck);
-    }
-});
 
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -97,6 +92,7 @@ async function setupAutoPayments() {
 // Connexion MongoDB + démarrage serveur
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
+
         console.log('🟢 Connecté à MongoDB');
         setupAutoPayments(); // Initialise le cron job
         app.listen(PORT, () => console.log(`🚀 Serveur démarré sur le port ${PORT}`));

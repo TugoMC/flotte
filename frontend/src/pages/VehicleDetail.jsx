@@ -53,7 +53,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const API_BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = VITE_API_URL = "https://flotte.onrender.com";
 
 
 

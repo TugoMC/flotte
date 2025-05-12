@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useForm } from 'react-hook-form';
+import { testBackendConnection } from '@/services/api';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -112,6 +113,7 @@ const Login = () => {
             setLoading(false);
         }
     };
+
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-[hsl(var(--login-bg))]">

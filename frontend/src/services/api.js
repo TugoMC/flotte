@@ -2,7 +2,9 @@
 import axios from 'axios';
 import { toast } from 'sonner';
 
-const API_URL = import.meta.env.VITE_API_URL;
+VITE_API_URL = "https://flotte.onrender.com"
+
+const API_URL = VITE_API_URL;
 
 const api = axios.create({
     baseURL: API_URL
@@ -380,6 +382,17 @@ export const historyService = {
             };
         }
     },
+};
+
+export const testBackendConnection = async () => {
+    try {
+        const response = await api.get('/health'); // Utilise l'URL de base déjà configurée
+        console.log('Backend connection test:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Backend connection failed:', error);
+        throw error;
+    }
 };
 
 export const healthService = {
