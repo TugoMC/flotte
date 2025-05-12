@@ -381,6 +381,10 @@ export const historyService = {
         }
     },
 };
+
+export const healthService = {
+    check: () => api.get('/health')
+};
 /*
 export const documentService = {
     getAll: () => api.get('/documents'),

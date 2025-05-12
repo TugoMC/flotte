@@ -18,7 +18,12 @@ const PORT = process.env.PORT || 5000;
 setupUploadDirectories();
 
 // Middleware
-app.use(cors());
+const corsOptions = {
+    origin: 'https://flotte-frontend.onrender.com',
+    optionsSuccessStatus: 200 // Pour les navigateurs legacy
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan('dev'));
 app.use('/uploads', express.static('uploads'));
@@ -31,6 +36,21 @@ app.use('/api/schedules', require('./routes/scheduleRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/maintenances', require('./routes/maintenanceRoutes'));
 app.use('/api', historyRoutes);
+app.get('/api/health', (req, res) => {
+    const healthcheck = {
+        uptime: process.uptime(),
+        message: 'OK',
+        timestamp: Date.now(),
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    };
+
+    try {
+        res.status(200).json(healthcheck);
+    } catch (error) {
+        healthcheck.message = error;
+        res.status(503).json(healthcheck);
+    }
+});
 
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
