@@ -5,17 +5,61 @@ const User = require('../models/userModel');
 const Schedule = require('../models/scheduleModel');
 const History = require('../models/historyModel');
 
+
+const buildDriverQuery = ({ search, vehicle, activeTab }) => {
+    const query = {};
+
+    // Filtre par statut (actif/ancien)
+    if (activeTab === 'active') {
+        query.departureDate = null;
+    } else if (activeTab === 'former') {
+        query.departureDate = { $ne: null };
+    }
+
+    // Filtre de recherche
+    if (search) {
+        const searchRegex = new RegExp(search, 'i');
+        query.$or = [
+            { firstName: searchRegex },
+            { lastName: searchRegex },
+            { phoneNumber: searchRegex },
+            { licenseNumber: searchRegex }
+        ];
+    }
+
+    // Filtre par véhicule
+    if (vehicle) {
+        query.currentVehicle = vehicle;
+    }
+
+    return query;
+};
+
 // Récupérer tous les chauffeurs
 exports.getAll = async (req, res) => {
-    console.log('[DriverController] Début de getAll - Récupération de tous les chauffeurs');
     try {
-        const drivers = await Driver.find()
-            .populate('currentVehicle', 'type brand model licensePlate')
-            .populate('user', 'username email');
-        console.log(`[DriverController] getAll - ${drivers.length} chauffeurs trouvés`);
-        res.json(drivers);
+        const { page = 1, limit = 10, search, vehicle } = req.query;
+        const skip = (page - 1) * limit;
+
+        // Construire la requête avec les filtres
+        const query = buildDriverQuery({ search, vehicle });
+
+        const [drivers, total] = await Promise.all([
+            Driver.find(query)
+                .skip(skip)
+                .limit(parseInt(limit))
+                .populate('currentVehicle', 'type brand model licensePlate')
+                .populate('user', 'username email'),
+            Driver.countDocuments(query)
+        ]);
+
+        res.json({
+            drivers,
+            totalCount: total,
+            totalPages: Math.ceil(total / limit),
+            currentPage: parseInt(page)
+        });
     } catch (error) {
-        console.error('[DriverController] Erreur dans getAll:', error.message, error.stack);
         res.status(500).json({ message: error.message });
     }
 };
@@ -383,42 +427,71 @@ exports.getAvailable = async (req, res) => {
     }
 };
 
-// Récupérer les chauffeurs actifs (sans date de départ)
 exports.getActive = async (req, res) => {
-    console.log('[DriverController] Début de getActive');
     try {
-        const drivers = await Driver.find({
-            departureDate: null
-        })
-            .populate('currentVehicle', 'type brand model licensePlate')
-            .populate('user', 'username email');
+        const { page = 1, limit = 10, search, vehicle } = req.query;
+        const skip = (page - 1) * limit;
 
-        console.log(`[DriverController] getActive - ${drivers.length} chauffeurs actifs trouvés`);
-        res.json(drivers);
+        // Spécifier que c'est pour les actifs
+        const query = buildDriverQuery({
+            search,
+            vehicle,
+            activeTab: 'active'
+        });
+
+        // Le reste reste identique à getAll
+        const [drivers, total] = await Promise.all([
+            Driver.find(query)
+                .skip(skip)
+                .limit(parseInt(limit))
+                .populate('currentVehicle', 'type brand model licensePlate')
+                .populate('user', 'username email'),
+            Driver.countDocuments(query)
+        ]);
+
+        res.json({
+            drivers,
+            totalCount: total,
+            totalPages: Math.ceil(total / limit),
+            currentPage: parseInt(page)
+        });
     } catch (error) {
-        console.error('[DriverController] Erreur dans getActive:', error.message, error.stack);
         res.status(500).json({ message: error.message });
     }
 };
 
-// Récupérer les anciens chauffeurs (avec date de départ)
 exports.getFormer = async (req, res) => {
-    console.log('[DriverController] Début de getFormer');
     try {
-        const drivers = await Driver.find({
-            departureDate: { $ne: null }
-        })
-            .populate('currentVehicle', 'type brand model licensePlate')
-            .populate('user', 'username email');
+        const { page = 1, limit = 10, search, vehicle } = req.query;
+        const skip = (page - 1) * limit;
 
-        console.log(`[DriverController] getFormer - ${drivers.length} anciens chauffeurs trouvés`);
-        res.json(drivers);
+        // Spécifier que c'est pour les anciens
+        const query = buildDriverQuery({
+            search,
+            vehicle,
+            activeTab: 'former'
+        });
+
+        // Le reste identique
+        const [drivers, total] = await Promise.all([
+            Driver.find(query)
+                .skip(skip)
+                .limit(parseInt(limit))
+                .populate('currentVehicle', 'type brand model licensePlate')
+                .populate('user', 'username email'),
+            Driver.countDocuments(query)
+        ]);
+
+        res.json({
+            drivers,
+            totalCount: total,
+            totalPages: Math.ceil(total / limit),
+            currentPage: parseInt(page)
+        });
     } catch (error) {
-        console.error('[DriverController] Erreur dans getFormer:', error.message, error.stack);
         res.status(500).json({ message: error.message });
     }
 };
-
 // Télécharger et ajouter des photos à un chauffeur
 exports.uploadPhotos = async (req, res) => {
     console.log(`[DriverController] Début de uploadPhotos - ID: ${req.params.id}, Nombre de fichiers: ${req.files?.length || 0}`);

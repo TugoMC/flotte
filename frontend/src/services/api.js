@@ -157,13 +157,29 @@ export const authService = {
 };
 
 export const vehicleService = {
-    getAll: () => api.get('/vehicles'),
+    getAll: (params = {}) => {
+        const queryParams = new URLSearchParams();
+        for (const key in params) {
+            if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+                queryParams.append(key, params[key]);
+            }
+        }
+        return api.get(`/vehicles?${queryParams.toString()}`);
+    },
     getById: (id) => api.get(`/vehicles/${id}`),
     create: (data) => api.post('/vehicles', data),
     update: (id, data) => api.put(`/vehicles/${id}`, data),
     delete: (id) => api.delete(`/vehicles/${id}`),
     getAvailable: () => api.get('/vehicles/available'),
-    getByStatus: (status) => api.get(`/vehicles/status/${status}`),
+    getByStatus: (status, params = {}) => {
+        const queryParams = new URLSearchParams();
+        for (const key in params) {
+            if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+                queryParams.append(key, params[key]);
+            }
+        }
+        return api.get(`/vehicles/status/${status}?${queryParams.toString()}`);
+    },
     setDailyTarget: (id, target) => api.put(`/vehicles/${id}/target`, { dailyIncomeTarget: target }),
     changeStatus: (id, status) => api.put(`/vehicles/${id}/status`, { status }),
     assignDriver: (id, driverId) => api.put(`/vehicles/${id}/assign-driver`, { driverId }),
@@ -186,16 +202,49 @@ export const vehicleService = {
 };
 
 export const driverService = {
-    getAll: () => api.get('/drivers'),
+    getAll: (params = {}) => {
+        const queryParams = new URLSearchParams();
+        for (const key in params) {
+            if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+                queryParams.append(key, params[key]);
+            }
+        }
+        return api.get(`/drivers?${queryParams.toString()}`);
+    },
     getById: (id) => api.get(`/drivers/${id}`),
     create: (data) => api.post('/drivers', data),
     update: (id, data) => api.put(`/drivers/${id}`, data),
     delete: (id) => api.delete(`/drivers/${id}`),
 
     // Méthodes pour obtenir les chauffeurs par statut
-    getAvailable: () => api.get('/drivers/available'),
-    getActive: () => api.get('/drivers/active'),
-    getFormer: () => api.get('/drivers/former'),
+
+    getAvailable: (params = {}) => {
+        const queryParams = new URLSearchParams();
+        for (const key in params) {
+            if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+                queryParams.append(key, params[key]);
+            }
+        }
+        return api.get(`/drivers/available?${queryParams.toString()}`);
+    },
+    getActive: (params = {}) => {
+        const queryParams = new URLSearchParams();
+        for (const key in params) {
+            if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+                queryParams.append(key, params[key]);
+            }
+        }
+        return api.get(`/drivers/active?${queryParams.toString()}`);
+    },
+    getFormer: (params = {}) => {
+        const queryParams = new URLSearchParams();
+        for (const key in params) {
+            if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+                queryParams.append(key, params[key]);
+            }
+        }
+        return api.get(`/drivers/former?${queryParams.toString()}`);
+    },
 
     // Méthodes pour la gestion des photos
     uploadPhotos: (id, files) => {

@@ -77,6 +77,7 @@ const SchedulesList = () => {
     const [filterDriver, setFilterDriver] = useState('');
     const [filterVehicle, setFilterVehicle] = useState('');
 
+
     // États pour les modales
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedSchedule, setSelectedSchedule] = useState(null);
@@ -101,24 +102,27 @@ const SchedulesList = () => {
                     r.request.catch(e => ({ error: e, name: r.name }))
                 ));
 
-                // Vérifier les erreurs
-                const errors = results.filter(r => r.error);
-                if (errors.length > 0) {
-                    errors.forEach(err => {
-                        console.error(`Erreur lors du chargement des ${err.name}:`, err.error);
-                    });
-                    throw new Error('Erreur lors du chargement des données');
-                }
-
-                // Extraire les données valides
-                const [schedulesRes, driversRes, vehiclesRes] = results;
+                // Handle errors and ensure data is in correct format
+                const [schedulesRes, driversRes, vehiclesRes] = results.map(res => {
+                    if (res.error) {
+                        console.error(`Error loading ${res.name}:`, res.error);
+                        return { data: [] }; // Return empty array if error
+                    }
+                    return {
+                        data: Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.items || [])
+                    };
+                });
 
                 setSchedules(schedulesRes.data);
                 setDrivers(driversRes.data);
                 setVehicles(vehiclesRes.data);
             } catch (error) {
-                console.error('Erreur lors du chargement des données:', error);
+                console.error('Error loading data:', error);
                 toast.error('Une erreur est survenue lors du chargement des données.');
+                // Set empty arrays on error
+                setSchedules([]);
+                setDrivers([]);
+                setVehicles([]);
             } finally {
                 setLoading(false);
             }
@@ -368,11 +372,11 @@ const SchedulesList = () => {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Tous les chauffeurs</SelectItem>
-                                {drivers.map(driver => (
+                                {drivers && drivers.length > 0 ? drivers.map(driver => (
                                     <SelectItem key={driver._id} value={driver._id}>
                                         {driver.firstName} {driver.lastName}
                                     </SelectItem>
-                                ))}
+                                )) : null}
                             </SelectContent>
                         </Select>
 
@@ -382,11 +386,11 @@ const SchedulesList = () => {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Tous les véhicules</SelectItem>
-                                {vehicles.map(vehicle => (
+                                {Array.isArray(vehicles) && vehicles.length > 0 ? vehicles.map(vehicle => (
                                     <SelectItem key={vehicle._id} value={vehicle._id}>
                                         {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
                                     </SelectItem>
-                                ))}
+                                )) : null}
                             </SelectContent>
                         </Select>
                     </div>

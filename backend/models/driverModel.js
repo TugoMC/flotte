@@ -49,4 +49,9 @@ const driverSchema = new mongoose.Schema({
     timestamps: true
 });
 
+driverSchema.index({ firstName: 'text', lastName: 'text' });
+driverSchema.index({ licenseNumber: 1 });
+driverSchema.index({ currentVehicle: 1 });
+driverSchema.index({ departureDate: 1 });
+
 module.exports = mongoose.model('Driver', driverSchema);

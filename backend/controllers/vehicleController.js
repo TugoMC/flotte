@@ -3,16 +3,68 @@ const Vehicle = require('../models/vehicleModel');
 const Driver = require('../models/driverModel');
 const History = require('../models/historyModel');
 
+const buildVehicleQuery = ({ search, type, activeTab }) => {
+    const query = {};
+
+    // Filtre par statut selon l'onglet actif
+    if (activeTab === 'active') {
+        query.status = 'active';
+    } else if (activeTab === 'inactive') {
+        query.status = 'inactive';
+    } else if (activeTab === 'maintenance') {
+        query.status = 'maintenance';
+    }
+
+    // Filtre de recherche
+    if (search) {
+        const searchRegex = new RegExp(search, 'i');
+        query.$or = [
+            { brand: searchRegex },
+            { model: searchRegex },
+            { licensePlate: searchRegex }
+        ];
+    }
+
+    // Filtre par type de véhicule
+    if (type && type !== 'all') {
+        query.type = type;
+    }
+
+    return query;
+};
+
 // Récupérer tous les véhicules
 exports.getAll = async (req, res) => {
     try {
-        const vehicles = await Vehicle.find()
-            .populate('currentDriver', 'firstName lastName');
-        res.json(vehicles);
+        const { page = 1, limit = 10, search, type, status } = req.query;
+        const skip = (page - 1) * limit;
+
+        // Construire la requête avec les filtres
+        const query = buildVehicleQuery({
+            search,
+            type,
+            activeTab: status
+        });
+
+        const [vehicles, total] = await Promise.all([
+            Vehicle.find(query)
+                .skip(skip)
+                .limit(parseInt(limit))
+                .populate('currentDriver', 'firstName lastName'),
+            Vehicle.countDocuments(query)
+        ]);
+
+        res.json({
+            vehicles,
+            totalCount: total,
+            totalPages: Math.ceil(total / limit),
+            currentPage: parseInt(page)
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
+
 
 // Récupérer un véhicule par ID
 exports.getById = async (req, res) => {
@@ -166,14 +218,35 @@ exports.getAvailable = async (req, res) => {
 exports.getByStatus = async (req, res) => {
     try {
         const status = req.params.status;
+        const { page = 1, limit = 10, search, type } = req.query;
+        const skip = (page - 1) * limit;
+
         // Vérifier que le statut est valide
         if (!['active', 'inactive', 'maintenance'].includes(status)) {
             return res.status(400).json({ message: 'Statut invalide' });
         }
 
-        const vehicles = await Vehicle.find({ status })
-            .populate('currentDriver', 'firstName lastName');
-        res.json(vehicles);
+        // Construire la requête avec les filtres
+        const query = buildVehicleQuery({
+            search,
+            type,
+            activeTab: status
+        });
+
+        const [vehicles, total] = await Promise.all([
+            Vehicle.find(query)
+                .skip(skip)
+                .limit(parseInt(limit))
+                .populate('currentDriver', 'firstName lastName'),
+            Vehicle.countDocuments(query)
+        ]);
+
+        res.json({
+            vehicles,
+            totalCount: total,
+            totalPages: Math.ceil(total / limit),
+            currentPage: parseInt(page)
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

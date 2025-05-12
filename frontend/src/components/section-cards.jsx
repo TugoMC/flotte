@@ -34,7 +34,7 @@ export function SectionCards() {
           }),
           vehicleService.getAll().catch(err => {
             console.error('Erreur vehicleService:', err);
-            return { data: [] };
+            return { data: { vehicles: [] } }; // Changed to match expected structure
           }),
           maintenanceService.getStats().catch(err => {
             console.error('Erreur maintenanceService:', err);
@@ -42,16 +42,20 @@ export function SectionCards() {
           }),
           driverService.getActive().catch(err => {
             console.error('Erreur driverService:', err);
-            return { data: [] };
+            return { data: { drivers: [] } }; // Changed to match expected structure
           })
         ]);
 
+        // Safely extract data with proper fallbacks
+        const vehicles = vehiclesRes.data?.vehicles || [];
+        const drivers = driversRes.data?.drivers || [];
+
         setStats({
           totalRevenue: revenueRes.data?.totalAmount || 0,
-          activeVehicles: vehiclesRes.data?.filter(v => v.status === 'active').length || 0,
-          totalVehicles: vehiclesRes.data?.length || 0,
+          activeVehicles: vehicles.filter(v => v.status === 'active').length,
+          totalVehicles: vehicles.length,
           totalExpenses: expensesRes.data?.statsByType?.reduce((sum, t) => sum + (t.totalCost || 0), 0) || 0,
-          activeDrivers: driversRes.data?.length || 0
+          activeDrivers: drivers.length
         });
 
       } catch (error) {
@@ -64,7 +68,6 @@ export function SectionCards() {
     };
     fetchStats();
   }, []);
-
 
   if (loading) {
     return (
@@ -119,9 +122,7 @@ export function SectionCards() {
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {formatNumber(stats.totalRevenue)} FCFA
           </CardTitle>
-
         </CardHeader>
-
       </Card>
 
       {/* Véhicules actifs */}
@@ -134,9 +135,7 @@ export function SectionCards() {
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {stats.activeVehicles}/{stats.totalVehicles}
           </CardTitle>
-
         </CardHeader>
-
       </Card>
 
       {/* Dépenses totales */}
@@ -149,9 +148,7 @@ export function SectionCards() {
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {formatNumber(stats.totalExpenses)} FCFA
           </CardTitle>
-
         </CardHeader>
-
       </Card>
 
       {/* Chauffeurs actifs */}
@@ -164,10 +161,7 @@ export function SectionCards() {
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {stats.activeDrivers}
           </CardTitle>
-
         </CardHeader>
-
-
       </Card>
     </div>
   )
