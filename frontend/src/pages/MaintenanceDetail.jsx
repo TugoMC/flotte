@@ -55,9 +55,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { duration } from '@mui/material';
 
-VITE_API_URL = "https://flotte.onrender.com"
 
-const API_BASE_URL = VITE_API_URL || 'http://localhost:5000';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL ||
+    (window.location.hostname === 'localhost'
+        ? 'http://localhost:5000'
+        : 'https://flotte.onrender.com');
 
 const MaintenanceDetail = () => {
     const { id } = useParams();

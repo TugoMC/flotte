@@ -2,13 +2,20 @@
 import axios from 'axios';
 import { toast } from 'sonner';
 
-VITE_API_URL = "https://flotte.onrender.com"
 
-const API_URL = VITE_API_URL;
+
+
+
+const API_URL = import.meta.env.VITE_API_URL ||
+    (window.location.hostname === 'localhost'
+        ? 'http://localhost:5000'
+        : 'https://flotte.onrender.com');
 
 const api = axios.create({
     baseURL: API_URL
 });
+
+
 
 // Cache pour les requêtes utilisateur
 const userRequestsCache = {

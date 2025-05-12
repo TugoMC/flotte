@@ -18,10 +18,15 @@ const PORT = process.env.PORT || 5000;
 setupUploadDirectories();
 
 // Middleware
+
 const corsOptions = {
-    origin: 'https://flotte-frontend.onrender.com',
-    optionsSuccessStatus: 200 // Pour les navigateurs legacy
+    origin: '*', // Accepte toutes les origines
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 200
 };
+
+app.use(cors(corsOptions));
 
 // Ajoutez ceci avant les autres app.use() routes
 app.get('/api/health', (req, res) => {
