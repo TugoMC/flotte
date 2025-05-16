@@ -15,10 +15,13 @@ import { AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
-    username: z.string().min(3, 'Nom d\'utilisateur doit contenir au moins 3 caractères'),
+    username: z.string()
+        .min(3, '3 caractères minimum')
+        .max(20, '20 caractères maximum')
+        .regex(/^[a-zA-Z0-9_]+$/, 'Caractères alphanumériques uniquement'),
+    email: z.string().email('Email invalide').endsWith('@example.com', 'Seuls les emails @example.com sont autorisés'),
     password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
     confirmPassword: z.string().min(6, 'Confirmation du mot de passe requise'),
-    email: z.string().email('Email invalide'),
     firstName: z.string().min(2, 'Prénom requis'),
     lastName: z.string().min(2, 'Nom requis')
 }).refine((data) => data.password === data.confirmPassword, {
@@ -47,21 +50,21 @@ const Register = () => {
     const onSubmit = async (data) => {
         try {
             setLoading(true);
-            setError('');
-
             const { confirmPassword, ...userData } = data;
 
-            const response = await authService.register(userData);
-            localStorage.setItem('token', response.data.token);
-
-            toast({
-                title: "Inscription réussie",
-                description: "Votre compte a été créé avec succès.",
+            // Ajout du rôle par défaut
+            const response = await authService.register({
+                ...userData,
+                role: 'driver' // Valeur par défaut alignée avec userModel.js
             });
 
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('user', JSON.stringify(response.data));
+
+            toast({ title: "Inscription réussie" });
             navigate('/');
         } catch (err) {
-            setError(err.response?.data?.message || 'Erreur lors de l\'inscription');
+            setError(err.response?.data?.message || "Erreur d'inscription");
         } finally {
             setLoading(false);
         }
@@ -178,6 +181,7 @@ const Register = () => {
                                             </FormItem>
                                         )}
                                     />
+
                                 </div>
 
                                 <div className="grid gap-2">

@@ -12,7 +12,7 @@ const generateToken = (id) => {
 // Inscription d'un nouvel utilisateur
 exports.register = async (req, res) => {
     try {
-        const { username, password, email, firstName, lastName, role } = req.body;
+        const { username, email, password, firstName, lastName, role = 'driver' } = req.body;
 
         // Vérifier si l'utilisateur existe déjà
         const userExists = await User.findOne({ $or: [{ email }, { username }] });
@@ -60,11 +60,14 @@ exports.register = async (req, res) => {
 // Dans userController.js, modifiez la fonction login
 exports.login = async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { email, username, password } = req.body;
+        const identifier = email || username;
         console.log("Tentative de connexion pour:", username);
 
         // Vérifier si l'utilisateur existe
-        const user = await User.findOne({ username });
+        const user = await User.findOne({
+            $or: [{ email: identifier }, { username: identifier }]
+        });
         console.log("Utilisateur trouvé:", user ? "Oui" : "Non");
 
         if (user) {

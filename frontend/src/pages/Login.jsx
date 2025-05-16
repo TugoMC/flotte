@@ -30,7 +30,7 @@ import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const loginSchema = z.object({
-    username: z.string().min(1, 'Le nom d\'utilisateur est requis'),
+    email: z.string().email('Email invalide').min(1, 'Email requis'),
     password: z.string().min(1, 'Le mot de passe est requis')
 });
 
@@ -136,20 +136,17 @@ const Login = () => {
                                 <div className="grid gap-2">
                                     <FormField
                                         control={form.control}
-                                        name="username"
+                                        name="email"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <div className="flex items-center">
-                                                    <FormLabel>Nom d'utilisateur</FormLabel>
-                                                </div>
+                                                <FormLabel>Email</FormLabel>
                                                 <FormControl>
                                                     <Input
-                                                        placeholder="admin"
+                                                        type="email"
+                                                        placeholder="admin@example.com"
                                                         {...field}
-                                                        autoComplete="username"
                                                     />
                                                 </FormControl>
-                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />
