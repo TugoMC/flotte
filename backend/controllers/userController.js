@@ -57,49 +57,32 @@ exports.register = async (req, res) => {
 
 
 // Connexion utilisateur
-// Dans userController.js, modifiez la fonction login
+
 exports.login = async (req, res) => {
     try {
-        const { email, username, password } = req.body;
-        const identifier = email || username;
-        console.log("Tentative de connexion pour:", username);
+        const { identifier, password } = req.body;
 
-        // Vérifier si l'utilisateur existe
         const user = await User.findOne({
             $or: [{ email: identifier }, { username: identifier }]
         });
-        console.log("Utilisateur trouvé:", user ? "Oui" : "Non");
 
-        if (user) {
-            // Vérifier le mot de passe
-            console.log("Vérification du mot de passe...");
-            const isMatch = await user.matchPassword(password);
-            console.log("Résultat de la comparaison du mot de passe:", isMatch);
+        if (user && (await user.matchPassword(password))) {
+            user.lastLogin = Date.now();
+            await user.save();
 
-            if (isMatch) {
-                // Mettre à jour la date de dernière connexion
-                user.lastLogin = Date.now();
-                await user.save();
-
-                res.json({
-                    _id: user._id,
-                    username: user.username,
-                    email: user.email,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    role: user.role,
-                    token: generateToken(user._id)
-                });
-            } else {
-                console.log("Mot de passe incorrect");
-                res.status(401).json({ message: 'Email ou mot de passe incorrect' });
-            }
+            res.json({
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                role: user.role,
+                token: generateToken(user._id)
+            });
         } else {
-            console.log("Utilisateur non trouvé");
-            res.status(401).json({ message: 'Email ou mot de passe incorrect' });
+            res.status(401).json({ message: 'Identifiant ou mot de passe incorrect' });
         }
     } catch (error) {
-        console.error("Erreur dans la fonction login:", error);
         res.status(500).json({ message: error.message });
     }
 };

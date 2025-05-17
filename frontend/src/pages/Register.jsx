@@ -19,7 +19,7 @@ const formSchema = z.object({
         .min(3, '3 caractères minimum')
         .max(20, '20 caractères maximum')
         .regex(/^[a-zA-Z0-9_]+$/, 'Caractères alphanumériques uniquement'),
-    email: z.string().email('Email invalide').endsWith('@example.com', 'Seuls les emails @example.com sont autorisés'),
+    email: z.string().email('Email invalide'),
     password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
     confirmPassword: z.string().min(6, 'Confirmation du mot de passe requise'),
     firstName: z.string().min(2, 'Prénom requis'),

@@ -30,7 +30,7 @@ import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const loginSchema = z.object({
-    email: z.string().email('Email invalide').min(1, 'Email requis'),
+    identifier: z.string().min(1, 'Email ou nom d\'utilisateur requis'),
     password: z.string().min(1, 'Le mot de passe est requis')
 });
 
@@ -49,65 +49,26 @@ const Login = () => {
     });
 
     const onSubmit = async (data) => {
-        // Réinitialiser les erreurs précédentes
         setError(null);
 
         try {
             setLoading(true);
-            const response = await authService.login(data);
-
-            // Stocker le token dans localStorage
-            localStorage.setItem('token', response.data.token);
-
-            // Stocker les infos utilisateur (optionnel)
-            localStorage.setItem('user', JSON.stringify({
-                id: response.data._id,
-                username: response.data.username,
-                role: response.data.role
-            }));
-
-            toast({
-                title: 'Connexion réussie',
-                description: `Bienvenue ${response.data.firstName} ${response.data.lastName}`
+            const response = await authService.login({
+                // Détermine si c'est un email ou un username
+                identifier: data.email, // ou data.identifier si vous changez le nom du champ
+                password: data.password
             });
 
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('user', JSON.stringify(response.data));
+
+            toast.success('Connexion réussie');
             navigate('/');
         } catch (error) {
             console.error('Erreur de connexion:', error);
-
-            // Gestion détaillée des erreurs
-            if (error.response) {
-                // La requête a été faite et le serveur a répondu avec un code d'état
-                // qui sort de la plage 2xx
-                const status = error.response.status;
-                const message = error.response.data?.message || 'Une erreur est survenue';
-
-                if (status === 401) {
-                    setError('Identifiants incorrects. Veuillez vérifier votre nom d\'utilisateur et mot de passe.');
-                } else if (status === 404) {
-                    setError('Cet utilisateur n\'existe pas dans notre système.');
-                } else if (status === 403) {
-                    setError('Votre compte n\'a pas les permissions nécessaires.');
-                } else if (status === 429) {
-                    setError('Trop de tentatives de connexion. Veuillez réessayer plus tard.');
-                } else if (status >= 500) {
-                    setError('Problème de serveur. Veuillez réessayer plus tard ou contacter le support.');
-                } else {
-                    setError(message);
-                }
-            } else if (error.request) {
-                // La requête a été faite mais aucune réponse n'a été reçue
-                setError('Impossible de joindre le serveur. Veuillez vérifier votre connexion internet.');
-            } else {
-                // Une erreur s'est produite lors de la configuration de la requête
-                setError('Une erreur est survenue lors de la connexion. Veuillez réessayer.');
-            }
-
-            toast({
-                variant: "destructive",
-                title: "Échec de connexion",
-                description: "Impossible de vous connecter. Veuillez vérifier vos identifiants."
-            });
+            const errorMessage = error.response?.data?.message || 'Erreur lors de la connexion';
+            setError(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -136,16 +97,12 @@ const Login = () => {
                                 <div className="grid gap-2">
                                     <FormField
                                         control={form.control}
-                                        name="email"
+                                        name="identifier"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Email</FormLabel>
+                                                <FormLabel>Email ou nom d'utilisateur</FormLabel>
                                                 <FormControl>
-                                                    <Input
-                                                        type="email"
-                                                        placeholder="admin@example.com"
-                                                        {...field}
-                                                    />
+                                                    <Input placeholder="admin@example.com" {...field} />
                                                 </FormControl>
                                             </FormItem>
                                         )}
