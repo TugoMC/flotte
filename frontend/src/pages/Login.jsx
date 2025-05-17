@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Label } from "@/components/ui/label";
 import {
     Card,
     CardContent,
@@ -36,39 +35,45 @@ const loginSchema = z.object({
 
 const Login = () => {
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState('');
     const navigate = useNavigate();
     const { toast } = useToast();
 
     const form = useForm({
         resolver: zodResolver(loginSchema),
         defaultValues: {
-            username: '',
+            identifier: '',
             password: ''
         }
     });
 
     const onSubmit = async (data) => {
-        setError(null);
+        setError('');
 
         try {
             setLoading(true);
             const response = await authService.login({
-                // Détermine si c'est un email ou un username
-                identifier: data.email, // ou data.identifier si vous changez le nom du champ
+                identifier: data.identifier,
                 password: data.password
             });
 
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data));
 
-            toast.success('Connexion réussie');
-            navigate('/');
-        } catch (error) {
-            console.error('Erreur de connexion:', error);
-            const errorMessage = error.response?.data?.message || 'Erreur lors de la connexion';
+            toast({
+                title: 'Connexion réussie',
+                description: `Bienvenue ${response.data.firstName || ''}`,
+                variant: 'default'
+            });
+
+            // Rediriger vers la page demandée ou la page d'accueil
+            const redirectTo = localStorage.getItem('redirectAfterLogin') || '/';
+            localStorage.removeItem('redirectAfterLogin');
+            navigate(redirectTo);
+        } catch (err) {
+            console.error('Erreur de connexion:', err);
+            const errorMessage = err.response?.data?.message || 'Identifiant ou mot de passe incorrect';
             setError(errorMessage);
-            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -102,8 +107,13 @@ const Login = () => {
                                             <FormItem>
                                                 <FormLabel>Email ou nom d'utilisateur</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="admin@example.com" {...field} />
+                                                    <Input
+                                                        placeholder="email@exemple.com ou nom_utilisateur"
+                                                        {...field}
+                                                        autoComplete="username"
+                                                    />
                                                 </FormControl>
+                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />
@@ -148,7 +158,7 @@ const Login = () => {
                                 </Button>
 
                                 <div className="text-center text-sm">
-                                    <p>Version de démo | Admin par défaut: admin / admin1234</p>
+                                    <p>Version de démo | Manager par défaut: manager1 / manager1</p>
                                 </div>
 
                                 <div className="text-center text-sm">

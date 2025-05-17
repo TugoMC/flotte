@@ -21,9 +21,14 @@ exports.register = async (req, res) => {
             return res.status(400).json({ message: 'Cet utilisateur existe déjà' });
         }
 
-        // Vérifier le rôle (seul un admin peut créer un admin ou manager)
-        if ((role === 'admin' || role === 'manager') && (!req.user || req.user.role !== 'admin')) {
-            return res.status(403).json({ message: 'Non autorisé à créer ce type d\'utilisateur' });
+
+
+        // Vérifier si l'utilisateur est un admin
+        if (role === 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: "L'inscription en tant qu'admin n'est pas autorisée"
+            });
         }
 
         // Créer l'utilisateur
@@ -33,7 +38,7 @@ exports.register = async (req, res) => {
             email,
             firstName,
             lastName,
-            role: role || 'driver'
+            role
         });
 
         if (user) {

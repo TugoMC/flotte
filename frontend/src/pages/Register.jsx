@@ -13,6 +13,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from '@/components/ui/select';
 
 const formSchema = z.object({
     username: z.string()
@@ -23,7 +30,10 @@ const formSchema = z.object({
     password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
     confirmPassword: z.string().min(6, 'Confirmation du mot de passe requise'),
     firstName: z.string().min(2, 'Prénom requis'),
-    lastName: z.string().min(2, 'Nom requis')
+    lastName: z.string().min(2, 'Nom requis'),
+    role: z.enum(['driver', 'manager'], {
+        errorMap: () => ({ message: 'Sélectionnez un rôle valide' })
+    })
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Les mots de passe ne correspondent pas",
     path: ["confirmPassword"],
@@ -43,7 +53,8 @@ const Register = () => {
             confirmPassword: '',
             email: '',
             firstName: '',
-            lastName: ''
+            lastName: '',
+            role: 'driver'
         }
     });
 
@@ -55,7 +66,7 @@ const Register = () => {
             // Ajout du rôle par défaut
             const response = await authService.register({
                 ...userData,
-                role: 'driver' // Valeur par défaut alignée avec userModel.js
+                role: data.role
             });
 
             localStorage.setItem('token', response.data.token);
@@ -198,6 +209,29 @@ const Register = () => {
                                                         {...field}
                                                     />
                                                 </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <FormField
+                                        control={form.control}
+                                        name="role"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Rôle</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Sélectionnez votre rôle" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="driver">Chauffeur</SelectItem>
+                                                        <SelectItem value="manager">Manager</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
