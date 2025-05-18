@@ -34,6 +34,7 @@ app.get('/', (req, res) => {
         message: 'Welcome to the backend API!'
     });
 });
+
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/vehicles', require('./routes/vehicleRoutes'));
 app.use('/api/drivers', require('./routes/driverRoutes'));
@@ -42,11 +43,8 @@ app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/maintenances', require('./routes/maintenanceRoutes'));
 app.use('/api', historyRoutes);
 
-// Upload directory
-const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-
 // Static files
-app.use('/uploads', express.static(uploadDir));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Fonction pour générer les paiements automatiques
 async function setupAutoPayments() {

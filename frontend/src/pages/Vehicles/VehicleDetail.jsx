@@ -40,7 +40,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const API_BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env?.VITE_API_PHOTO;
 
 
 
