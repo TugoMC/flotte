@@ -70,6 +70,7 @@ const DriversList = () => {
     const [selectedDriver, setSelectedDriver] = useState(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [driverToDelete, setDriverToDelete] = useState(null);
+    const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
     const navigate = useNavigate();
     const handleViewDetails = (driverId) => {
@@ -313,8 +314,14 @@ const DriversList = () => {
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle>Gestion des Chauffeurs</CardTitle>
-                        <CardDescription>
+                        <CardDescription className="flex items-center gap-2">
                             Visualisez et gérez les informations des chauffeurs
+                            <span
+                                className="underline cursor-pointer text-blue-500 hover:text-blue-700"
+                                onClick={() => setIsTutorialOpen(true)}
+                            >
+                                Comment ça marche
+                            </span>
                         </CardDescription>
                     </div>
                     <Button onClick={() => handleAddEdit()}>
@@ -502,6 +509,57 @@ const DriversList = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            {/* Modale tutoriel */}
+            <Dialog open={isTutorialOpen} onOpenChange={setIsTutorialOpen}>
+                <DialogContent className="sm:max-w-[90%] max-w-[1200px] h-[80vh]">
+                    <DialogHeader>
+                        <DialogTitle>Tutoriel - Gestion des chauffeurs</DialogTitle>
+                    </DialogHeader>
+                    <div className="h-full overflow-y-auto">
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">1. Ajout d'un chauffeur</h3>
+                                <p>Cliquez sur "Ajouter un chauffeur" pour créer un nouveau profil.</p>
+                                <p>Remplissez toutes les informations requises : nom, prénom, numéro de téléphone, etc.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">2. Filtrage des chauffeurs</h3>
+                                <p>Utilisez les différents filtres pour trouver facilement les chauffeurs :</p>
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                    <li>Recherche par nom, téléphone ou numéro de permis</li>
+                                    <li>Filtre par véhicule assigné</li>
+                                    <li>Onglets pour filtrer par statut (actifs, anciens)</li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">3. Modification des chauffeurs</h3>
+                                <p>Cliquez sur l'icône <EditIcon className="inline h-4 w-4" /> pour modifier un chauffeur.</p>
+                                <p>Vous pouvez mettre à jour toutes les informations, y compris le véhicule assigné.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">4. Visualisation des détails</h3>
+                                <p>Cliquez sur l'icône <Eye className="inline h-4 w-4" /> pour voir les détails complets d'un chauffeur.</p>
+                                <p>Cette page affichera l'historique complet du chauffeur et ses statistiques.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">5. Gestion des statuts</h3>
+                                <p>Pour marquer un chauffeur comme ancien employé, ajoutez une date de départ lors de la modification.</p>
+                                <p>Les anciens chauffeurs apparaîtront dans l'onglet "Anciens chauffeurs".</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">6. Suppression de chauffeurs</h3>
+                                <p>Cliquez sur l'icône <TrashIcon className="inline h-4 w-4" /> pour supprimer un chauffeur.</p>
+                                <p className="text-red-500">Attention : Cette action est irréversible et supprimera toutes les données associées.</p>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

@@ -45,24 +45,29 @@ const Dashboard = () => {
                 const activitiesResponse = await historyService.getRecentActivities(5);
                 setActivities(activitiesResponse.data);
 
-                // Fetch schedules - Utiliser directement la méthode getCurrent du service
+                // Fetch schedules
                 const schedulesResponse = await scheduleService.getCurrent();
+                const schedulesData = schedulesResponse.data || [];
                 const currentDate = new Date();
 
-                // Filtrer pour ne garder que les plannings en cours aujourd'hui
-                const filtered = schedulesResponse.data.filter(schedule => {
-                    const scheduleDate = parseISO(schedule.scheduleDate);
-                    const endDate = schedule.endDate ? parseISO(schedule.endDate) : null;
+                console.log("Raw schedules data:", schedulesData); // Debug log
 
-                    // Vérifier si le planning est en cours aujourd'hui
-                    if (endDate) {
+                // Filtrer les plannings en cours
+                const filtered = schedulesData.filter(schedule => {
+                    try {
+                        const scheduleDate = parseISO(schedule.scheduleDate);
+                        const endDate = schedule.endDate ? parseISO(schedule.endDate) : scheduleDate;
+
                         return (isBefore(scheduleDate, currentDate) || isToday(scheduleDate)) &&
-                            isAfter(endDate, currentDate);
+                            (isAfter(endDate, currentDate) || isToday(endDate));
+                    } catch (e) {
+                        console.error("Error parsing schedule dates:", e);
+                        return false;
                     }
-                    return isToday(scheduleDate);
                 });
 
-                setCurrentSchedules(filtered.slice(0, 4)); // Prendre les 4 premiers
+                console.log("Filtered schedules:", filtered); // Debug log
+                setCurrentSchedules(filtered.slice(0, 4));
             } catch (err) {
                 console.error("Failed to fetch data:", err);
                 toast.error(err.response?.data?.message || "Failed to load data");
@@ -117,8 +122,16 @@ const Dashboard = () => {
         <div className="flex flex-col min-h-screen bg-background">
             {/* Main content */}
             <main className="flex-1 overflow-auto">
-                {/* Chart section - Top alone */}
                 <h2 className="text-lg font-semibold mb-4">Tableau de bord</h2>
+
+                {/* Stats cards - 4 in horizontal row */}
+                <div className="px-4 py-6 lg:px-6">
+                    <div>
+                        <SectionCards />
+                    </div>
+                </div>
+                {/* Chart section - Top alone */}
+
                 <div className="px-4 py-6 lg:px-6">
                     <ErrorBoundary
                         fallback={<div className="text-red-500">Erreur d'affichage des statistiques</div>}
@@ -127,6 +140,8 @@ const Dashboard = () => {
                         <RevenueChart />
                     </ErrorBoundary>
                 </div>
+
+
 
                 <div className="px-4 py-6 lg:px-6">
                     <ErrorBoundary
@@ -137,12 +152,7 @@ const Dashboard = () => {
                     </ErrorBoundary>
                 </div>
 
-                {/* Stats cards - 4 in horizontal row */}
-                <div className="px-4 py-6 lg:px-6">
-                    <div>
-                        <SectionCards />
-                    </div>
-                </div>
+
 
                 {/* Bottom section - Grid 2 */}
                 <div className="grid gap-6 px-4 py-6 lg:grid-cols-2 lg:px-6">
@@ -192,7 +202,7 @@ const Dashboard = () => {
                         </CardFooter>
                     </Card>
 
-                    {/* Current schedules card */}
+
                     {/* Current schedules card */}
                     <Card>
                         <CardHeader>

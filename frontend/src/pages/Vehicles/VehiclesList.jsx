@@ -80,6 +80,7 @@ const VehiclesList = () => {
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [vehicleToDelete, setVehicleToDelete] = useState(null);
+    const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
     // État du formulaire
     const [formData, setFormData] = useState({
@@ -363,8 +364,14 @@ const VehiclesList = () => {
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle>Gestion des Véhicules</CardTitle>
-                        <CardDescription>
+                        <CardDescription className="flex items-center gap-2">
                             Visualisez et gérez les informations des véhicules
+                            <span
+                                className="underline cursor-pointer text-blue-500 hover:text-blue-700"
+                                onClick={() => setIsTutorialOpen(true)}
+                            >
+                                Comment ça marche
+                            </span>
                         </CardDescription>
                     </div>
                     <Button onClick={() => handleOpenForm()}>
@@ -711,6 +718,68 @@ const VehiclesList = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            {/* Modale tutoriel */}
+            <Dialog open={isTutorialOpen} onOpenChange={setIsTutorialOpen}>
+                <DialogContent className="sm:max-w-[90%] max-w-[1200px] h-[80vh]">
+                    <DialogHeader>
+                        <DialogTitle>Tutoriel - Gestion des véhicules</DialogTitle>
+                    </DialogHeader>
+                    <div className="h-full overflow-y-auto">
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">1. Ajout d'un véhicule</h3>
+                                <p>Cliquez sur "Ajouter un véhicule" pour créer un nouveau véhicule.</p>
+                                <p>Remplissez toutes les informations requises : type, immatriculation, marque, modèle, etc.</p>
+                                <p>Vous pouvez également ajouter des photos du véhicule.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">2. Filtrage des véhicules</h3>
+                                <p>Utilisez les différents filtres pour trouver facilement les véhicules :</p>
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                    <li>Recherche par marque, modèle ou immatriculation</li>
+                                    <li>Filtre par type de véhicule (taxi, moto)</li>
+                                    <li>Onglets pour filtrer par statut (actifs, inactifs, en maintenance)</li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">3. Modification des véhicules</h3>
+                                <p>Cliquez sur l'icône <EditIcon className="inline h-4 w-4" /> pour modifier un véhicule.</p>
+                                <p>Vous pouvez mettre à jour toutes les informations, y compris le statut et les photos.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">4. Visualisation des détails</h3>
+                                <p>Cliquez sur l'icône <Eye className="inline h-4 w-4" /> pour voir les détails complets d'un véhicule.</p>
+                                <p>Cette page affichera l'historique complet du véhicule et ses statistiques.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">5. Gestion des statuts</h3>
+                                <p>Vous pouvez changer le statut d'un véhicule :</p>
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                    <li><Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Actif</Badge> - En service</li>
+                                    <li><Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800">Inactif</Badge> - Hors service</li>
+                                    <li><Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">Maintenance</Badge> - En réparation</li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">6. Gestion des photos</h3>
+                                <p>Vous pouvez ajouter jusqu'à 10 photos par véhicule.</p>
+                                <p className="text-sm text-muted-foreground">Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">7. Suppression de véhicules</h3>
+                                <p>Cliquez sur l'icône <TrashIcon className="inline h-4 w-4" /> pour supprimer un véhicule.</p>
+                                <p className="text-red-500">Attention : Cette action est irréversible et supprimera toutes les données associées.</p>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

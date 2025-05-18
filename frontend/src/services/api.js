@@ -292,6 +292,15 @@ export const paymentService = {
     getDriverStats: () => api.get('/payments/stats/drivers'),
     getVehicleStats: () => api.get('/payments/stats/vehicles'),
     getDashboardStats: () => api.get('/payments/dashboard-stats'),
+    getPaginatedPayments: (params) => {
+        const queryParams = new URLSearchParams();
+        for (const key in params) {
+            if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+                queryParams.append(key, params[key]);
+            }
+        }
+        return api.get(`/payments/list/paginated?${queryParams.toString()}`);
+    }
 
 };
 /*

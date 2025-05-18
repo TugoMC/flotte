@@ -24,6 +24,7 @@ router.get('/driver/:driverId', protect, manager, paymentController.getByDriver)
 router.get('/vehicle/:vehicleId', protect, manager, paymentController.getByVehicle);
 router.get('/date/:date', protect, manager, paymentController.getByDate);
 router.get('/period', protect, manager, paymentController.getByPeriod);
+router.get('/list/paginated', protect, manager, paymentController.getPaginatedPayments);
 
 
 

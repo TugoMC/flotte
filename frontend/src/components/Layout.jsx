@@ -51,18 +51,16 @@ const Layout = () => {
     }
 
     return (
-        <div className="flex h-screen bg-background p-4">
+        <div className="flex flex-col md:flex-row h-screen bg-background p-2 md:p-4">
             <Sidebar user={user} />
-            <div className="flex flex-col flex-1 overflow-hidden pl-4 pr-4">
+            <div className="flex flex-col flex-1 overflow-hidden md:pl-4">
                 <Navbar user={user} />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-card  rounded-xl mt-4 p-6">
+                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-card rounded-xl mt-2 md:mt-4 p-4 md:p-6">
                     <Outlet context={{ user }} />
                 </main>
             </div>
         </div>
     );
-
-
 };
 
 export default Layout;

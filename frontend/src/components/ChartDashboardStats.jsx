@@ -201,7 +201,7 @@ export function RevenueChart() {
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart
                             data={data}
-                            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                             <defs>
                                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
@@ -213,7 +213,9 @@ export function RevenueChart() {
                                 tickLine={false}
                                 axisLine={false}
                                 tickMargin={8}
-                                minTickGap={32}
+                                minTickGap={isMobile ? 48 : 32}
+                                tick={{ fontSize: isMobile ? 10 : 12 }}
+
                             />
                             <YAxis
                                 tickLine={false}
@@ -410,7 +412,7 @@ export function MaintenanceChart() {
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart
                             data={data}
-                            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                            margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
                         >
                             <defs>
                                 <linearGradient id="colorMaintenance" x1="0" y1="0" x2="0" y2="1">
@@ -423,7 +425,8 @@ export function MaintenanceChart() {
                                 tickLine={false}
                                 axisLine={false}
                                 tickMargin={8}
-                                minTickGap={32}
+                                minTickGap={isMobile ? 48 : 32}
+                                tick={{ fontSize: isMobile ? 10 : 12 }}
                             />
                             <YAxis
                                 tickLine={false}

@@ -71,7 +71,7 @@ const Sidebar = ({ user }) => {
 
     return (
         <aside className="hidden md:flex md:flex-shrink-0">
-            <div className="flex flex-col w-64">
+            <div className="flex flex-col w-56 lg:w-64">
                 <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-card border-2 border-border rounded-xl">
                     <div className="flex items-center flex-shrink-0 px-4">
                         <h2 className="text-xl font-semibold text-foreground">Gestion de Flotte</h2>

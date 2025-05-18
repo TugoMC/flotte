@@ -1,5 +1,4 @@
-import { TrendingDownIcon, TrendingUpIcon, Car, Users, Wallet, AlertCircle } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { Car, Users, Wallet, AlertCircle, Eye, EyeOff } from "lucide-react"
 import {
   Card,
   CardDescription,
@@ -21,6 +20,11 @@ export function SectionCards() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showValues, setShowValues] = useState(false);
+
+  const toggleValues = () => {
+    setShowValues(prev => !prev);
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -65,7 +69,6 @@ export function SectionCards() {
     fetchStats();
   }, []);
 
-
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -109,6 +112,26 @@ export function SectionCards() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Contrôle global pour afficher/masquer les valeurs */}
+      <div className="col-span-full flex justify-end mb-2">
+        <button
+          onClick={toggleValues}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
+        >
+          {showValues ? (
+            <>
+              <EyeOff className="h-4 w-4" />
+              Masquer les valeurs
+            </>
+          ) : (
+            <>
+              <Eye className="h-4 w-4" />
+              Afficher les valeurs
+            </>
+          )}
+        </button>
+      </div>
+
       {/* Revenu total */}
       <Card>
         <CardHeader className="relative">
@@ -117,11 +140,9 @@ export function SectionCards() {
             <CardDescription>Revenu total</CardDescription>
           </div>
           <CardTitle className="text-2xl font-semibold tabular-nums">
-            {formatNumber(stats.totalRevenue)} FCFA
+            {showValues ? `${formatNumber(stats.totalRevenue)} FCFA` : '•••••'}
           </CardTitle>
-
         </CardHeader>
-
       </Card>
 
       {/* Véhicules actifs */}
@@ -132,11 +153,9 @@ export function SectionCards() {
             <CardDescription>Véhicules actifs</CardDescription>
           </div>
           <CardTitle className="text-2xl font-semibold tabular-nums">
-            {stats.activeVehicles}/{stats.totalVehicles}
+            {showValues ? `${stats.activeVehicles}/${stats.totalVehicles}` : '••/••'}
           </CardTitle>
-
         </CardHeader>
-
       </Card>
 
       {/* Dépenses totales */}
@@ -147,11 +166,9 @@ export function SectionCards() {
             <CardDescription>Dépenses totales</CardDescription>
           </div>
           <CardTitle className="text-2xl font-semibold tabular-nums">
-            {formatNumber(stats.totalExpenses)} FCFA
+            {showValues ? `${formatNumber(stats.totalExpenses)} FCFA` : '•••••'}
           </CardTitle>
-
         </CardHeader>
-
       </Card>
 
       {/* Chauffeurs actifs */}
@@ -162,12 +179,9 @@ export function SectionCards() {
             <CardDescription>Chauffeurs actifs</CardDescription>
           </div>
           <CardTitle className="text-2xl font-semibold tabular-nums">
-            {stats.activeDrivers}
+            {showValues ? stats.activeDrivers : '••'}
           </CardTitle>
-
         </CardHeader>
-
-
       </Card>
     </div>
   )

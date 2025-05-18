@@ -85,6 +85,7 @@ const SchedulesList = () => {
     const [statusChangeDialogOpen, setStatusChangeDialogOpen] = useState(false);
     const [scheduleToChangeStatus, setScheduleToChangeStatus] = useState(null);
     const [newStatus, setNewStatus] = useState('');
+    const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
     // Charger les données
     useEffect(() => {
@@ -317,8 +318,14 @@ const SchedulesList = () => {
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle>Gestion des Plannings</CardTitle>
-                        <CardDescription>
+                        <CardDescription className="flex items-center gap-2">
                             Gérez les affectations des chauffeurs et véhicules
+                            <span
+                                className="underline cursor-pointer text-blue-500 hover:text-blue-700"
+                                onClick={() => setIsTutorialOpen(true)}
+                            >
+                                Comment ça marche
+                            </span>
                         </CardDescription>
                     </div>
                     <Button onClick={() => {
@@ -613,6 +620,52 @@ const SchedulesList = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            {/* Modale tutoriel */}
+            <Dialog open={isTutorialOpen} onOpenChange={setIsTutorialOpen}>
+                <DialogContent className="sm:max-w-[90%] max-w-[1200px] h-[80vh]">
+                    <DialogHeader>
+                        <DialogTitle>Tutoriel - Gestion des plannings</DialogTitle>
+                    </DialogHeader>
+                    <div className="h-full overflow-y-auto">
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">1. Création d'un planning</h3>
+                                <p>Cliquez sur "Nouveau planning" pour créer une nouvelle affectation.</p>
+                                <p>Remplissez les informations requises : chauffeur, véhicule, dates, horaires.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">2. Filtrage des plannings</h3>
+                                <p>Utilisez les différents filtres pour trouver facilement les plannings :</p>
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                    <li>Recherche par nom ou véhicule</li>
+                                    <li>Filtre par date</li>
+                                    <li>Filtre par chauffeur ou véhicule</li>
+                                    <li>Onglets pour les statuts (en cours, à venir, etc.)</li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">3. Modification des plannings</h3>
+                                <p>Cliquez sur l'icône <EditIcon className="inline h-4 w-4" /> pour modifier un planning.</p>
+                                <p className="text-muted-foreground">Note : Les plannings terminés ou annulés ne peuvent pas être modifiés.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">4. Changement de statut</h3>
+                                <p>Cliquez sur l'icône <CheckIcon className="inline h-4 w-4" /> pour changer le statut d'un planning.</p>
+                                <p>Vous pouvez marquer un planning comme "Terminé" ou "Annulé".</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">5. Suppression de plannings</h3>
+                                <p>Cliquez sur l'icône <TrashIcon className="inline h-4 w-4" /> pour supprimer un planning.</p>
+                                <p className="text-red-500">Attention : Cette action est irréversible et supprimera aussi les paiements associés.</p>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

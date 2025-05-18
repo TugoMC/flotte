@@ -89,6 +89,7 @@ const MaintenancesList = () => {
     const [selectedMaintenance, setSelectedMaintenance] = useState(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [maintenanceToDelete, setMaintenanceToDelete] = useState(null);
+    const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
     // État du formulaire
     const [formData, setFormData] = useState({
@@ -417,8 +418,14 @@ const MaintenancesList = () => {
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle>Gestion des Maintenances</CardTitle>
-                        <CardDescription>
+                        <CardDescription className="flex items-center gap-2">
                             Visualisez et gérez les interventions de maintenance
+                            <span
+                                className="underline cursor-pointer text-blue-500 hover:text-blue-700"
+                                onClick={() => setIsTutorialOpen(true)}
+                            >
+                                Comment ça marche
+                            </span>
                         </CardDescription>
                     </div>
                     <Button onClick={() => handleOpenForm()}>
@@ -943,6 +950,70 @@ const MaintenancesList = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            {/* Dialogue de modale tutoriel */}
+            <Dialog open={isTutorialOpen} onOpenChange={setIsTutorialOpen}>
+                <DialogContent className="sm:max-w-[90%] max-w-[1200px] h-[80vh]">
+                    <DialogHeader>
+                        <DialogTitle>Tutoriel - Gestion des maintenances</DialogTitle>
+                    </DialogHeader>
+                    <div className="h-full overflow-y-auto">
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">1. Ajout d'une maintenance</h3>
+                                <p>Cliquez sur "Ajouter une maintenance" pour enregistrer une nouvelle intervention.</p>
+                                <p>Remplissez toutes les informations requises : véhicule, type de maintenance, dates, etc.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">2. Filtrage des maintenances</h3>
+                                <p>Utilisez les différents filtres pour trouver facilement les maintenances :</p>
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                    <li>Recherche par véhicule, technicien ou notes</li>
+                                    <li>Filtre par véhicule spécifique</li>
+                                    <li>Filtre par type de maintenance</li>
+                                    <li>Onglets pour filtrer par statut (en cours, terminées)</li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">3. Modification des maintenances</h3>
+                                <p>Cliquez sur l'icône <EditIcon className="inline h-4 w-4" /> pour modifier une maintenance.</p>
+                                <p>Vous pouvez mettre à jour toutes les informations, y compris l'ajout de photos.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">4. Visualisation des détails</h3>
+                                <p>Cliquez sur l'icône <Eye className="inline h-4 w-4" /> pour voir les détails complets d'une maintenance.</p>
+                                <p>Cette page affichera toutes les informations et photos associées.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">5. Gestion des statuts</h3>
+                                <p>Marquez une maintenance comme terminée lorsque l'intervention est complète.</p>
+                                <p>Les maintenances terminées apparaissent dans l'onglet "Terminées".</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">6. Ajout de photos</h3>
+                                <p>Vous pouvez ajouter des photos pour documenter l'état du véhicule avant/après maintenance.</p>
+                                <p>Les photos doivent être au format JPG/PNG et ne pas dépasser 5MB chacune.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">7. Gestion des conflits</h3>
+                                <p>Le système détecte automatiquement les conflits avec les plannings existants.</p>
+                                <p className="text-yellow-600">En cas de conflit, vous devrez résoudre les problèmes de planning avant de pouvoir enregistrer.</p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">8. Suppression de maintenances</h3>
+                                <p>Cliquez sur l'icône <TrashIcon className="inline h-4 w-4" /> pour supprimer une maintenance.</p>
+                                <p className="text-red-500">Attention : Cette action est irréversible et supprimera toutes les données associées.</p>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div >
     );
 };

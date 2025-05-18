@@ -136,3 +136,15 @@
   content: " *";
   color: red;
 }
+
+@media (min-width: 640px) and (max-width: 1023px) {
+
+  /* Styles spécifiques pour tablettes */
+  .sidebar-tablet {
+    width: 200px;
+  }
+
+  .main-content-tablet {
+    padding-left: 1rem;
+  }
+}

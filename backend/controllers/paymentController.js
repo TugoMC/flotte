@@ -1285,3 +1285,141 @@ exports.getVehicleStats = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+exports.getPaginatedPayments = async (req, res) => {
+    console.log('[PaymentController] Début de getPaginatedPayments');
+    try {
+        const {
+            page = 1,
+            limit = 10,
+            search = '',
+            status,
+            driverId,
+            vehicleId,
+            startDate,
+            endDate,
+            sortField = 'paymentDate',
+            sortOrder = 'desc'
+        } = req.query;
+
+        const skip = (page - 1) * limit;
+        const sort = { [sortField]: sortOrder === 'desc' ? -1 : 1 };
+
+        // Construction de la requête de filtrage
+        let query = {};
+
+        // Filtre par statut
+        if (status && ['pending', 'confirmed', 'rejected'].includes(status)) {
+            query.status = status;
+        }
+
+        // Filtre par chauffeur
+        if (driverId && mongoose.Types.ObjectId.isValid(driverId)) {
+            const schedules = await Schedule.find({ driver: driverId }).select('_id');
+            const scheduleIds = schedules.map(s => s._id);
+            query.schedule = { $in: scheduleIds };
+        }
+
+        // Filtre par véhicule
+        if (vehicleId && mongoose.Types.ObjectId.isValid(vehicleId)) {
+            const schedules = await Schedule.find({ vehicle: vehicleId }).select('_id');
+            const scheduleIds = schedules.map(s => s._id);
+            query.schedule = { $in: scheduleIds };
+        }
+
+        // Filtre par date
+        if (startDate || endDate) {
+            query.paymentDate = {};
+            if (startDate) {
+                const start = new Date(startDate);
+                start.setHours(0, 0, 0, 0);
+                query.paymentDate.$gte = start;
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                query.paymentDate.$lte = end;
+            }
+        }
+
+        // Filtre de recherche (par nom de chauffeur ou info véhicule)
+        if (search) {
+            const schedules = await Schedule.find()
+                .populate({
+                    path: 'driver',
+                    match: {
+                        $or: [
+                            { firstName: { $regex: search, $options: 'i' } },
+                            { lastName: { $regex: search, $options: 'i' } }
+                        ]
+                    }
+                })
+                .populate({
+                    path: 'vehicle',
+                    match: {
+                        $or: [
+                            { brand: { $regex: search, $options: 'i' } },
+                            { model: { $regex: search, $options: 'i' } },
+                            { licensePlate: { $regex: search, $options: 'i' } }
+                        ]
+                    }
+                });
+
+            const filteredSchedules = schedules.filter(s =>
+                s.driver || s.vehicle
+            );
+
+            if (filteredSchedules.length > 0) {
+                query.schedule = { $in: filteredSchedules.map(s => s._id) };
+            } else {
+                // Aucun résultat pour la recherche
+                return res.json({
+                    success: true,
+                    data: [],
+                    pagination: {
+                        total: 0,
+                        page: parseInt(page),
+                        limit: parseInt(limit),
+                        totalPages: 0
+                    }
+                });
+            }
+        }
+
+        // Compter le nombre total de documents correspondants
+        const total = await Payment.countDocuments(query);
+
+        // Récupérer les paiements paginés
+        const payments = await Payment.find(query)
+            .populate({
+                path: 'schedule',
+                populate: [
+                    { path: 'driver', select: 'firstName lastName' },
+                    { path: 'vehicle', select: 'brand model licensePlate dailyIncomeTarget' }
+                ]
+            })
+            .sort(sort)
+            .skip(skip)
+            .limit(parseInt(limit))
+            .lean();
+
+        console.log(`[PaymentController] getPaginatedPayments - ${payments.length} paiements trouvés sur ${total}`);
+
+        res.json({
+            success: true,
+            data: payments,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('[PaymentController] Erreur getPaginatedPayments:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

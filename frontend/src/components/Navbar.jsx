@@ -1,9 +1,20 @@
 // src/components/Navbar.jsx
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '@/services/api';
 import { Bell, User, LogOut, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+    LayoutDashboard,
+    Car,
+    Users,
+    Calendar,
+    CreditCard,
+    Wrench,
+    FileText,
+    BarChart2,
+    Settings
+} from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -29,11 +40,61 @@ const Navbar = ({ user }) => {
             navigate('/login');
         } catch (error) {
             console.error('Erreur lors de la déconnexion:', error);
-            // En cas d'erreur, on déconnecte quand même côté client
             localStorage.removeItem('token');
             navigate('/login');
         }
     };
+
+    // Liens synchronisés avec la Sidebar
+    const links = [
+        {
+            href: '/',
+            label: 'Tableau de bord',
+            icon: <LayoutDashboard className="h-5 w-5" />,
+            roles: ['admin', 'manager', 'driver']
+        },
+        {
+            href: '/vehicles',
+            label: 'Véhicules',
+            icon: <Car className="h-5 w-5" />,
+            roles: ['admin', 'manager']
+        },
+        {
+            href: '/drivers',
+            label: 'Chauffeurs',
+            icon: <Users className="h-5 w-5" />,
+            roles: ['admin', 'manager']
+        },
+        {
+            href: '/schedules',
+            label: 'Plannings',
+            icon: <Calendar className="h-5 w-5" />,
+            roles: ['admin', 'manager', 'driver']
+        },
+        {
+            href: '/payments',
+            label: 'Paiements',
+            icon: <CreditCard className="h-5 w-5" />,
+            roles: ['admin', 'manager']
+        },
+        {
+            href: '/maintenances',
+            label: 'Maintenances',
+            icon: <Wrench className="h-5 w-5" />,
+            roles: ['admin', 'manager']
+        },
+        {
+            href: '/settings',
+            label: 'Paramètres',
+            icon: <Settings className="h-5 w-5" />,
+            roles: ['admin']
+        }
+    ];
+
+    // Filtrer les liens selon le rôle de l'utilisateur
+    const filteredLinks = links.filter(link =>
+        user && link.roles.includes(user.role)
+    );
 
     return (
         <nav className="bg-card rounded-xl border-2 border-border">
@@ -88,23 +149,18 @@ const Navbar = ({ user }) => {
 
             {/* Menu mobile */}
             {isMobileMenuOpen && (
-                <div className="md:hidden bg-card border-b border-border rounded-b-xl">
+                <div className="sm:hidden bg-card border-b border-border rounded-b-xl">
                     <div className="px-2 pt-2 pb-3 space-y-1">
-                        <a href="/" className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent">
-                            Tableau de bord
-                        </a>
-                        <a href="/vehicles" className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent">
-                            Véhicules
-                        </a>
-                        <a href="/drivers" className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent">
-                            Chauffeurs
-                        </a>
-                        <a href="/schedules" className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent">
-                            Plannings
-                        </a>
-                        <a href="/payments" className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent">
-                            Paiements
-                        </a>
+                        {filteredLinks.map((link) => (
+                            <Link
+                                key={link.href}
+                                to={link.href}
+                                className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                {link.label}
+                            </Link>
+                        ))}
                     </div>
                 </div>
             )}
