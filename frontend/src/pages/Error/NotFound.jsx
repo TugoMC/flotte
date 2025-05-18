@@ -1,4 +1,4 @@
-// src/pages/NotFound.jsx
+// src/pages/Error/NotFound.jsx
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';

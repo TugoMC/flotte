@@ -1,14 +1,15 @@
-// src/pages/PaymentDetail.jsx
+// src/pages/Drivers/DriverDetail.jsx
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { paymentService } from '@/services/api';
+import { driverService, vehicleService } from '@/services/api';
 import { toast } from 'sonner';
-import { InfoIcon } from 'lucide-react';
+import { ChartDriverRevenue } from '@/components/ChartDriverRevenue';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { InfoIcon } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -23,49 +24,30 @@ import {
     Edit,
     Phone,
     Car,
-    Receipt,
-    Calendar,
-    Upload,
+    Bike,
     X,
     ChevronLeft,
     ChevronRight,
-    User,
-    Info,
-    Camera,
-    Clock,
-    CheckCircle,
-    AlertCircle,
-    XCircle,
-    CreditCard,
-    Banknote,
-    FileText
+    Camera
 } from 'lucide-react';
-import PaymentForm from '@/components/forms/PaymentForm';
+import DriverForm from '@/components/forms/DriverForm';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 
 const API_BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:5000';
 
-const PaymentDetail = () => {
+const DriverDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
     // États
-    const [payment, setPayment] = useState(null);
+    const [driver, setDriver] = useState(null);
+    const [vehicle, setVehicle] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
-    const [newStatus, setNewStatus] = useState('pending');
 
     // États pour le carrousel de photos
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
@@ -76,28 +58,87 @@ const PaymentDetail = () => {
     const [photoUploadError, setPhotoUploadError] = useState('');
 
     useEffect(() => {
-        fetchPaymentData();
+        fetchDriverData();
     }, [id]);
 
-    const safeFormatDate = (dateString, dateFormat = 'dd MMMM yyyy') => {
-        if (!dateString) return "Non spécifiée";
+    const extractMongoId = (id) => {
+        if (!id) return null;
 
-        try {
-            const date = new Date(dateString);
-            return isNaN(date.getTime()) ? "Non spécifiée" : format(date, dateFormat, { locale: fr });
-        } catch {
-            return "Non spécifiée";
+        // Si c'est déjà une chaîne de caractères
+        if (typeof id === 'string') return id;
+
+        // Si c'est un objet avec une propriété $oid (format BSON/MongoDB)
+        if (typeof id === 'object') {
+            // Cas 1: {$oid: "..."}
+            if (id.$oid) return id.$oid;
+
+            // Cas spécifique pour la situation [object Object]
+            if (id._id) {
+                // Si _id est un objet avec $oid
+                if (typeof id._id === 'object' && id._id.$oid) {
+                    return id._id.$oid;
+                }
+                // Si _id est une chaîne
+                if (typeof id._id === 'string') {
+                    return id._id;
+                }
+            }
+
+            // Cas 2: Récupération directe de l'ID si c'est un objet MongoID
+            if (id.toString && typeof id.toString === 'function') {
+                const str = id.toString();
+                // Vérifier si la chaîne ressemble à un ObjectId MongoDB
+                if (str !== '[object Object]' && /^[0-9a-fA-F]{24}$/.test(str)) {
+                    return str;
+                }
+            }
         }
+
+        // Tenter de sérialiser pour voir si on peut extraire une valeur
+        try {
+            const jsonStr = JSON.stringify(id);
+            const parsed = JSON.parse(jsonStr);
+            if (parsed && parsed.$oid) return parsed.$oid;
+        } catch (e) {
+            // Ignorer les erreurs de sérialisation
+        }
+
+        // En dernier recours, tenter de récupérer l'ID directement si c'est un objet simple avec une propriété _id
+        if (id && typeof id === 'object' && !Array.isArray(id)) {
+            const keys = Object.keys(id);
+            if (keys.length === 1 && keys[0] === '_id') {
+                return extractMongoId(id._id);
+            }
+        }
+
+        // Si aucune méthode n'a fonctionné, retourner null
+        return null;
     };
 
-    const fetchPaymentData = async () => {
+    const fetchDriverData = async () => {
         try {
             setLoading(true);
-            const paymentRes = await paymentService.getById(id);
-            setPayment(paymentRes.data);
+
+            const driverRes = await driverService.getById(id);
+            setDriver(driverRes.data);
+
+            if (driverRes.data.currentVehicle) {
+                try {
+                    // Extraire proprement l'ID du véhicule
+                    const vehicleId = extractMongoId(driverRes.data.currentVehicle);
+                    if (vehicleId) {
+                        const vehicleRes = await vehicleService.getById(vehicleId);
+                        setVehicle(vehicleRes.data);
+                    } else {
+                        console.error('ID de véhicule non valide:', driverRes.data.currentVehicle);
+                    }
+                } catch (vehicleError) {
+                    console.error('Erreur lors de la récupération du véhicule:', vehicleError);
+                }
+            }
         } catch (err) {
-            console.error('Erreur lors de la récupération des données du paiement:', err);
-            setError("Impossible de charger les informations du paiement");
+            console.error('Erreur lors de la récupération des données du chauffeur:', err);
+            setError("Impossible de charger les informations du chauffeur");
             toast.error("Erreur lors du chargement des données");
         } finally {
             setLoading(false);
@@ -105,41 +146,29 @@ const PaymentDetail = () => {
     };
 
     const handleEdit = () => {
-        if (!payment) return;
+        if (!driver) return;
         setIsFormOpen(true);
     };
 
     const handleFormSuccess = () => {
         setIsFormOpen(false);
-        toast.success("Informations du paiement mises à jour");
-        fetchPaymentData();
-    };
-
-    const handleStatusChange = async () => {
-        try {
-            await paymentService.changeStatus(id, newStatus);
-            setIsStatusDialogOpen(false);
-            toast.success(`Statut du paiement mis à jour: ${getStatusLabel(newStatus)}`);
-            fetchPaymentData();
-        } catch (err) {
-            toast.error("Erreur lors du changement de statut: " + (err.response?.data?.message || err.message));
-            console.error("Erreur:", err);
-        }
+        toast.success("Informations du chauffeur mises à jour");
+        fetchDriverData();
     };
 
     // Navigation du carrousel
     const nextPhoto = () => {
-        if (payment?.photos && payment.photos.length > 0) {
+        if (driver?.photos && driver.photos.length > 0) {
             setCurrentPhotoIndex((prevIndex) =>
-                prevIndex === payment.photos.length - 1 ? 0 : prevIndex + 1
+                prevIndex === driver.photos.length - 1 ? 0 : prevIndex + 1
             );
         }
     };
 
     const prevPhoto = () => {
-        if (payment?.photos && payment.photos.length > 0) {
+        if (driver?.photos && driver.photos.length > 0) {
             setCurrentPhotoIndex((prevIndex) =>
-                prevIndex === 0 ? payment.photos.length - 1 : prevIndex - 1
+                prevIndex === 0 ? driver.photos.length - 1 : prevIndex - 1
             );
         }
     };
@@ -177,11 +206,11 @@ const PaymentDetail = () => {
         }
 
         try {
-            await paymentService.uploadPhotos(id, selectedFiles);
+            await driverService.uploadPhotos(id, selectedFiles);
             setOpenPhotoDialog(false);
             setSelectedFiles([]);
             setPreviewImages([]);
-            fetchPaymentData();
+            fetchDriverData();
         } catch (err) {
             setPhotoUploadError("Erreur lors de l'upload des photos: " + (err.response?.data?.message || err.message));
             console.error("Erreur:", err);
@@ -191,8 +220,8 @@ const PaymentDetail = () => {
     const handleDeletePhoto = async (photoIndex) => {
         if (window.confirm("Êtes-vous sûr de vouloir supprimer cette photo ?")) {
             try {
-                await paymentService.deletePhoto(id, photoIndex);
-                fetchPaymentData();
+                await driverService.deletePhoto(id, photoIndex);
+                fetchDriverData();
                 // Réinitialiser l'index si on supprime la dernière photo
                 if (photoIndex === currentPhotoIndex && currentPhotoIndex > 0) {
                     setCurrentPhotoIndex(currentPhotoIndex - 1);
@@ -204,63 +233,37 @@ const PaymentDetail = () => {
         }
     };
 
-    const getStatusLabel = (status) => {
+    const getInitials = (firstName, lastName) => {
+        return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+    };
+
+    const getVehicleIcon = (type) => {
+        if (type === 'moto') {
+            return <Bike className="h-4 w-4 text-blue-500" />;
+        } else {
+            return <Car className="h-4 w-4 text-gray-500" />;
+        }
+    };
+
+    const getStatusBadge = (departureDate) => {
+        if (departureDate) {
+            return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800">Ancien</Badge>;
+        } else {
+            return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Actif</Badge>;
+        }
+    };
+
+    const getVehicleStatusBadge = (status) => {
         switch (status) {
-            case 'pending': return 'En attente';
-            case 'confirmed': return 'Confirmé';
-            case 'rejected': return 'Rejeté';
-            case 'completed': return 'Complété';
-            case 'cancelled': return 'Annulé';
-            default: return status;
-        }
-    };
-
-    const getStatusBadge = (status) => {
-        switch (status) {
-            case 'pending':
-                return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">En attente</Badge>;
-            case 'confirmed':
-                return <Badge variant="outline" className="bg-green-50 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Confirmé</Badge>;
-            case 'completed':
-                return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Complété</Badge>;
-            case 'rejected':
-                return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">Rejeté</Badge>;
-            case 'cancelled':
-                return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800">Annulé</Badge>;
+            case 'active':
+                return <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">Actif</Badge>;
+            case 'maintenance':
+                return <Badge variant="outline" className="ml-2 bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">Maintenance</Badge>;
+            case 'inactive':
+                return <Badge variant="outline" className="ml-2 bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">Inactif</Badge>;
             default:
-                return <Badge variant="outline">{status}</Badge>;
+                return null;
         }
-    };
-
-    const getPaymentTypeIcon = (type) => {
-        switch (type) {
-            case 'cash':
-                return <Banknote className="h-4 w-4 text-green-600" />;
-            case 'card':
-                return <CreditCard className="h-4 w-4 text-blue-600" />;
-            case 'transfer':
-                return <FileText className="h-4 w-4 text-gray-600" />;
-            default:
-                return <Receipt className="h-4 w-4 text-gray-600" />;
-        }
-    };
-
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('fr-FR', {
-            style: 'currency',
-            currency: 'XOF',
-            minimumFractionDigits: 0
-        }).format(amount);
-    };
-
-    const getDriverInfo = (payment) => {
-        if (!payment?.schedule?.driver) return 'Non spécifié';
-        return `${payment.schedule.driver.firstName || ''} ${payment.schedule.driver.lastName || ''}`.trim();
-    };
-
-    const getVehicleInfo = (payment) => {
-        if (!payment?.schedule?.vehicle) return 'Non spécifié';
-        return `${payment.schedule.vehicle.brand || ''} ${payment.schedule.vehicle.model || ''} ${payment.schedule.vehicle.licensePlate ? `(${payment.schedule.vehicle.licensePlate})` : ''}`.trim();
     };
 
     if (loading) {
@@ -277,16 +280,16 @@ const PaymentDetail = () => {
         );
     }
 
-    if (error || !payment) {
+    if (error || !driver) {
         return (
             <div className="container">
                 <Alert variant="destructive" className="mt-4">
                     <AlertTitle>Erreur</AlertTitle>
-                    <AlertDescription>{error || "Paiement non trouvé"}</AlertDescription>
+                    <AlertDescription>{error || "Chauffeur non trouvé"}</AlertDescription>
                 </Alert>
                 <Button
                     variant="outline"
-                    onClick={() => navigate('/payments')}
+                    onClick={() => navigate('/drivers')}
                     className="mt-4"
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" />
@@ -298,7 +301,6 @@ const PaymentDetail = () => {
 
     return (
         <div className="container max-w-6xl py-4">
-
             <Button
                 variant="outline"
                 onClick={() => navigate(-1)}
@@ -309,28 +311,26 @@ const PaymentDetail = () => {
             </Button>
             <Button
                 variant="outline"
-                onClick={() => navigate('/payments')}
+                onClick={() => navigate('/drivers')}
                 className="mb-4"
             >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Retour à la liste
             </Button>
 
-
-
             {/* Photo Carousel */}
-            <div className="mb-6 relative w-full h-80 rounded-lg overflow-hidden ">
-                {payment.photos && payment.photos.length > 0 ? (
+            <div className="mb-6 relative w-full h-80 rounded-lg overflow-hidden">
+                {driver.photos && driver.photos.length > 0 ? (
                     <>
                         <button
                             onClick={() => setLightboxOpen(true)}
                             className="w-full h-full focus:outline-none"
                         >
                             <img
-                                src={payment.photos[currentPhotoIndex]?.startsWith('http')
-                                    ? payment.photos[currentPhotoIndex]
-                                    : `${API_BASE_URL}/${payment.photos[currentPhotoIndex]}`}
-                                alt={`Photo du reçu de paiement ${payment.referenceNumber || payment._id}`}
+                                src={driver.photos[currentPhotoIndex]?.startsWith('http')
+                                    ? driver.photos[currentPhotoIndex]
+                                    : `${API_BASE_URL}/${driver.photos[currentPhotoIndex]}`}
+                                alt={`Photo du chauffeur ${driver.firstName} ${driver.lastName}`}
                                 className="w-full h-full object-cover cursor-zoom-in"
                             />
                         </button>
@@ -340,10 +340,10 @@ const PaymentDetail = () => {
                             <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-black border-none">
                                 <div className="relative w-full h-full flex items-center justify-center">
                                     <img
-                                        src={payment.photos[currentPhotoIndex]?.startsWith('http')
-                                            ? payment.photos[currentPhotoIndex]
-                                            : `${API_BASE_URL}/${payment.photos[currentPhotoIndex]}`}
-                                        alt={`Photo du reçu de paiement ${payment.referenceNumber || payment._id}`}
+                                        src={driver.photos[currentPhotoIndex]?.startsWith('http')
+                                            ? driver.photos[currentPhotoIndex]
+                                            : `${API_BASE_URL}/${driver.photos[currentPhotoIndex]}`}
+                                        alt={`Photo du chauffeur ${driver.firstName} ${driver.lastName}`}
                                         className="max-w-full max-h-full object-contain"
                                     />
 
@@ -379,7 +379,7 @@ const PaymentDetail = () => {
 
                                     {/* Photo counter */}
                                     <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                                        {currentPhotoIndex + 1} / {payment.photos.length}
+                                        {currentPhotoIndex + 1} / {driver.photos.length}
                                     </div>
                                 </div>
                             </DialogContent>
@@ -407,7 +407,7 @@ const PaymentDetail = () => {
 
                         {/* Photo counter */}
                         <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                            {currentPhotoIndex + 1} / {payment.photos.length}
+                            {currentPhotoIndex + 1} / {driver.photos.length}
                         </div>
 
                         {/* Add photo button */}
@@ -423,8 +423,8 @@ const PaymentDetail = () => {
                     </>
                 ) : (
                     <div className="w-full h-full bg-gray-100 flex flex-col items-center justify-center">
-                        <Receipt className="w-16 h-16 text-gray-400 mb-4" />
-                        <p className="text-gray-500">Aucune photo de reçu disponible</p>
+                        <Camera className="w-16 h-16 text-gray-400 mb-4" />
+                        <p className="text-gray-500">Aucune photo disponible</p>
                         <Button
                             variant="outline"
                             className="mt-4"
@@ -437,15 +437,15 @@ const PaymentDetail = () => {
                 )}
             </div>
 
-            {/* Payment Details Container */}
+            {/* Driver Details Container */}
             <div className="bg-card text-card-foreground rounded-lg p-6 border">
                 {/* Header with title and edit button */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-2xl font-bold">
-                            {payment.referenceNumber || `Paiement #${payment._id.substring(0, 8)}`}
+                            {`${driver.firstName} ${driver.lastName}`}
                         </h1>
-                        <p className="text-gray-500">Détails du paiement</p>
+                        <p className="text-gray-500">Détails du chauffeur</p>
                     </div>
                     <div className="flex space-x-2">
                         <Button
@@ -465,101 +465,91 @@ const PaymentDetail = () => {
                         <div className="flex justify-between items-center">
                             <div className="flex items-center space-x-4">
                                 <span className="text-sm font-medium text-gray-500">Statut:</span>
-                                {getStatusBadge(payment.status)}
-                            </div>
-                            <div className="flex items-center">
-                                <span className="text-sm font-medium text-gray-500 mr-2">Montant:</span>
-                                <span className="text-xl font-semibold">{formatCurrency(payment.amount)}</span>
+                                {getStatusBadge(driver.departureDate)}
                             </div>
                         </div>
                     </div>
                     <Separator />
 
-                    {/* Informations de base */}
+                    {/* Informations personnelles */}
                     <div className="py-3">
-                        <h3 className="text-lg font-medium mb-2">Informations de paiement</h3>
-                        <Separator className="mb-4" />
+                        <h3 className="text-lg font-medium mb-2">Informations personnelles</h3>
+                        <Separator className="mb-4 bg-border" />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <p className="text-sm font-medium text-gray-500">Date de paiement</p>
-                                <p>{safeFormatDate(payment.paymentDate)}</p>
+                                <p className="text-sm font-medium text-gray-500">Prénom</p>
+                                <p>{driver.firstName || "Non spécifié"}</p>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">Type de paiement</p>
+                                <p className="text-sm font-medium text-gray-500">Nom</p>
+                                <p>{driver.lastName || "Non spécifié"}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Date de naissance</p>
+                                <p>{driver.birthDate ? format(new Date(driver.birthDate), 'dd MMMM yyyy', { locale: fr }) : "Non spécifiée"}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Adresse</p>
+                                <p>{driver.address || "Non spécifiée"}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Téléphone</p>
                                 <div className="flex items-center">
-                                    {getPaymentTypeIcon(payment.paymentType)}
-                                    <p className="ml-2">{payment.paymentType ? payment.paymentType.charAt(0).toUpperCase() + payment.paymentType.slice(1) : "Non spécifié"}</p>
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Numéro de référence</p>
-                                <p>{payment._id.substring(0, 8)}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Date de création</p>
-                                <p>{safeFormatDate(payment.createdAt, 'dd MMMM yyyy HH:mm')}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Objectif atteint</p>
-                                <div className="flex items-center">
-                                    {payment.isMeetingTarget ? (
-                                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                    ) : (
-                                        <XCircle className="h-4 w-4 text-red-500 mr-2" />
-                                    )}
-                                    <p>{payment.isMeetingTarget ? "Oui" : "Non"}</p>
+                                    <Phone className="h-4 w-4 mr-2 text-gray-500" />
+                                    <p>{driver.phoneNumber || "Non spécifié"}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <Separator />
 
-                    {/* Chauffeur associé */}
+                    {/* Informations professionnelles */}
                     <div className="py-3">
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center space-x-4">
-                                <span className="text-sm font-medium text-gray-500">Chauffeur:</span>
-                                {payment.schedule?.driver ? (
-                                    <div className="flex items-center">
-                                        <User className="h-4 w-4 text-gray-500 mr-2" />
-                                        <span>{getDriverInfo(payment)}</span>
-                                    </div>
-                                ) : (
-                                    <Badge variant="outline">Non assigné</Badge>
-                                )}
+                        <h3 className="text-lg font-medium mb-2">Informations professionnelles</h3>
+                        <Separator className="mb-4 bg-border" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Date d'embauche</p>
+                                <p>{driver.hireDate ? format(new Date(driver.hireDate), 'dd MMMM yyyy', { locale: fr }) : "Non spécifiée"}</p>
                             </div>
-                            {payment.schedule?.driver && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => navigate(`/drivers/${payment.schedule.driver._id}`)}
-                                >
-                                    Voir le chauffeur
-                                </Button>
-                            )}
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Date de départ</p>
+                                <p>{driver.departureDate ? format(new Date(driver.departureDate), 'dd MMMM yyyy', { locale: fr }) : "N/A"}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Numéro de permis</p>
+                                <p>{driver.licenseNumber || "Non spécifié"}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Date d'expiration du permis</p>
+                                <p>{driver.licenseExpiry ? format(new Date(driver.licenseExpiry), 'dd MMMM yyyy', { locale: fr }) : "Non spécifiée"}</p>
+                            </div>
                         </div>
                     </div>
                     <Separator />
 
-                    {/* Véhicule associé */}
+                    {/* Véhicule assigné */}
                     <div className="py-3">
                         <div className="flex justify-between items-center">
                             <div className="flex items-center space-x-4">
-                                <span className="text-sm font-medium text-gray-500">Véhicule:</span>
-                                {payment.schedule?.vehicle ? (
+                                <span className="text-sm font-medium text-gray-500">Véhicule assigné:</span>
+                                {vehicle ? (
                                     <div className="flex items-center">
-                                        <Car className="h-4 w-4 text-gray-500 mr-2" />
-                                        <span>{getVehicleInfo(payment)}</span>
+                                        {getVehicleIcon(vehicle.type)}
+                                        <span className="ml-2">
+                                            {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
+                                        </span>
+                                        {getVehicleStatusBadge(vehicle.status)}
                                     </div>
                                 ) : (
                                     <Badge variant="outline">Non assigné</Badge>
                                 )}
                             </div>
-                            {payment.schedule?.vehicle && (
+                            {vehicle && (
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => navigate(`/vehicles/${payment.schedule.vehicle._id}`)}
+                                    onClick={() => navigate(`/vehicles/${vehicle._id}`)}
                                 >
                                     Voir le véhicule
                                 </Button>
@@ -572,7 +562,7 @@ const PaymentDetail = () => {
                     <div className="py-3">
                         <div className="space-y-2">
                             <span className="text-sm font-medium text-gray-500">Notes:</span>
-                            <p className="text-sm">{payment.comments || 'Aucune note pour ce paiement.'}</p>
+                            <p className="text-sm">{driver.notes || 'Aucune note pour ce chauffeur.'}</p>
                         </div>
                     </div>
                 </div>
@@ -582,31 +572,31 @@ const PaymentDetail = () => {
             <Dialog open={openPhotoDialog} onOpenChange={setOpenPhotoDialog}>
                 <DialogContent className="max-w-[95vw] w-[900px] h-[600px] flex flex-col">
                     <DialogHeader>
-                        <DialogTitle>Gérer les photos du paiement</DialogTitle>
+                        <DialogTitle>Gérer les photos du chauffeur</DialogTitle>
                         <DialogDescription>
-                            {payment?.photos?.length || 0} photo(s) existante(s)
+                            {driver?.photos?.length || 0} photo(s) existante(s)
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="bg-accent p-3 rounded-md text-sm flex items-start gap-2">
                         <InfoIcon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                         <div>
-                            <p className="font-medium text-accent-foreground mb-1">Conseils pour les justificatifs</p>
+                            <p className="font-medium text-accent-foreground mb-1">Conseils pour les photos</p>
                             <p className="text-muted-foreground">
-                                Pour une qualité optimale, utilisez des images claires des reçus ou captures d'écran.
-                                Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.
+                                Pour une qualité optimale, utilisez des images d'une résolution minimale de 1200×800 pixels
+                                et d'un rapport 3:2. Formats acceptés: JPG, PNG. Taille maximale: 5 MB par image.
                             </p>
                         </div>
                     </div>
 
                     <div className="flex-1 overflow-auto space-y-4">
                         {/* Section des photos existantes */}
-                        {payment?.photos && payment.photos.length > 0 && (
+                        {driver?.photos && driver.photos.length > 0 && (
                             <div className="space-y-2">
                                 <Label>Photos existantes</Label>
                                 <div className="border rounded-md p-2">
                                     <div className="grid grid-cols-3 gap-3">
-                                        {payment.photos.map((photo, index) => (
+                                        {driver.photos.map((photo, index) => (
                                             <div key={index} className="relative group h-40">
                                                 <img
                                                     src={photo.startsWith('http') ? photo : `${API_BASE_URL}/${photo}`}
@@ -631,7 +621,7 @@ const PaymentDetail = () => {
                             </div>
                         )}
 
-                        {(payment?.photos?.length > 0 && previewImages.length > 0) && (
+                        {(driver?.photos?.length > 0 && previewImages.length > 0) && (
                             <Separator className="my-2" />
                         )}
 
@@ -644,31 +634,96 @@ const PaymentDetail = () => {
                                 accept="image/*"
                                 multiple
                                 onChange={handleFileSelect}
+                                className="cursor-pointer"
                             />
-                            {photoUploadError && <p className="text-red-500 text-xs mt-1">{photoUploadError}</p>}
                         </div>
+
+                        {photoUploadError && (
+                            <Alert variant="destructive" className="mt-2">
+                                <AlertDescription>{photoUploadError}</AlertDescription>
+                            </Alert>
+                        )}
+
+                        {previewImages.length > 0 && (
+                            <div className="space-y-2">
+                                <Label>Nouvelles photos à ajouter</Label>
+                                <div className="border rounded-md p-2">
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {previewImages.map((preview, index) => (
+                                            <div key={index} className="relative group h-40">
+                                                <img
+                                                    src={preview.url}
+                                                    alt={`Nouvelle photo ${index + 1}`}
+                                                    className="rounded-md w-full h-full object-cover"
+                                                />
+                                                <Button
+                                                    variant="destructive"
+                                                    size="icon"
+                                                    className="absolute top-2 right-2 h-7 w-7"
+                                                    onClick={() => {
+                                                        URL.revokeObjectURL(preview.url);
+                                                        setPreviewImages(prev => prev.filter((_, i) => i !== index));
+                                                        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+                                                    }}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                                <div className="absolute bottom-2 left-2 bg-blue-600/80 text-white text-xs px-2 py-1 rounded">
+                                                    Nouveau
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    <DialogFooter>
-                        <Button onClick={() => setOpenPhotoDialog(false)}>Fermer</Button>
+
+                    <DialogFooter className="pt-4 border-t">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setOpenPhotoDialog(false);
+                                setSelectedFiles([]);
+                                setPreviewImages([]);
+                                setPhotoUploadError('');
+                            }}
+                        >
+                            Annuler
+                        </Button>
+                        <Button
+                            onClick={handleUploadPhotos}
+                            disabled={selectedFiles.length === 0}
+                            className="ml-2"
+                        >
+                            Télécharger {selectedFiles.length > 0 && `(${selectedFiles.length})`}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* Dialog pour modifier le paiement */}
+            {/* Modale de modification */}
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-[600px]">
+                <DialogContent className="sm:max-w-[550px]">
                     <DialogHeader>
-                        <DialogTitle>Modifier le paiement</DialogTitle>
+                        <DialogTitle>Modifier les informations du chauffeur</DialogTitle>
+                        <DialogDescription>
+                            Modifiez les informations du chauffeur ci-dessous.
+                        </DialogDescription>
                     </DialogHeader>
-                    <PaymentForm
-                        payment={payment}
-                        onSubmitSuccess={handleFormSuccess}
+                    <DriverForm
+                        driver={driver}
+                        vehicles={vehicle ? [vehicle] : []}
+                        onSuccess={handleFormSuccess}
                         onCancel={() => setIsFormOpen(false)}
                     />
                 </DialogContent>
             </Dialog>
+            <div className="mt-8">
+                <ChartDriverRevenue driverId={id} />
+            </div>
         </div>
     );
-}
+};
 
-export default PaymentDetail;
+export default DriverDetail;

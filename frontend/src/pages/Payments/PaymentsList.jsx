@@ -1,8 +1,8 @@
-// src/pages/PaymentsList.jsx
+// src/pages/Payments/PaymentsList.jsx
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { paymentService, driverService, vehicleService } from '@/services/api';
+import { paymentService } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Eye } from "lucide-react";
@@ -38,7 +38,6 @@ import {
 } from '@/components/ui/table';
 import {
     Tabs,
-    TabsContent,
     TabsList,
     TabsTrigger,
 } from '@/components/ui/tabs';

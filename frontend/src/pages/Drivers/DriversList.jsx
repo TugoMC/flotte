@@ -1,4 +1,4 @@
-// src/pages/DriversList.jsx
+// src/pages/Drivers/DriversList.jsx
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -39,7 +39,6 @@ import {
 } from '@/components/ui/table';
 import {
     Tabs,
-    TabsContent,
     TabsList,
     TabsTrigger,
 } from '@/components/ui/tabs';
@@ -54,12 +53,6 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import DriverForm from '@/components/forms/DriverForm';
 

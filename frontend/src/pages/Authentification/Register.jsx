@@ -1,4 +1,4 @@
-// src/pages/Register.jsx
+// src/pages/Authentification/Register.jsx
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ThemeToggle } from '@/components/ThemeToggle';

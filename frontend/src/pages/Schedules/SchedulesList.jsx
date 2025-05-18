@@ -1,10 +1,10 @@
-// src/pages/SchedulesList.jsx
+// src/pages/Schedules/SchedulesList.jsx
 import { useState, useEffect } from 'react';
 import { format, isAfter, isBefore, isToday, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { scheduleService, driverService, vehicleService } from '@/services/api';
 import { Button } from '@/components/ui/button';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Command, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
@@ -63,7 +63,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import ScheduleForm from '@/components/forms/ScheduleForm';
-import { CalendarIcon, SearchIcon, PlusIcon, EditIcon, TrashIcon, CheckIcon, XIcon } from 'lucide-react';
+import { CalendarIcon, SearchIcon, PlusIcon, EditIcon, TrashIcon, CheckIcon } from 'lucide-react';
 
 const SchedulesList = () => {
     // États

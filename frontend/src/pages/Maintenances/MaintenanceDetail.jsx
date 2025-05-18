@@ -1,4 +1,4 @@
-// src/pages/MaintenanceDetail.jsx
+// src/pages/Maintenances/MaintenanceDetail.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -13,21 +13,11 @@ import {
     Camera,
     Wrench,
     CheckCircle2,
-    XCircle,
     X,
     ChevronLeft,
     ChevronRight,
-    Info,
-    Trash2,
-    AlertCircle
 } from 'lucide-react';
 
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -35,7 +25,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
     DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from "@/components/ui/button";
@@ -52,8 +41,6 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { duration } from '@mui/material';
 
 const API_BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:5000';
 

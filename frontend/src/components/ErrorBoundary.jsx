@@ -1,6 +1,6 @@
 // src/components/ErrorBoundary.jsx
 import { Component } from 'react';
-import ErrorPage from '@/pages/ErrorPage';
+import ErrorPage from '@/pages/Error/ErrorPage';
 
 class ErrorBoundary extends Component {
     constructor(props) {

@@ -1,4 +1,4 @@
-// src/pages/VehiclesList.jsx
+// src/pages/Vehicles/VehiclesList.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -39,7 +39,6 @@ import {
 } from '@/components/ui/table';
 import {
     Tabs,
-    TabsContent,
     TabsList,
     TabsTrigger,
 } from '@/components/ui/tabs';
@@ -54,7 +53,6 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     CarIcon,
     BikeIcon,
@@ -64,7 +62,6 @@ import {
     SearchIcon,
     ImageIcon,
     XIcon,
-    AlertCircleIcon,
     InfoIcon
 } from 'lucide-react';
 

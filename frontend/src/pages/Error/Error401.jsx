@@ -1,4 +1,4 @@
-// src/pages/Error401.jsx
+// src/pages/Error/Error401.jsx
 import ErrorPage from './ErrorPage';
 
 const Error401 = ({ message, details }) => {

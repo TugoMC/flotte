@@ -1,4 +1,4 @@
-// src/pages/ErrorPage.jsx
+// src/pages/Error/ErrorPage.jsx
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlertTriangle, AlertCircle, RefreshCw } from 'lucide-react';

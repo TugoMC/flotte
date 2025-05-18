@@ -7,31 +7,31 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 
 
 // Pages principales
-import Dashboard from '@/pages/Dashboard';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import Profile from '@/pages/Profile';
-import NotFound from '@/pages/NotFound';
+import Dashboard from '@/pages/Dashboard/Dashboard';
+import Login from '@/pages/Authentification/Login';
+import Register from '@/pages/Authentification/Register';
+import Profile from '@/pages/Profile/Profile';
+import NotFound from '@/pages/Error/NotFound';
 
 // Pages de ressources
-import SchedulesList from '@/pages/SchedulesList';
-import DriversList from '@/pages/DriversList';
-import DriverDetail from '@/pages/DriverDetail';
-import PaymentsList from '@/pages/PaymentsList';
-import PaymentDetail from './pages/PaymentDetail';
-import VehiclesList from '@/pages/VehiclesList';
-import VehicleDetail from '@/pages/VehicleDetail';
-import MaintenancesList from './pages/MaintenancesList';
-import MaintenanceDetail from './pages/MaintenanceDetail';
-import HistoryList from '@/pages/HistoryList';
+import SchedulesList from '@/pages/Schedules/SchedulesList';
+import DriversList from '@/pages/Drivers/DriversList';
+import DriverDetail from '@/pages/Drivers/DriverDetail';
+import PaymentsList from '@/pages/Payments/PaymentsList';
+import PaymentDetail from './pages/Payments/PaymentDetail';
+import VehiclesList from '@/pages/Vehicles/VehiclesList';
+import VehicleDetail from '@/pages/Vehicles/VehicleDetail';
+import MaintenancesList from './pages/Maintenances/MaintenancesList';
+import MaintenanceDetail from './pages/Maintenances/MaintenanceDetail';
+import HistoryList from '@/pages/History/HistoryList';
 
 // Pages d'erreur
-import ErrorPage from '@/pages/ErrorPage';
-import Error400 from '@/pages/Error400';
-import Error401 from '@/pages/Error401';
-import Error403 from '@/pages/Error403';
-import Error404 from '@/pages/Error404';
-import Error500 from '@/pages/Error500';
+import ErrorPage from '@/pages/Error/ErrorPage';
+import Error400 from '@/pages/Error/Error400';
+import Error401 from '@/pages/Error/Error401';
+import Error403 from '@/pages/Error/Error403';
+import Error404 from '@/pages/Error/Error404';
+import Error500 from '@/pages/Error/Error500';
 
 function App() {
   return (

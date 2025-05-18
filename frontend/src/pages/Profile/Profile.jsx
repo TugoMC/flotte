@@ -1,4 +1,4 @@
-// src/pages/Profile.jsx
+// src/pages/Profile/Profile.jsx
 import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { authService } from '@/services/api';

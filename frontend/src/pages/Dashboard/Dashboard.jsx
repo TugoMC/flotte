@@ -1,4 +1,4 @@
-// src/pages/Dashboard.jsx
+// src/pages/Dashboard/Dashboard.jsx
 import { React, useState, useEffect } from "react";
 import { RevenueChart, MaintenanceChart } from "@/components/ChartDashboardStats"
 import { toast } from "sonner";

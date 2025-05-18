@@ -1,33 +1,22 @@
-// src/pages/VehicleDetail.jsx
+// src/pages/Vehicles/VehicleDetail.jsx
 import React, { useState, useEffect } from 'react';
 import {
     DialogClose,
 } from "@/components/ui/dialog";
 import { Info as InfoIcon } from "lucide-react";
-import { Lightbox } from "../components/Lightbox";
 import { ChartVehicleRevenue } from '@/components/ChartVehicleRevenue';
 import { useParams, useNavigate } from 'react-router-dom';
-import { vehicleService } from '../services/vehicleService';
+import { vehicleService } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
-
     ArrowLeft,
     Edit,
-    User,
-    UserMinus,
     Camera,
-
-    Wrench,
-    CheckCircle2,
-    XCircle,
     X,
-
     ChevronLeft,
     ChevronRight
 } from 'lucide-react';
-
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,13 +34,11 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 const API_BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:5000';
 
