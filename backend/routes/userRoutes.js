@@ -23,6 +23,7 @@ router.route('/')
     .get(protect, admin, userController.getUsers);
 
 router.route('/:id')
+    .get(protect, admin, userController.getUserById) // Ajoutez cette ligne
     .delete(protect, admin, userController.deleteUser)
     .put(protect, admin, userController.updateUserRole);
 

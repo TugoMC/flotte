@@ -157,6 +157,17 @@ export const authService = {
     changePassword: (passwordData) => api.post('/users/change-password', passwordData),
 };
 
+export const userService = {
+    getAll: () => api.get('/users'),
+    getById: (id) => api.get(`/users/${id}`),
+    register: (data) => api.post('/users/register', data),
+    update: (id, data) => api.put(`/users/${id}`, data),
+    delete: (id) => api.delete(`/users/${id}`),
+    updateRole: (id, role) => api.put(`/users/${id}/role`, { role }),
+    toggleStatus: (id) => api.put(`/users/${id}/toggle-status`),
+    changePassword: (id, passwordData) => api.post(`/users/change-password`, passwordData),
+};
+
 export const vehicleService = {
     getAll: () => api.get('/vehicles'),
     getById: (id) => api.get(`/vehicles/${id}`),
@@ -303,19 +314,7 @@ export const paymentService = {
     }
 
 };
-/*
-export const expenseService = {
-    getAll: () => api.get('/expenses'),
-    getById: (id) => api.get(`/expenses/${id}`),
-    create: (data) => api.post('/expenses', data),
-    update: (id, data) => api.put(`/expenses/${id}`, data),
-    delete: (id) => api.delete(`/expenses/${id}`),
-    getByVehicle: (vehicleId) => api.get(`/expenses/vehicle/${vehicleId}`),
-    getByType: (type) => api.get(`/expenses/type/${type}`), // type: fuel, maintenance, ticket, accident
-    getByDateRange: (startDate, endDate) => api.get(`/expenses/range?start=${startDate}&end=${endDate}`),
-    getStats: () => api.get('/expenses/stats')
-};
-*/
+
 export const maintenanceService = {
     // Routes standard CRUD
     getAll: () => api.get('/maintenances'),
@@ -391,44 +390,7 @@ export const historyService = {
         }
     },
 };
-/*
-export const documentService = {
-    getAll: () => api.get('/documents'),
-    getById: (id) => api.get(`/documents/${id}`),
-    create: (data) => api.post('/documents', data),
-    update: (id, data) => api.put(`/documents/${id}`, data),
-    delete: (id) => api.delete(`/documents/${id}`),
-    getByVehicle: (vehicleId) => api.get(`/documents/vehicle/${vehicleId}`),
-    getByDriver: (driverId) => api.get(`/documents/driver/${driverId}`),
-    getExpiringSoon: (days) => api.get(`/documents/expiring?days=${days}`)
-};
-*/
-/*
-export const dashboardService = {
-    getSummary: () => api.get('/dashboard/summary'),
-    getRevenue: (period) => api.get(`/dashboard/revenue?period=${period}`),
-    getExpenses: (period) => api.get(`/dashboard/expenses?period=${period}`),
-    getAlerts: () => api.get('/dashboard/alerts'),
-    getVehicleStats: () => api.get('/dashboard/vehicle-stats'),
-    getDriverPerformance: () => api.get('/dashboard/driver-performance')
-};
-*/
-/*
-export const reportService = {
-    getRevenueReport: (startDate, endDate) =>
-        api.get(`/reports/revenue?start=${startDate}&end=${endDate}`),
-    getExpenseReport: (startDate, endDate) =>
-        api.get(`/reports/expenses?start=${startDate}&end=${endDate}`),
-    getDriverReport: (driverId, startDate, endDate) =>
-        api.get(`/reports/driver/${driverId}?start=${startDate}&end=${endDate}`),
-    getVehicleReport: (vehicleId, startDate, endDate) =>
-        api.get(`/reports/vehicle/${vehicleId}?start=${startDate}&end=${endDate}`),
-    generatePDF: (reportType, params) =>
-        api.post('/reports/generate-pdf', { reportType, params }),
-    generateExcel: (reportType, params) =>
-        api.post('/reports/generate-excel', { reportType, params })
-};
-*/
+
 
 
 export default api;

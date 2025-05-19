@@ -246,3 +246,17 @@ exports.changePassword = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+exports.getUserById = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select('-password');
+
+        if (user) {
+            res.json(user);
+        } else {
+            res.status(404).json({ message: 'Utilisateur non trouvé' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

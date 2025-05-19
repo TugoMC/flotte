@@ -21,6 +21,12 @@ const Sidebar = ({ user }) => {
     // Définir les liens en fonction du rôle de l'utilisateur
     const links = [
         {
+            href: '/users',
+            label: 'Utilisateurs',
+            icon: <Users className="h-5 w-5" />,
+            roles: ['admin']
+        },
+        {
             href: '/',
             label: 'Tableau de bord',
             icon: <LayoutDashboard className="h-5 w-5" />,

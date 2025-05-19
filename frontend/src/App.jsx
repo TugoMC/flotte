@@ -24,6 +24,8 @@ import VehicleDetail from '@/pages/Vehicles/VehicleDetail';
 import MaintenancesList from './pages/Maintenances/MaintenancesList';
 import MaintenanceDetail from './pages/Maintenances/MaintenanceDetail';
 import HistoryList from '@/pages/History/HistoryList';
+import UsersList from './pages/Users/UsersList';
+import UserDetail from './pages/Users/UserDetail';
 
 // Pages d'erreur
 import ErrorPage from '@/pages/Error/ErrorPage';
@@ -118,6 +120,18 @@ function App() {
             <Route path="history" element={
               <ProtectedRoute requiredRole="manager">
                 <HistoryList />
+              </ProtectedRoute>
+            } />
+
+            <Route path="users" element={
+              <ProtectedRoute requiredRole="admin">
+                <UsersList />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/users/:id" element={
+              <ProtectedRoute requiredRole="admin">
+                <UserDetail />
               </ProtectedRoute>
             } />
 
