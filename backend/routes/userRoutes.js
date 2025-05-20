@@ -4,6 +4,7 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const { protect } = require('../middlewares/authMiddleware');
 const { admin } = require('../middlewares/roleMiddleware');
+const { driver } = require('../middlewares/roleMiddleware');
 
 // Routes publiques
 router.post('/register', userController.register);
@@ -12,6 +13,13 @@ router.post('/login', userController.login);
 // Routes protégées
 router.post('/logout', protect, userController.logout);
 router.get('/verify-token', protect, userController.verifyToken);
+
+
+
+router.get('/driver/me', protect, driver, userController.getDriverDetails);
+router.put('/driver/me/update', protect, driver, userController.updateDriverUserProfile);
+
+
 
 router.route('/me')
     .get(protect, userController.getUserProfile)

@@ -419,6 +419,93 @@ exports.getFormer = async (req, res) => {
     }
 };
 
+exports.uploadMyPhotos = async (req, res) => {
+    console.log('[DriverController] Début de uploadMyPhotos - Utilisateur:', req.user._id);
+    try {
+        // Récupérer l'utilisateur et son chauffeur associé
+        const user = await User.findById(req.user._id).populate('driver');
+
+        if (!user || !user.driver) {
+            console.warn('[DriverController] uploadMyPhotos - Utilisateur non trouvé ou non chauffeur');
+            return res.status(404).json({ message: 'Chauffeur non trouvé' });
+        }
+
+        if (!req.files || req.files.length === 0) {
+            console.warn('[DriverController] uploadMyPhotos - Aucun fichier téléchargé');
+            return res.status(400).json({ message: 'Aucun fichier téléchargé' });
+        }
+
+        // Créer un tableau de chemins d'accès aux photos
+        const photoPaths = req.files.map(file => file.path);
+
+        // Mettre à jour le chauffeur avec les nouvelles photos
+        const driver = await Driver.findByIdAndUpdate(
+            user.driver._id,
+            { $push: { photos: { $each: photoPaths } } },
+            { new: true }
+        );
+
+        console.log(`[DriverController] uploadMyPhotos - ${photoPaths.length} photos ajoutées au chauffeur ${user.driver._id}`);
+
+        res.json({
+            message: 'Photos ajoutées avec succès',
+            photos: driver.photos
+        });
+    } catch (error) {
+        console.error('[DriverController] Erreur dans uploadMyPhotos:', error.message, error.stack);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.deleteMyPhoto = async (req, res) => {
+    console.log(`[DriverController] Début de deleteMyPhoto - Utilisateur: ${req.user._id}, Index: ${req.params.photoIndex}`);
+    try {
+        const user = await User.findById(req.user._id).populate('driver');
+        if (!user || !user.driver) {
+            console.warn('[DriverController] deleteMyPhoto - Utilisateur non trouvé ou non chauffeur');
+            return res.status(404).json({ message: 'Chauffeur non trouvé' });
+        }
+
+        const photoIndex = parseInt(req.params.photoIndex);
+        const driver = await Driver.findById(user.driver._id);
+
+        if (isNaN(photoIndex) || photoIndex < 0 || photoIndex >= driver.photos.length) {
+            console.warn(`[DriverController] deleteMyPhoto - Index de photo invalide (${photoIndex}) pour ${driver.photos.length} photos`);
+            return res.status(400).json({ message: 'Index de photo invalide' });
+        }
+
+        // Sauvegarder le chemin de la photo à supprimer
+        const photoPath = driver.photos[photoIndex];
+
+        // Supprimer la référence de la photo dans le tableau
+        driver.photos.splice(photoIndex, 1);
+        await driver.save();
+
+        // Tentative de suppression du fichier physique si nécessaire
+        try {
+            const filePath = path.join(__dirname, '..', photoPath);
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+                console.log(`[DriverController] deleteMyPhoto - Fichier physique supprimé: ${filePath}`);
+            } else {
+                console.warn(`[DriverController] deleteMyPhoto - Fichier physique non trouvé: ${filePath}`);
+            }
+        } catch (fileError) {
+            // Enregistrer l'erreur mais ne pas échouer l'opération pour autant
+            console.error(`[DriverController] deleteMyPhoto - Erreur lors de la suppression du fichier:`, fileError.message);
+        }
+
+        console.log(`[DriverController] deleteMyPhoto - Photo supprimée avec succès pour l'utilisateur ${req.user._id}`);
+        res.json({
+            message: 'Photo supprimée avec succès',
+            photos: driver.photos
+        });
+    } catch (error) {
+        console.error('[DriverController] Erreur dans deleteMyPhoto:', error.message, error.stack);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // Télécharger et ajouter des photos à un chauffeur
 exports.uploadPhotos = async (req, res) => {
     console.log(`[DriverController] Début de uploadPhotos - ID: ${req.params.id}, Nombre de fichiers: ${req.files?.length || 0}`);
@@ -487,5 +574,66 @@ exports.deletePhoto = async (req, res) => {
     } catch (error) {
         console.error('[DriverController] Erreur dans deletePhoto:', error.message, error.stack);
         res.status(500).json({ message: error.message });
+    }
+};
+
+// Mettre à jour le profil du chauffeur (pour le chauffeur lui-même)
+exports.updateDriverProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).populate('driver');
+        if (!user || !user.driver) {
+            return res.status(404).json({ message: 'Chauffeur non trouvé' });
+        }
+
+        const driverId = user.driver._id;
+        const { firstName, lastName, phoneNumber, licenseNumber } = req.body;
+
+        const updatedDriver = await Driver.findByIdAndUpdate(
+            driverId,
+            { firstName, lastName, phoneNumber, licenseNumber },
+            { new: true, runValidators: true }
+        );
+
+        res.json(updatedDriver);
+    } catch (error) {
+        if (error.name === 'ValidationError') {
+            const errors = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({ message: errors.join(', ') });
+        }
+        res.status(400).json({ message: error.message });
+    }
+};
+
+// Mettre à jour le véhicule du chauffeur (pour le chauffeur lui-même)
+exports.updateDriverVehicle = async (req, res) => {
+    try {
+        // Récupérer l'ID du chauffeur à partir de l'utilisateur connecté
+        const user = await User.findById(req.user._id).populate('driver');
+        if (!user || !user.driver) {
+            return res.status(404).json({ message: 'Chauffeur non trouvé' });
+        }
+
+        const driverId = user.driver._id;
+        const { vehicleId } = req.body;
+
+        // Vérifier si le véhicule existe
+        const vehicle = await Vehicle.findById(vehicleId);
+        if (!vehicle) {
+            return res.status(404).json({ message: 'Véhicule non trouvé' });
+        }
+
+        // Mettre à jour le véhicule du chauffeur
+        const updatedDriver = await Driver.findByIdAndUpdate(
+            driverId,
+            { currentVehicle: vehicleId },
+            { new: true }
+        ).populate('currentVehicle', 'type brand model licensePlate');
+
+        // Mettre à jour aussi le véhicule avec le nouveau chauffeur
+        await Vehicle.findByIdAndUpdate(vehicleId, { currentDriver: driverId });
+
+        res.json(updatedDriver);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
     }
 };

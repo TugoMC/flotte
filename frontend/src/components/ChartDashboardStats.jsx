@@ -161,40 +161,7 @@ export function RevenueChart() {
                 <CardDescription>
                     Revenus journaliers confirmés
                 </CardDescription>
-                <div className="absolute right-4 top-4">
-                    <ToggleGroup
-                        type="single"
-                        value={timeRange}
-                        onValueChange={setTimeRange}
-                        variant="outline"
-                        className="@[767px]/card:flex hidden">
-                        <ToggleGroupItem value="7d" className="h-8 px-2.5">
-                            7 jours
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="30d" className="h-8 px-2.5">
-                            30 jours
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="90d" className="h-8 px-2.5">
-                            3 mois
-                        </ToggleGroupItem>
-                    </ToggleGroup>
-                    <Select value={timeRange} onValueChange={setTimeRange}>
-                        <SelectTrigger className="@[767px]/card:hidden flex w-40" aria-label="Select a range">
-                            <SelectValue placeholder="30 derniers jours" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                            <SelectItem value="7d" className="rounded-lg">
-                                7 derniers jours
-                            </SelectItem>
-                            <SelectItem value="30d" className="rounded-lg">
-                                30 derniers jours
-                            </SelectItem>
-                            <SelectItem value="90d" className="rounded-lg">
-                                3 derniers mois
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+
             </CardHeader>
             <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
                 <div className="h-[250px] w-full">
@@ -389,22 +356,7 @@ export function MaintenanceChart() {
                             3 mois
                         </ToggleGroupItem>
                     </ToggleGroup>
-                    <Select value={timeRange} onValueChange={setTimeRange}>
-                        <SelectTrigger className="@[767px]/card:hidden flex w-40" aria-label="Select a range">
-                            <SelectValue placeholder="30 derniers jours" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                            <SelectItem value="7d" className="rounded-lg">
-                                7 derniers jours
-                            </SelectItem>
-                            <SelectItem value="30d" className="rounded-lg">
-                                30 derniers jours
-                            </SelectItem>
-                            <SelectItem value="90d" className="rounded-lg">
-                                3 derniers mois
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+
                 </div>
             </CardHeader>
             <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">

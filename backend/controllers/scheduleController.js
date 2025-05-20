@@ -6,6 +6,7 @@ const Payment = require('../models/paymentModel'); // Ajout de l'import manquant
 const History = require('../models/historyModel');
 const { updateDriverVehicleRelationship } = require('../utils/driverVehicleUtils');
 const { completeExpiredSchedules, activatePendingSchedules } = require('../utils/scheduleAutocompletion');
+const User = require('../models/userModel');
 
 // Fonction pour générer automatiquement les paiements pour chaque jour d'un planning
 async function generateDailyPayments(scheduleId) {
@@ -869,4 +870,29 @@ exports.generatePaymentsForExistingSchedules = async (req, res) => {
     }
 };
 
+// Obtenir tous les plannings pour le chauffeur connecté
+exports.getAllSchedulesForDriver = async (req, res) => {
+    try {
+        // Récupérer l'ID du chauffeur associé à l'utilisateur
+        const user = await User.findById(req.user._id).populate('driver');
+        if (!user || !user.driver) {
+            return res.status(403).json({ message: 'Accès réservé aux chauffeurs' });
+        }
+
+        const driverId = user.driver._id;
+
+        // Récupérer tous les plannings pour ce chauffeur
+        const schedules = await Schedule.find({ driver: driverId })
+            .populate('driver', 'firstName lastName')
+            .populate('vehicle', 'type brand model licensePlate')
+            .sort({ scheduleDate: -1 }); // Tri du plus récent au plus ancien
+
+        res.json(schedules);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 exports.completeExpiredDriverSchedules = completeExpiredDriverSchedules;
+
+

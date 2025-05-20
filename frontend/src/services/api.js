@@ -155,6 +155,8 @@ export const authService = {
         return response;
     },
     changePassword: (passwordData) => api.post('/users/change-password', passwordData),
+    updateDriverProfile: (data) => api.put('/drivers/me/update', data),
+    getDriverDetails: () => api.get('/users/driver/me'),
 };
 
 export const userService = {
@@ -199,7 +201,26 @@ export const vehicleService = {
 
 export const driverService = {
     getAll: () => api.get('/drivers'),
-    getById: (id) => api.get(`/drivers/${id}`),
+    getById: async (id) => {
+        try {
+            const response = await api.get(`/drivers/${id}`);
+            return {
+                ...response,
+                data: {
+                    ...response.data,
+                    // Assurez-vous que ces champs existent
+                    phoneNumber: response.data.phoneNumber || '',
+                    licenseNumber: response.data.licenseNumber || '',
+                    hireDate: response.data.hireDate || new Date().toISOString(),
+                    departureDate: response.data.departureDate || null,
+                    currentVehicle: response.data.currentVehicle || null
+                }
+            };
+        } catch (error) {
+            console.error("Error fetching driver:", error);
+            throw error;
+        }
+    },
     create: (data) => api.post('/drivers', data),
     update: (id, data) => api.put(`/drivers/${id}`, data),
     delete: (id) => api.delete(`/drivers/${id}`),
@@ -224,7 +245,68 @@ export const driverService = {
             }
         });
     },
-    deletePhoto: (id, photoIndex) => api.delete(`/drivers/${id}/photos/${photoIndex}`)
+    deletePhoto: (id, photoIndex) => api.delete(`/drivers/${id}/photos/${photoIndex}`),
+    getFullDetails: (id) => api.get(`/drivers/${id}/full-details`),
+
+    updateProfile: (data) => api.put('/drivers/me/update', data),
+    updateVehicle: (data) => api.put('/drivers/me/update-vehicle', data),
+
+    uploadMyPhotos: (files) => {
+        const formData = new FormData();
+        if (Array.isArray(files)) {
+            files.forEach(file => formData.append('photos', file));
+        } else {
+            formData.append('photos', files);
+        }
+        return api.post('/drivers/me/photos', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    },
+
+    deleteMyPhoto: (photoIndex) => {
+        if (photoIndex === undefined || photoIndex === null) {
+            throw new Error('Index de photo non défini');
+        }
+        return api.delete(`/drivers/me/photos/${photoIndex}`);
+    },
+
+    // Ajout des méthodes pour le profil chauffeur
+    getMyDetails: async () => {
+        try {
+            // On suppose que l'utilisateur est un chauffeur et qu'on peut récupérer son ID via le token
+            const userResponse = await authService.getCurrentUser();
+            if (!userResponse.data || !userResponse.data._id) {
+                throw new Error('Utilisateur non authentifié');
+            }
+
+            const driverResponse = await api.get(`/users/driver/${userResponse.data._id}`);
+            return driverResponse;
+        } catch (error) {
+            console.error("Error fetching driver details:", error);
+            throw error;
+        }
+    },
+
+
+    getAllMySchedules: async () => {
+        try {
+            // Récupérer l'utilisateur courant
+            const userResponse = await authService.getCurrentUser();
+            if (!userResponse.data || !userResponse.data._id) {
+                throw new Error('Utilisateur non authentifié');
+            }
+
+            // Faire la requête pour récupérer tous les plannings
+            const response = await api.get('/schedules/driver/me/all');
+            return response;
+        } catch (error) {
+            console.error("Error fetching driver schedules:", error);
+            throw error;
+        }
+    },
+
 }
 
 export const scheduleService = {

@@ -17,6 +17,7 @@ import NotFound from '@/pages/Error/NotFound';
 import SchedulesList from '@/pages/Schedules/SchedulesList';
 import DriversList from '@/pages/Drivers/DriversList';
 import DriverDetail from '@/pages/Drivers/DriverDetail';
+import DriverPersonal from '@/pages/Drivers/DriverPersonal';
 import PaymentsList from '@/pages/Payments/PaymentsList';
 import PaymentDetail from './pages/Payments/PaymentDetail';
 import VehiclesList from '@/pages/Vehicles/VehiclesList';
@@ -62,6 +63,13 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="profile" element={<Profile />} />
 
+            {/* Route driver personnalisée */}
+            <Route path="driver" element={
+              <ProtectedRoute requiredRole="driver">
+                <DriverPersonal />
+              </ProtectedRoute>
+            } />
+
             {/* Routes avec restriction de rôle */}
             <Route path="vehicles" element={
               <ProtectedRoute requiredRole="manager">
@@ -69,7 +77,7 @@ function App() {
               </ProtectedRoute>
             } />
 
-            <Route path="/vehicles/:id" element={
+            <Route path="vehicles/:id" element={
               <ProtectedRoute requiredRole="manager">
                 <VehicleDetail />
               </ProtectedRoute>
@@ -81,7 +89,7 @@ function App() {
               </ProtectedRoute>
             } />
 
-            <Route path="/drivers/:id" element={
+            <Route path="drivers/:id" element={
               <ProtectedRoute requiredRole="manager">
                 <DriverDetail />
               </ProtectedRoute>
@@ -129,7 +137,7 @@ function App() {
               </ProtectedRoute>
             } />
 
-            <Route path="/users/:id" element={
+            <Route path="users/:id" element={
               <ProtectedRoute requiredRole="admin">
                 <UserDetail />
               </ProtectedRoute>

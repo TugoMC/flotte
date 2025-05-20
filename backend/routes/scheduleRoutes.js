@@ -2,8 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const scheduleController = require('../controllers/scheduleController');
-const { protect } = require('../middlewares/authMiddleware');
-const { manager } = require('../middlewares/roleMiddleware');
+const { protect } = require('../middlewares/authMiddleware'); // Add this line
+const { manager, driver } = require('../middlewares/roleMiddleware');
 
 // Routes spécifiques
 router.get('/current', protect, manager, scheduleController.getCurrent);
@@ -20,6 +20,8 @@ router.post('/check-expired', protect, manager, scheduleController.checkExpiredS
 // Routes standard
 router.post('/', protect, manager, scheduleController.create);
 router.get('/:id', protect, manager, scheduleController.getById);
+
+router.get('/driver/me/all', protect, driver, scheduleController.getAllSchedulesForDriver);
 
 // Routes réservées aux managers/admin
 router.put('/:id', protect, manager, scheduleController.update);

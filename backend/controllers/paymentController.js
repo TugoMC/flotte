@@ -799,9 +799,11 @@ exports.getByDriver = async (req, res) => {
     console.log(`[PaymentController] Début de getByDriver - Récupération des paiements pour le chauffeur ${req.params.driverId}`);
     try {
         const driverId = req.params.driverId;
+
         // Trouver tous les plannings du chauffeur
         const schedules = await Schedule.find({ driver: driverId }).select('_id');
         console.log(`[PaymentController] getByDriver - ${schedules.length} plannings trouvés pour le chauffeur ${driverId}`);
+
 
         // Extraire les IDs des plannings
         const scheduleIds = schedules.map(schedule => schedule._id);

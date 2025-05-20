@@ -77,16 +77,18 @@ const ErrorPage = ({ code = 500, message, details }) => {
                 <div className="pt-4 flex gap-3 justify-center">
                     <Button asChild>
                         <Link to="/">
-                            Retourner à l'accueil
+                            Retourner à l'accueil (Admin)
+                        </Link>
+                    </Button>
+                    <Button asChild>
+                        <Link to="/driver">
+                            Retourner (Chauffeur)
                         </Link>
                     </Button>
                     <Button variant="outline" onClick={() => navigate(-1)}>
                         Retour
                     </Button>
-                    <Button variant="outline" onClick={() => window.location.reload()}>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Réessayer
-                    </Button>
+
                 </div>
             </div>
 

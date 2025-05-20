@@ -44,7 +44,19 @@ const driverSchema = new mongoose.Schema({
         type: String,
         enum: ['active', 'inactive'],
         default: 'active'
-    }
+    },
+    assignedSchedules: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Schedule'
+    }],
+    completedSchedules: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Schedule'
+    }],
+    ratings: {
+        type: Number,
+        default: 0
+    },
 }, {
     timestamps: true
 });

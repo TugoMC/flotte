@@ -1,4 +1,4 @@
-// src/components/ChartVehicleRevenue.jsx
+// src/components/ChartDriverSchedulePeriod.jsx
 "use client"
 
 import * as React from "react"
@@ -11,7 +11,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import {
     Select,
     SelectContent,
@@ -23,18 +23,26 @@ import {
     ToggleGroup,
     ToggleGroupItem,
 } from "@/components/ui/toggle-group"
-import { paymentService } from "@/services/api"
-import { format } from 'date-fns'
+import { driverService } from "@/services/api"
+import { format, differenceInDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
+// Configuration des couleurs pour les différents statuts
+const statusColors = {
+    pending: "hsl(var(--warning))",
+    assigned: "hsl(var(--primary))",
+    completed: "hsl(var(--success))",
+    canceled: "hsl(var(--destructive))",
+}
+
 const chartConfig = {
-    revenue: {
-        label: "Revenus",
-        color: "hsl(var(--chart-1))",
+    duration: {
+        label: "Durée (jours)",
+        color: "hsl(var(--chart-2))",
     }
 }
 
-export function ChartVehicleRevenue({ vehicleId }) {
+export function ChartDriverSchedulePeriod({ driverId }) {
     const isMobile = useIsMobile()
     const [timeRange, setTimeRange] = React.useState("30d")
     const [chartData, setChartData] = React.useState([])
@@ -47,40 +55,48 @@ export function ChartVehicleRevenue({ vehicleId }) {
     }, [isMobile])
 
     React.useEffect(() => {
-        const fetchPaymentData = async () => {
+        const fetchScheduleData = async () => {
             try {
                 setLoading(true)
-                // Récupérer les paiements du véhicule
-                const response = await paymentService.getByVehicle(vehicleId)
-                const payments = response.data
+                // Récupérer les plannings du chauffeur
+                const response = await driverService.getAllMySchedules()
+                const schedules = response.data
 
                 // Transformer les données pour le graphique
-                const transformedData = payments.map(payment => ({
-                    date: payment.paymentDate,
-                    revenue: payment.amount
-                }))
+                const transformedData = schedules.map(schedule => {
+                    const startDate = new Date(schedule.scheduleDate)
+                    const endDate = schedule.endDate ? new Date(schedule.endDate) : startDate
+                    const duration = differenceInDays(endDate, startDate) + 1 // +1 pour inclure le premier jour
+
+                    return {
+                        date: schedule.scheduleDate,
+                        duration: duration,
+                        status: schedule.status,
+                        statusColor: statusColors[schedule.status] || "hsl(var(--muted-foreground))"
+                    }
+                })
 
                 // Trier par date
                 transformedData.sort((a, b) => new Date(a.date) - new Date(b.date))
 
                 setChartData(transformedData)
             } catch (error) {
-                console.error("Erreur lors de la récupération des paiements:", error)
+                console.error("Erreur lors de la récupération des plannings:", error)
             } finally {
                 setLoading(false)
             }
         }
 
-        if (vehicleId) {
-            fetchPaymentData()
+        if (driverId) {
+            fetchScheduleData()
         }
-    }, [vehicleId])
+    }, [driverId])
 
     const filteredData = chartData.filter((item) => {
         if (!item.date) return false
 
         const date = new Date(item.date)
-        const referenceDate = new Date() // Date actuelle comme référence
+        const referenceDate = new Date()
         let daysToSubtract = 90
 
         if (timeRange === "30d") {
@@ -112,7 +128,7 @@ export function ChartVehicleRevenue({ vehicleId }) {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Revenus du véhicule</CardTitle>
+                    <CardTitle>Périodes de planning</CardTitle>
                     <CardDescription>Aucune donnée disponible</CardDescription>
                 </CardHeader>
             </Card>
@@ -122,12 +138,12 @@ export function ChartVehicleRevenue({ vehicleId }) {
     return (
         <Card className="@container/card">
             <CardHeader className="relative">
-                <CardTitle>Revenus du véhicule</CardTitle>
+                <CardTitle>Périodes de planning</CardTitle>
                 <CardDescription>
                     <span className="@[540px]/card:block hidden">
-                        Historique des revenus
+                        Durée des plannings en jours
                     </span>
-                    <span className="@[540px]/card:hidden">Historique</span>
+                    <span className="@[540px]/card:hidden">Durée des plannings</span>
                 </CardDescription>
 
             </CardHeader>
@@ -135,9 +151,9 @@ export function ChartVehicleRevenue({ vehicleId }) {
                 <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
                     <AreaChart data={filteredData}>
                         <defs>
-                            <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={1.0} />
-                                <stop offset="95%" stopColor="var(--color-revenue)" stopOpacity={0.1} />
+                            <linearGradient id="fillDuration" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="var(--color-duration)" stopOpacity={1.0} />
+                                <stop offset="95%" stopColor="var(--color-duration)" stopOpacity={0.1} />
                             </linearGradient>
                         </defs>
                         <CartesianGrid vertical={false} />
@@ -158,13 +174,29 @@ export function ChartVehicleRevenue({ vehicleId }) {
                                     labelFormatter={(value) => {
                                         return format(new Date(value), 'PPPP', { locale: fr })
                                     }}
+                                    formatter={(value, name, props) => {
+                                        const status = props.payload.status;
+                                        const statusText = {
+                                            pending: "En attente",
+                                            assigned: "Assigné",
+                                            completed: "Terminé",
+                                            canceled: "Annulé"
+                                        }[status] || status;
+
+                                        return [
+                                            `${value} jours`,
+                                            <span key="status" style={{ color: props.payload.statusColor }}>
+                                                Statut: {statusText}
+                                            </span>
+                                        ];
+                                    }}
                                     indicator="dot" />
                             } />
                         <Area
-                            dataKey="revenue"
+                            dataKey="duration"
                             type="natural"
-                            fill="url(#fillRevenue)"
-                            stroke="var(--color-revenue)"
+                            fill="url(#fillDuration)"
+                            stroke="var(--color-duration)"
                             stackId="a" />
                     </AreaChart>
                 </ChartContainer>

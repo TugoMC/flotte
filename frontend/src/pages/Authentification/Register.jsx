@@ -31,12 +31,38 @@ const formSchema = z.object({
     confirmPassword: z.string().min(6, 'Confirmation du mot de passe requise'),
     firstName: z.string().min(2, 'Prénom requis'),
     lastName: z.string().min(2, 'Nom requis'),
+    phoneNumber: z.string().min(8, 'Numéro de téléphone requis').optional(),
+    licenseNumber: z.string().min(5, 'Numéro de permis requis').optional(),
     role: z.enum(['driver', 'manager'], {
         errorMap: () => ({ message: 'Sélectionnez un rôle valide' })
     })
-}).refine((data) => data.password === data.confirmPassword, {
-    message: "Les mots de passe ne correspondent pas",
-    path: ["confirmPassword"],
+}).superRefine((data, ctx) => {
+    // Validation conditionnelle pour les chauffeurs
+    if (data.role === 'driver') {
+        if (!data.phoneNumber) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['phoneNumber'],
+                message: 'Numéro de téléphone requis pour les chauffeurs'
+            });
+        }
+        if (!data.licenseNumber) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['licenseNumber'],
+                message: 'Numéro de permis requis pour les chauffeurs'
+            });
+        }
+    }
+
+    // Vérification de la correspondance des mots de passe
+    if (data.password !== data.confirmPassword) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['confirmPassword'],
+            message: 'Les mots de passe ne correspondent pas'
+        });
+    }
 });
 
 const Register = () => {
@@ -63,17 +89,30 @@ const Register = () => {
             setLoading(true);
             const { confirmPassword, ...userData } = data;
 
-            // Ajout du rôle par défaut
-            const response = await authService.register({
+            const requestData = {
                 ...userData,
                 role: data.role
-            });
+            };
+
+            if (data.role === 'driver') {
+                requestData.phoneNumber = data.phoneNumber;
+                requestData.licenseNumber = data.licenseNumber;
+            }
+
+            const response = await authService.register(requestData);
 
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data));
 
-            toast({ title: "Inscription réussie" });
-            navigate('/');
+            toast({
+                title: "Inscription réussie",
+                description: data.role === 'driver'
+                    ? "Votre compte chauffeur a été créé avec succès"
+                    : "Votre compte manager a été créé avec succès"
+            });
+
+            // Redirection différente selon le rôle
+            navigate(data.role === 'driver' ? '/driver' : '/');
         } catch (err) {
             setError(err.response?.data?.message || "Erreur d'inscription");
         } finally {
@@ -83,9 +122,9 @@ const Register = () => {
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-[hsl(var(--login-bg))]">
-            <div className="flex flex-col gap-6 w-full max-w-md">
-                <Card>
-                    <CardHeader>
+            <div className="w-full max-w-5xl px-4">
+                <Card className="w-full">
+                    <CardHeader className="text-center">
                         <CardTitle className="text-2xl">Inscription</CardTitle>
                         <CardDescription>
                             Créez votre compte pour accéder à l'application
@@ -99,168 +138,217 @@ const Register = () => {
                             </Alert>
                         )}
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="firstName"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Prénom</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        placeholder="Votre prénom"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="lastName"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Nom</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        placeholder="Votre nom"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                {/* Disposition en grille pour le mode paysage */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {/* Première colonne - Informations personnelles */}
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="firstName"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Prénom</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                placeholder="Votre prénom"
+                                                                {...field}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="lastName"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Nom</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                placeholder="Votre nom"
+                                                                {...field}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
 
-                                <div className="grid gap-2">
-                                    <FormField
-                                        control={form.control}
-                                        name="email"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Email</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="email"
-                                                        placeholder="votre@email.com"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <FormField
-                                        control={form.control}
-                                        name="username"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Nom d'utilisateur</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        placeholder="Votre nom d'utilisateur"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <FormField
-                                        control={form.control}
-                                        name="password"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Mot de passe</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="password"
-                                                        placeholder="Votre mot de passe"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <FormField
-                                        control={form.control}
-                                        name="confirmPassword"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Confirmer le mot de passe</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="password"
-                                                        placeholder="Confirmer votre mot de passe"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <FormField
-                                        control={form.control}
-                                        name="role"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Rôle</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormField
+                                            control={form.control}
+                                            name="email"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Email</FormLabel>
                                                     <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Sélectionnez votre rôle" />
-                                                        </SelectTrigger>
+                                                        <Input
+                                                            type="email"
+                                                            placeholder="votre@email.com"
+                                                            {...field}
+                                                        />
                                                     </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="driver">Chauffeur</SelectItem>
-                                                        <SelectItem value="manager">Manager</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="username"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Nom d'utilisateur</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="Votre nom d'utilisateur"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    {/* Deuxième colonne - Mot de passe */}
+                                    <div className="space-y-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="password"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Mot de passe</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="password"
+                                                            placeholder="Votre mot de passe"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="confirmPassword"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Confirmer le mot de passe</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="password"
+                                                            placeholder="Confirmer votre mot de passe"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="role"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Rôle</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Sélectionnez votre rôle" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="driver">Chauffeur</SelectItem>
+                                                            <SelectItem value="manager">Manager</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    {/* Troisième colonne - Informations supplémentaires pour chauffeur */}
+                                    <div className="space-y-4">
+                                        {form.watch('role') === 'driver' ? (
+                                            <>
+                                                <FormField
+                                                    control={form.control}
+                                                    name="phoneNumber"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Numéro de téléphone</FormLabel>
+                                                            <FormControl>
+                                                                <Input
+                                                                    placeholder="Votre numéro de téléphone"
+                                                                    {...field}
+                                                                />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+
+                                                <FormField
+                                                    control={form.control}
+                                                    name="licenseNumber"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Numéro de permis</FormLabel>
+                                                            <FormControl>
+                                                                <Input
+                                                                    placeholder="Votre numéro de permis"
+                                                                    {...field}
+                                                                />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </>
+                                        ) : (
+                                            <div className="flex items-center justify-center h-full">
+                                                <div className="text-center text-gray-500">
+                                                    <p>Options supplémentaires pour les managers</p>
+                                                    <p className="text-xs mt-2">Les managers auront accès à toutes les fonctionnalités de gestion de la flotte après validation</p>
+                                                </div>
+                                            </div>
                                         )}
-                                    />
+                                    </div>
                                 </div>
 
-                                <Button
-                                    type="submit"
-                                    className="w-full"
-                                    disabled={loading}
-                                >
-                                    {loading ? (
-                                        <>
-                                            <span className="animate-spin mr-2">⟳</span>
-                                            Inscription en cours...
-                                        </>
-                                    ) : (
-                                        "S'inscrire"
-                                    )}
-                                </Button>
-
-                                <div className="text-center text-sm">
-                                    Vous avez déjà un compte?{' '}
-                                    <Link
-                                        to="/login"
-                                        className="underline underline-offset-4 hover:text-gray-800"
+                                <div className="pt-4">
+                                    <Button
+                                        type="submit"
+                                        className="w-full md:w-auto md:px-8"
+                                        disabled={loading}
                                     >
-                                        Connectez-vous
-                                    </Link>
+                                        {loading ? (
+                                            <>
+                                                <span className="animate-spin mr-2">⟳</span>
+                                                Inscription en cours...
+                                            </>
+                                        ) : (
+                                            "S'inscrire"
+                                        )}
+                                    </Button>
+
+                                    <div className="text-center text-sm mt-4">
+                                        Vous avez déjà un compte?{' '}
+                                        <Link
+                                            to="/login"
+                                            className="underline underline-offset-4 hover:text-gray-800"
+                                        >
+                                            Connectez-vous
+                                        </Link>
+                                    </div>
                                 </div>
                             </form>
                         </Form>

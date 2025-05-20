@@ -66,8 +66,10 @@ const Login = () => {
                 variant: 'default'
             });
 
-            // Rediriger vers la page demandée ou la page d'accueil
-            const redirectTo = localStorage.getItem('redirectAfterLogin') || '/';
+            // Redirection différente selon le rôle
+            const redirectTo = response.data.role === 'driver'
+                ? '/driver'
+                : localStorage.getItem('redirectAfterLogin') || '/';
             localStorage.removeItem('redirectAfterLogin');
             navigate(redirectTo);
         } catch (err) {
@@ -157,8 +159,25 @@ const Login = () => {
                                     )}
                                 </Button>
 
-                                <div className="text-center text-sm">
-                                    <p>Version de démo | Manager par défaut: manager1 / manager1</p>
+                                <div className="text-center text-sm mt-4 border p-3 rounded-md bg-muted">
+                                    <p className="font-semibold mb-2">Comptes de démonstration:</p>
+                                    <div className="grid grid-cols-3 gap-2 text-xs">
+                                        <div>
+                                            <p className="font-medium">Administrateur</p>
+                                            <p>user: admin</p>
+                                            <p>pass: admin123</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-medium">Manager</p>
+                                            <p>user: manager1</p>
+                                            <p>pass: manager1</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-medium">Chauffeur</p>
+                                            <p>user: driver</p>
+                                            <p>pass: driver</p>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="text-center text-sm">

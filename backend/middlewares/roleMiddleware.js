@@ -22,3 +22,11 @@ exports.driver = (req, res, next) => {
         res.status(403).json({ message: 'Non autorisé' });
     }
 };
+
+exports.strictDriver = (req, res, next) => {
+    if (req.user && req.user.role === 'driver' && req.user._id.toString() === req.params.id) {
+        next();
+    } else {
+        res.status(403).json({ message: 'Accès non autorisé - Réservé au chauffeur concerné' });
+    }
+};

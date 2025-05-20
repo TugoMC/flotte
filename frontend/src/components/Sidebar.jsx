@@ -27,10 +27,22 @@ const Sidebar = ({ user }) => {
             roles: ['admin']
         },
         {
+            href: '/driver',
+            label: 'Moi',
+            icon: <Users className="h-5 w-5" />,
+            roles: ['driver']
+        },
+        {
+            href: '/profile',
+            label: 'Profil',
+            icon: <Users className="h-5 w-5" />,
+            roles: ['admin', 'manager', 'driver']
+        },
+        {
             href: '/',
             label: 'Tableau de bord',
             icon: <LayoutDashboard className="h-5 w-5" />,
-            roles: ['admin', 'manager', 'driver']
+            roles: ['admin', 'manager']
         },
         {
             href: '/vehicles',
@@ -48,7 +60,7 @@ const Sidebar = ({ user }) => {
             href: '/schedules',
             label: 'Plannings',
             icon: <Calendar className="h-5 w-5" />,
-            roles: ['admin', 'manager', 'driver']
+            roles: ['admin', 'manager']
         },
         {
             href: '/payments',
