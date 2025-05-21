@@ -16,6 +16,7 @@ import {
     X,
     ChevronLeft,
     ChevronRight,
+    HelpCircle,
 } from 'lucide-react';
 
 import {
@@ -41,6 +42,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const API_BASE_URL = import.meta.env?.VITE_API_PHOTO;
 
@@ -59,6 +66,8 @@ const MaintenanceDetail = () => {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [previewImages, setPreviewImages] = useState([]);
     const [photoUploadError, setPhotoUploadError] = useState('');
+    const [openCompletionDialog, setOpenCompletionDialog] = useState(false);
+    const [completionDate, setCompletionDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
     const [formData, setFormData] = useState({
         vehicle: '',
@@ -67,7 +76,6 @@ const MaintenanceDetail = () => {
         maintenanceDate: '',
         completionDate: '',
         cost: '',
-        duration: '',
         technicianName: '',
         notes: '',
         description: '',
@@ -98,7 +106,7 @@ const MaintenanceDetail = () => {
                     completionDate: maintenanceData.completionDate ?
                         format(new Date(maintenanceData.completionDate), 'yyyy-MM-dd') : '',
                     cost: maintenanceData.cost || '',
-                    duration: maintenanceData.duration || '',
+
                     technicianName: maintenanceData.technicianName || '',
                     notes: maintenanceData.notes || '',
                     description: maintenanceData.description || '',
@@ -123,7 +131,7 @@ const MaintenanceDetail = () => {
         maintenanceType: false,
         maintenanceNature: false,
         maintenanceDate: false,
-        duration: false
+
     });
 
     const validateForm = () => {
@@ -165,10 +173,7 @@ const MaintenanceDetail = () => {
             return;
         }
 
-        if (formData.duration && formData.duration <= 0) {
-            toast.error("La durée doit être positive");
-            return;
-        }
+
 
         // Vérification des dates
         if (formData.completionDate && formData.maintenanceDate &&
@@ -190,8 +195,14 @@ const MaintenanceDetail = () => {
 
     const handleCompleteMaintenance = async () => {
         try {
-            await maintenanceService.completeMaintenance(id);
+            const updateData = {
+                ...formData,
+                completed: true,
+                completionDate: completionDate
+            };
+            await maintenanceService.update(id, updateData);
             toast.success("Maintenance marquée comme terminée");
+            setOpenCompletionDialog(false);
             setRefreshKey(oldKey => oldKey + 1);
         } catch (err) {
             toast.error("Erreur: " + (err.response?.data?.message || err.message));
@@ -515,7 +526,25 @@ const MaintenanceDetail = () => {
                         <p className="text-gray-500">Détails de la maintenance</p>
                     </div>
                     <div className="flex space-x-2">
-
+                        {!maintenance.completed && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="default"
+                                            className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-800 dark:hover:bg-green-900"
+                                            onClick={() => setOpenCompletionDialog(true)}
+                                        >
+                                            <CheckCircle2 className="h-4 w-4 mr-2 dark:text-white" />
+                                            Marquer comme terminée
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Marquer cette maintenance comme terminée et définir une date de fin</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
 
                         <Button
                             variant="outline"
@@ -530,12 +559,12 @@ const MaintenanceDetail = () => {
                 {/* Details List */}
                 <div className="space-y-4">
                     {/* Statut */}
-
                     <div className="py-3">
                         <div className="flex justify-between items-center">
                             <div className="flex items-center space-x-4">
                                 <span className="text-sm font-medium text-gray-500">Statut:</span>
                                 {renderStatus(maintenance.completed)}
+
                             </div>
                         </div>
                     </div>
@@ -604,14 +633,7 @@ const MaintenanceDetail = () => {
                     </div>
                     <Separator />
 
-                    {/* Durée */}
-                    <div className="py-3">
-                        <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-500">Durée d'immobilisation du véhicule (Sans travailler):</span>
-                            <span>{maintenance.duration ? `${maintenance.duration} jours` : '—'}</span>
-                        </div>
-                    </div>
-                    <Separator />
+
 
                     {/* Notes */}
                     <div className="py-3">
@@ -632,6 +654,50 @@ const MaintenanceDetail = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Dialog pour marquer comme terminée */}
+            <Dialog open={openCompletionDialog} onOpenChange={setOpenCompletionDialog}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Marquer la maintenance comme terminée</DialogTitle>
+                        <DialogDescription>
+                            Veuillez indiquer la date de fin de maintenance pour la marquer comme terminée.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="completionDate" className="required">Date de fin de maintenance</Label>
+                            <Input
+                                id="completionDate"
+                                type="date"
+                                value={completionDate}
+                                onChange={(e) => setCompletionDate(e.target.value)}
+                                className="w-full"
+                                required
+                            />
+                        </div>
+
+                        <Alert className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
+                            <InfoIcon className="h-4 w-4" />
+                            <AlertTitle>Important</AlertTitle>
+                            <AlertDescription>
+                                Marquer cette maintenance comme terminée indiquera que le véhicule est de nouveau disponible.
+                            </AlertDescription>
+                        </Alert>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setOpenCompletionDialog(false)}>
+                            Annuler
+                        </Button>
+                        <Button onClick={handleCompleteMaintenance}>
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Confirmer
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Dialog pour ajouter des photos */}
             <Dialog open={openPhotoDialog} onOpenChange={setOpenPhotoDialog}>
@@ -772,8 +838,7 @@ const MaintenanceDetail = () => {
                             Modifiez les détails de cette maintenance. Les champs marqués d'un * sont obligatoires.
                             <br />
                             Pour modifier la date de fin, changez le statut de la maintenance à "Terminée".
-                            <br />
-                            La durée d'immobilisation n'a aucun lien avec la periode de maintenance.
+
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4 overflow-y-auto">
@@ -888,22 +953,7 @@ const MaintenanceDetail = () => {
                                     onChange={handleInputChange}
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="duration" className="required">Durée d'immobilisation du véhicule (Sans travailler) en jours</Label>
-                                <Input
-                                    id="duration"
-                                    name="duration"
-                                    type="number"
-                                    value={formData.duration}
-                                    onChange={handleInputChange}
-                                    className={formErrors.maintenanceDate ? "border-red-500" : ""}
-                                    required
-                                />
 
-                                {formErrors.maintenanceDate && (
-                                    <p className="text-sm text-red-500">Ce champ est obligatoire</p>
-                                )}
-                            </div>
                             <div className="space-y-2">
                                 <Label htmlFor="completed" className="required">Statut</Label>
                                 <Select

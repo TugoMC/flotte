@@ -119,6 +119,8 @@ exports.update = async (req, res) => {
             return res.status(400).json({ message: 'Le coût ne peut pas être négatif' });
         }
 
+
+
         if (req.body.duration !== undefined && req.body.duration <= 0) {
             return res.status(400).json({ message: 'La durée doit être positive' });
         }
@@ -176,21 +178,12 @@ exports.update = async (req, res) => {
         if (vehicle) {
             // Si la maintenance est marquée comme terminée
             if (req.body.hasOwnProperty('completed') && req.body.completed === true) {
-                // Vérifier s'il existe d'autres maintenances actives pour ce véhicule
-                const otherActiveMaintenance = await Maintenance.findOne({
-                    vehicle: vehicleId,
-                    _id: { $ne: req.params.id }, // Exclure la maintenance actuelle
-                    completed: false
-                });
-
-                // Ne remettre le véhicule en service que s'il n'y a pas d'autres maintenances actives
-                if (!otherActiveMaintenance && vehicle.status === 'maintenance') {
-                    await Vehicle.findByIdAndUpdate(
-                        vehicleId,
-                        { status: 'active' },
-                        { new: true }
-                    );
-                }
+                // Mettre le véhicule en statut inactif
+                await Vehicle.findByIdAndUpdate(
+                    vehicleId,
+                    { status: 'inactive' },
+                    { new: true }
+                );
             }
             // Si la maintenance est réactivée (passage de completed=true à completed=false)
             else if (req.body.hasOwnProperty('completed') && req.body.completed === false &&
@@ -210,7 +203,7 @@ exports.update = async (req, res) => {
     }
 };
 
-// Supprimer une maintenance
+
 // Supprimer une maintenance
 exports.delete = async (req, res) => {
     try {
@@ -226,28 +219,19 @@ exports.delete = async (req, res) => {
         // Supprimer la maintenance
         await Maintenance.findByIdAndDelete(req.params.id);
 
-        // Vérifier s'il existe d'autres maintenances actives pour ce véhicule
-        const otherActiveMaintenance = await Maintenance.findOne({
-            vehicle: vehicleId,
-            completed: false
-        });
-
-        // Si aucune autre maintenance active n'est trouvée, mettre à jour le statut du véhicule
-        if (!otherActiveMaintenance) {
-            // Trouver et mettre à jour le véhicule (seulement s'il est actuellement en maintenance)
-            const vehicle = await Vehicle.findById(vehicleId);
-            if (vehicle && vehicle.status === 'maintenance') {
-                await Vehicle.findByIdAndUpdate(
-                    vehicleId,
-                    { status: 'active' },
-                    { new: true }
-                );
-            }
+        // Mettre à jour le statut du véhicule comme inactif
+        const vehicle = await Vehicle.findById(vehicleId);
+        if (vehicle && vehicle.status === 'maintenance') {
+            await Vehicle.findByIdAndUpdate(
+                vehicleId,
+                { status: 'inactive' },
+                { new: true }
+            );
         }
 
         res.json({
             message: 'Maintenance supprimée avec succès',
-            vehicleUpdated: !otherActiveMaintenance
+            vehicleUpdated: vehicle && vehicle.status === 'maintenance'
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -324,17 +308,10 @@ exports.completeMaintenance = async (req, res) => {
 
         await maintenance.save();
 
-        // Vérifier s'il existe d'autres maintenances actives pour ce véhicule
-        const otherActiveMaintenance = await Maintenance.findOne({
-            vehicle: maintenance.vehicle,
-            _id: { $ne: maintenance._id },
-            completed: false
-        });
-
-        // Mettre à jour le statut du véhicule si nécessaire (seulement s'il n'y a pas d'autres maintenances actives)
+        // Mettre à jour le statut du véhicule comme "inactif"
         const vehicle = await Vehicle.findById(maintenance.vehicle);
-        if (vehicle && vehicle.status === 'maintenance' && !otherActiveMaintenance) {
-            vehicle.status = 'active';
+        if (vehicle) {
+            vehicle.status = 'inactive';
             await vehicle.save();
         }
 
@@ -349,15 +326,14 @@ exports.completeMaintenance = async (req, res) => {
             ipAddress: req.ip
         });
 
-        // Et aussi un événement pour le véhicule
         await History.create({
             eventType: 'vehicle_maintenance_end',
             module: 'vehicle',
             entityId: maintenance.vehicle,
             oldData: { status: 'maintenance' },
-            newData: { status: 'active' },
+            newData: { status: 'inactive' },
             performedBy: req.user ? req.user._id : null,
-            description: `Fin de maintenance - véhicule remis en service`,
+            description: `Fin de maintenance - véhicule mis hors service`,
             ipAddress: req.ip
         });
 
@@ -735,7 +711,6 @@ exports.checkMaintenanceConflicts = async (req, res) => {
     try {
         const { vehicleId, startDate, endDate } = req.query;
 
-        // Validate inputs
         if (!vehicleId || !startDate) {
             return res.status(400).json({ message: 'vehicleId and startDate are required' });
         }

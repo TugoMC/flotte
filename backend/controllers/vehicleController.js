@@ -464,7 +464,8 @@ exports.startMaintenance = async (req, res) => {
             );
         }
 
-        // Mettre le véhicule en maintenance
+        // Mettre le véhicule en maintenance (peu importe son statut précédent)
+        const oldStatus = vehicle.status;
         vehicle.status = 'maintenance';
         vehicle.currentDriver = null;
         await vehicle.save();
@@ -478,7 +479,8 @@ exports.startMaintenance = async (req, res) => {
             description,
             duration: duration || 1,
             mileage,
-            maintenanceDate: new Date()
+            maintenanceDate: new Date(),
+            previousStatus: oldStatus // Stocker l'ancien statut pour référence
         });
 
         await maintenance.save();
@@ -487,7 +489,7 @@ exports.startMaintenance = async (req, res) => {
             eventType: 'vehicle_maintenance_start',
             module: 'vehicle',
             entityId: vehicle._id,
-            oldData: { status: vehicle.status },
+            oldData: { status: oldStatus },
             newData: { status: 'maintenance' },
             performedBy: req.user ? req.user._id : null,
             description: `Mise en maintenance (${maintenanceType}) du véhicule ${vehicle.licensePlate}`,

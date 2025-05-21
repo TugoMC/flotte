@@ -1,3 +1,7 @@
+const {
+    generateDailyPayments,
+    completeExpiredDriverSchedules
+} = require('./controllers/scheduleController');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -6,7 +10,6 @@ require('dotenv').config();
 require('./models');
 const path = require('path');
 const cron = require('node-cron');
-const { generateDailyPayments, completeExpiredDriverSchedules } = require('./controllers/scheduleController');
 const Schedule = require('./models/scheduleModel');
 const setupUploadDirectories = require('./utils/setupUploadDirs');
 const historyRoutes = require('./routes/historyRoutes');
@@ -26,6 +29,8 @@ app.use(cors({
 app.use(express.json());
 app.use(morgan('dev'));
 app.use('/uploads', express.static('uploads'));
+
+app.use('/api/settings', require('./routes/settingsRoutes'));
 
 // Routes
 app.get('/', (req, res) => {

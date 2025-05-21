@@ -894,5 +894,6 @@ exports.getAllSchedulesForDriver = async (req, res) => {
 };
 
 exports.completeExpiredDriverSchedules = completeExpiredDriverSchedules;
+exports.generateDailyPayments = generateDailyPayments;
 
 

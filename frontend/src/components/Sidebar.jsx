@@ -1,10 +1,13 @@
 // src/components/Sidebar.jsx
+import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { settingsService } from '@/services/api';
 import {
     LayoutDashboard,
     Car,
     Users,
+    User,
     Calendar,
     CreditCard,
     Wrench,
@@ -16,7 +19,34 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 const Sidebar = ({ user }) => {
-    const location = useLocation();
+    const [sidebarTitle, setSidebarTitle] = useState('Gestion de Flotte');
+
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const response = await settingsService.getSettings();
+                setNavbarTitle(response.data.navbarTitle || 'Gestion de Flotte');
+            } catch (error) {
+                console.error('Erreur lors du chargement des paramètres:', error);
+            }
+        };
+
+        const handleSettingsUpdated = (e) => {
+            // Utiliser les données de l'événement ou recharger
+            if (e.detail?.navbarTitle) {
+                setNavbarTitle(e.detail.navbarTitle);
+            } else {
+                loadSettings(); // Fallback au chargement API
+            }
+        };
+
+        loadSettings();
+        window.addEventListener('settingsUpdated', handleSettingsUpdated);
+
+        return () => {
+            window.removeEventListener('settingsUpdated', handleSettingsUpdated);
+        };
+    }, []);
 
     // Définir les liens en fonction du rôle de l'utilisateur
     const links = [
@@ -35,8 +65,8 @@ const Sidebar = ({ user }) => {
         {
             href: '/profile',
             label: 'Profil',
-            icon: <Users className="h-5 w-5" />,
-            roles: ['admin', 'manager', 'driver']
+            icon: <User className="h-5 w-5" />,
+            roles: ['driver']
         },
         {
             href: '/',
@@ -92,7 +122,7 @@ const Sidebar = ({ user }) => {
             <div className="flex flex-col w-56 lg:w-64">
                 <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-card border-2 border-border rounded-xl">
                     <div className="flex items-center flex-shrink-0 px-4">
-                        <h2 className="text-xl font-semibold text-foreground">Gestion de Flotte</h2>
+                        <h2 className="text-xl font-semibold text-foreground">{sidebarTitle}</h2>
                     </div>
                     <div className="mt-5 flex-grow flex flex-col">
                         <nav className="flex-1 px-2 space-y-1">

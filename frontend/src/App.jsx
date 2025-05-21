@@ -12,6 +12,7 @@ import Login from '@/pages/Authentification/Login';
 import Register from '@/pages/Authentification/Register';
 import Profile from '@/pages/Profile/Profile';
 import NotFound from '@/pages/Error/NotFound';
+import Settings from '@/pages/Settings/Settings'; // Importer le nouveau composant Settings
 
 // Pages de ressources
 import SchedulesList from '@/pages/Schedules/SchedulesList';
@@ -140,6 +141,13 @@ function App() {
             <Route path="users/:id" element={
               <ProtectedRoute requiredRole="admin">
                 <UserDetail />
+              </ProtectedRoute>
+            } />
+
+            {/* Route des paramètres */}
+            <Route path="settings" element={
+              <ProtectedRoute requiredRole="admin">
+                <Settings />
               </ProtectedRoute>
             } />
 

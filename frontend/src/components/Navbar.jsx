@@ -1,5 +1,5 @@
 // src/components/Navbar.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '@/services/api';
 import { Bell, User, LogOut, Menu, X } from 'lucide-react';
@@ -23,11 +23,40 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { settingsService } from '@/services/api';
 
 const Navbar = ({ user }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [navbarTitle, setNavbarTitle] = useState('Gestion de Flotte');
     const navigate = useNavigate();
     const { toast } = useToast();
+
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const response = await settingsService.getSettings();
+                setNavbarTitle(response.data.navbarTitle || 'Gestion de Flotte');
+            } catch (error) {
+                console.error('Erreur lors du chargement des paramètres:', error);
+            }
+        };
+
+        const handleSettingsUpdated = (e) => {
+            // Utiliser les données de l'événement ou recharger
+            if (e.detail?.navbarTitle) {
+                setNavbarTitle(e.detail.navbarTitle);
+            } else {
+                loadSettings(); // Fallback au chargement API
+            }
+        };
+
+        loadSettings();
+        window.addEventListener('settingsUpdated', handleSettingsUpdated);
+
+        return () => {
+            window.removeEventListener('settingsUpdated', handleSettingsUpdated);
+        };
+    }, []);
 
     const handleLogout = async () => {
         try {
@@ -62,7 +91,7 @@ const Navbar = ({ user }) => {
         {
             href: '/profile',
             label: 'Profil',
-            icon: <Users className="h-5 w-5" />,
+            icon: <User className="h-5 w-5" />,
             roles: ['admin', 'manager', 'driver']
         },
         {
@@ -123,7 +152,7 @@ const Navbar = ({ user }) => {
                             </button>
                         </div>
                         <div className="flex items-center flex-shrink-0 ml-4 md:ml-0">
-                            <h1 className="text-xl font-bold text-foreground">Gestion de Flotte</h1>
+                            <h1 className="text-xl font-bold text-foreground">{navbarTitle}</h1>
                         </div>
                     </div>
                     <div className="flex items-center">

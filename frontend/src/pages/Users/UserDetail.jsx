@@ -370,7 +370,7 @@ const UserDetail = () => {
                         {/* Section statistiques/activité (peut être étendue) */}
                         <div className="border-t pt-6">
                             <h3 className="font-semibold mb-4">Activité récente</h3>
-                            <div className="grid md:grid-cols-3 gap-4">
+                            <div>
                                 <Card>
                                     <CardHeader className="pb-2">
                                         <CardDescription>Dernière connexion</CardDescription>
@@ -385,22 +385,7 @@ const UserDetail = () => {
                                         )}
                                     </CardContent>
                                 </Card>
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardDescription>Nombre de connexions</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <p className="font-medium">N/A</p>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardDescription>Dernière activité</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <p className="font-medium">N/A</p>
-                                    </CardContent>
-                                </Card>
+
                             </div>
                         </div>
                     </div>

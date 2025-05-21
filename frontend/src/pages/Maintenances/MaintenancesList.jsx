@@ -99,7 +99,6 @@ const MaintenancesList = () => {
         maintenanceDate: '',
         completionDate: '',
         cost: '',
-        duration: '',
         technicianName: '',
         notes: '',
         completed: false
@@ -739,7 +738,7 @@ const MaintenancesList = () => {
                             </div>
                         )}
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div >
                         <div className="space-y-2">
                             <label htmlFor="cost">Coût (FCFA)</label>
                             <Input
@@ -750,16 +749,7 @@ const MaintenancesList = () => {
                                 min="0"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <label htmlFor="duration">Durée (Jours)</label>
-                            <Input
-                                type="number"
-                                name="duration"
-                                value={formData.duration}
-                                onChange={handleInputChange}
-                                min="1"
-                            />
-                        </div>
+
                     </div>
                     <div className="space-y-2">
                         <label htmlFor="completed">Statut</label>
