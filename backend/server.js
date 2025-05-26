@@ -46,6 +46,7 @@ app.use('/api/drivers', require('./routes/driverRoutes'));
 app.use('/api/schedules', require('./routes/scheduleRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/maintenances', require('./routes/maintenanceRoutes'));
+app.use('/api/documents', require('./routes/documentRoutes'));
 app.use('/api', historyRoutes);
 
 // Static files

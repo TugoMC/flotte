@@ -3,7 +3,7 @@ const router = express.Router();
 const paymentController = require('../controllers/paymentController');
 const { uploadMultipleFiles } = require('../services/fileUploadService');
 const { protect } = require('../middlewares/authMiddleware');
-const { manager, driver } = require('../middlewares/roleMiddleware');
+const { manager, driver, admin } = require('../middlewares/roleMiddleware');
 
 // Routes statistiques
 router.get('/stats', paymentController.getStats);
@@ -37,12 +37,12 @@ router.post('/:id/status', protect, manager, paymentController.changeStatus);
 
 // Routes pour la gestion des photos
 router.post('/:id/photos', protect, manager, uploadMultipleFiles, paymentController.uploadPhotos);
-router.delete('/:id/photos/:photoIndex', protect, manager, paymentController.deletePhoto);
+router.delete('/:id/photos/:photoIndex', protect, admin, paymentController.deletePhoto);
 
 // Routes PUT
 router.put('/:id', protect, manager, paymentController.update);
 
 // Routes DELETE
-router.delete('/:id', protect, manager, paymentController.delete);
+router.delete('/:id', protect, admin, paymentController.delete);
 
 module.exports = router;

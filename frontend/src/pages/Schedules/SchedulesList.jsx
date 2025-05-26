@@ -8,6 +8,7 @@ import { Command, CommandGroup, CommandInput, CommandItem } from '@/components/u
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { AlertTriangleIcon } from 'lucide-react';
@@ -76,6 +77,7 @@ const SchedulesList = () => {
     const [filterDate, setFilterDate] = useState(null);
     const [filterDriver, setFilterDriver] = useState('');
     const [filterVehicle, setFilterVehicle] = useState('');
+    const { user } = useAuth();
 
     // États pour les modales
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -482,17 +484,19 @@ const SchedulesList = () => {
                                                 >
                                                     <EditIcon className="h-4 w-4" />
                                                 </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    className="text-red-500"
-                                                    onClick={() => {
-                                                        setScheduleToDelete(schedule);
-                                                        setDeleteDialogOpen(true);
-                                                    }}
-                                                >
-                                                    <TrashIcon className="h-4 w-4" />
-                                                </Button>
+                                                {user?.role !== 'manager' && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className="text-red-500"
+                                                        onClick={() => {
+                                                            setScheduleToDelete(schedule);
+                                                            setDeleteDialogOpen(true);
+                                                        }}
+                                                    >
+                                                        <TrashIcon className="h-4 w-4" />
+                                                    </Button>
+                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>

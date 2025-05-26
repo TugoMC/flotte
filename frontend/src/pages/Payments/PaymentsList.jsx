@@ -6,6 +6,7 @@ import { paymentService, driverService, vehicleService } from '@/services/api';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/contexts/AuthContext';
 import { Eye } from "lucide-react";
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -84,6 +85,7 @@ const PaymentsList = () => {
         field: 'paymentDate',
         order: 'desc'
     });
+    const { user } = useAuth();
 
     // États pour les modales
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -456,17 +458,19 @@ const PaymentsList = () => {
                                                     >
                                                         <EditIcon className="h-4 w-4" />
                                                     </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        className="text-red-500"
-                                                        onClick={() => {
-                                                            setPaymentToDelete(payment);
-                                                            setDeleteDialogOpen(true);
-                                                        }}
-                                                    >
-                                                        <TrashIcon className="h-4 w-4" />
-                                                    </Button>
+                                                    {user?.role !== 'manager' && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            className="text-red-500"
+                                                            onClick={() => {
+                                                                setPaymentToDelete(payment);
+                                                                setDeleteDialogOpen(true);
+                                                            }}
+                                                        >
+                                                            <TrashIcon className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -502,9 +506,7 @@ const PaymentsList = () => {
                                         </div>
                                     </div>
                                 )}
-                                <div className="text-center text-sm text-muted-foreground mt-2">
-                                    Affichage de {data.payments.length} paiements sur {data.total}
-                                </div>
+
                             </div>
                         </>
                     )}

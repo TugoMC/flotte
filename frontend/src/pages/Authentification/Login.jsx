@@ -5,6 +5,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Eye, EyeOff } from 'lucide-react';
 import {
     Form,
     FormControl,
@@ -124,28 +125,40 @@ const Login = () => {
                                     <FormField
                                         control={form.control}
                                         name="password"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <div className="flex items-center">
-                                                    <FormLabel>Mot de passe</FormLabel>
-                                                    <Link
-                                                        to="/forgot-password"
-                                                        className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                                                    >
-                                                        Mot de passe oublié?
-                                                    </Link>
-                                                </div>
-                                                <FormControl>
-                                                    <Input
-                                                        type="password"
-                                                        placeholder="********"
-                                                        {...field}
-                                                        autoComplete="current-password"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
+                                        render={({ field }) => {
+                                            const [showPassword, setShowPassword] = useState(false);
+                                            return (
+                                                <FormItem>
+                                                    <div className="flex items-center">
+                                                        <FormLabel>Mot de passe</FormLabel>
+                                                        <Link
+                                                            to="/forgot-password"
+                                                            className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                                                        >
+                                                            Mot de passe oublié?
+                                                        </Link>
+                                                    </div>
+                                                    <div className="relative">
+                                                        <FormControl>
+                                                            <Input
+                                                                type={showPassword ? "text" : "password"}
+                                                                placeholder="********"
+                                                                {...field}
+                                                                autoComplete="current-password"
+                                                            />
+                                                        </FormControl>
+                                                        <button
+                                                            type="button"
+                                                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                                            onClick={() => setShowPassword(!showPassword)}
+                                                        >
+                                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                        </button>
+                                                    </div>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            );
+                                        }}
                                     />
                                 </div>
                                 <Button type="submit" className="w-full" disabled={loading}>
@@ -164,18 +177,18 @@ const Login = () => {
                                     <div className="grid grid-cols-3 gap-2 text-xs">
                                         <div>
                                             <p className="font-medium">Administrateur</p>
-                                            <p>user: admin</p>
-                                            <p>pass: admin123</p>
+                                            <p>Username: admin</p>
+                                            <p>Password: admin123</p>
                                         </div>
                                         <div>
                                             <p className="font-medium">Manager</p>
-                                            <p>user: manager1</p>
-                                            <p>pass: manager1</p>
+                                            <p>Username: manager1</p>
+                                            <p>Password: manager1</p>
                                         </div>
                                         <div>
                                             <p className="font-medium">Chauffeur</p>
-                                            <p>user: driver</p>
-                                            <p>pass: driver</p>
+                                            <p>Username: driver1</p>
+                                            <p>Password: driver</p>
                                         </div>
                                     </div>
                                 </div>

@@ -15,7 +15,10 @@ const storage = multer.diskStorage({
             uploadDir = 'uploads/drivers/';
         } else if (req.originalUrl.includes('/maintenance')) {
             uploadDir = 'uploads/maintenance/';
-        } else {
+        } else if (req.originalUrl.includes('/documents')) {
+            uploadDir = 'uploads/documents/';
+        }
+        else {
             uploadDir = 'uploads/other/';
         }
 
@@ -36,11 +39,11 @@ const storage = multer.diskStorage({
 
 // Filtre pour n'accepter que certains types de fichiers
 const fileFilter = (req, file, cb) => {
-    // Accepter uniquement les images
-    if (file.mimetype.startsWith('image/')) {
+    // Accepter uniquement les images et PDF
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
         cb(null, true);
     } else {
-        cb(new Error('Type de fichier non supporté. Seules les images sont acceptées.'), false);
+        cb(new Error('Type de fichier non supporté. Seules les images et PDF sont acceptés.'), false);
     }
 };
 
@@ -76,9 +79,11 @@ exports.uploadSingleFile = (req, res, next) => {
     });
 };
 
-// Middleware pour télécharger plusieurs fichiers
+// Middleware pour télécharger plusieurs fichiers (flexible field names)
 exports.uploadMultipleFiles = (req, res, next) => {
-    const uploadMultiple = upload.array('photos', 10); // 'photos' est le nom du champ, 10 est le maximum
+    // Utiliser 'any()' pour accepter des fichiers de n'importe quel champ
+    // Cela permet de gérer 'files', 'photos', ou tout autre nom de champ
+    const uploadMultiple = upload.any();
 
     uploadMultiple(req, res, function (err) {
         if (err instanceof multer.MulterError) {
@@ -94,6 +99,42 @@ exports.uploadMultipleFiles = (req, res, next) => {
         }
 
         // Tout s'est bien passé, passer au middleware suivant
+        next();
+    });
+};
+
+// Middleware spécifique pour les photos (conservé pour compatibilité)
+exports.uploadPhotos = (req, res, next) => {
+    const uploadMultiple = upload.array('photos', 10);
+
+    uploadMultiple(req, res, function (err) {
+        if (err instanceof multer.MulterError) {
+            return res.status(400).json({
+                message: `Erreur de téléchargement: ${err.message}`
+            });
+        } else if (err) {
+            return res.status(400).json({
+                message: err.message
+            });
+        }
+        next();
+    });
+};
+
+// Middleware spécifique pour les fichiers de documents
+exports.uploadDocumentFiles = (req, res, next) => {
+    const uploadMultiple = upload.array('files', 10);
+
+    uploadMultiple(req, res, function (err) {
+        if (err instanceof multer.MulterError) {
+            return res.status(400).json({
+                message: `Erreur de téléchargement: ${err.message}`
+            });
+        } else if (err) {
+            return res.status(400).json({
+                message: err.message
+            });
+        }
         next();
     });
 };

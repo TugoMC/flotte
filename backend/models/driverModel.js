@@ -28,7 +28,7 @@ const driverSchema = new mongoose.Schema({
         default: null
     },
     photos: {
-        type: [String],  // Tableau de chemins/URLs vers les photos
+        type: [String],
         default: []
     },
     currentVehicle: {

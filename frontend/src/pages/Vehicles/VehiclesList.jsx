@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { vehicleService } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -67,6 +68,7 @@ import {
 
 const VehiclesList = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     // États
     const [vehicles, setVehicles] = useState([]);
@@ -484,14 +486,17 @@ const VehiclesList = () => {
                                                 >
                                                     <EditIcon className="h-4 w-4" />
                                                 </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    className="text-red-500"
-                                                    onClick={() => confirmDelete(vehicle)}
-                                                >
-                                                    <TrashIcon className="h-4 w-4" />
-                                                </Button>
+
+                                                {user?.role !== 'manager' && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className="text-red-500"
+                                                        onClick={() => confirmDelete(vehicle)}
+                                                    >
+                                                        <TrashIcon className="h-4 w-4" />
+                                                    </Button>
+                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>

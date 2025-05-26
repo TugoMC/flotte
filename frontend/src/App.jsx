@@ -6,13 +6,14 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
 
+
 // Pages principales
 import Dashboard from '@/pages/Dashboard/Dashboard';
 import Login from '@/pages/Authentification/Login';
 import Register from '@/pages/Authentification/Register';
 import Profile from '@/pages/Profile/Profile';
 import NotFound from '@/pages/Error/NotFound';
-import Settings from '@/pages/Settings/Settings'; // Importer le nouveau composant Settings
+import Settings from '@/pages/Settings/Settings';
 
 // Pages de ressources
 import SchedulesList from '@/pages/Schedules/SchedulesList';
@@ -28,6 +29,7 @@ import MaintenanceDetail from './pages/Maintenances/MaintenanceDetail';
 import HistoryList from '@/pages/History/HistoryList';
 import UsersList from './pages/Users/UsersList';
 import UserDetail from './pages/Users/UserDetail';
+import DocumentsList from './pages/Documents/DocumentList';
 
 // Pages d'erreur
 import ErrorPage from '@/pages/Error/ErrorPage';
@@ -39,128 +41,136 @@ import Error500 from '@/pages/Error/Error500';
 
 function App() {
   return (
-    <Router>
-      <ErrorBoundary>
-        <Routes>
-          {/* Routes publiques */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
 
-          {/* Routes d'erreur */}
-          <Route path="/error" element={<ErrorPage />} />
-          <Route path="/error/400" element={<Error400 />} />
-          <Route path="/error/401" element={<Error401 />} />
-          <Route path="/error/403" element={<Error403 />} />
-          <Route path="/error/404" element={<Error404 />} />
-          <Route path="/error/500" element={<Error500 />} />
-          <Route path="/error/:code" element={<ErrorPage />} />
+    <ErrorBoundary>
+      <Routes>
+        {/* Routes publiques */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-          {/* Routes protégées */}
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Layout />
+        {/* Routes d'erreur */}
+        <Route path="/error" element={<ErrorPage />} />
+        <Route path="/error/400" element={<Error400 />} />
+        <Route path="/error/401" element={<Error401 />} />
+        <Route path="/error/403" element={<Error403 />} />
+        <Route path="/error/404" element={<Error404 />} />
+        <Route path="/error/500" element={<Error500 />} />
+        <Route path="/error/:code" element={<ErrorPage />} />
+
+        {/* Routes protégées */}
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<Dashboard />} />
+          <Route path="profile" element={<Profile />} />
+
+          {/* Route driver personnalisée */}
+          <Route path="/driver" element={
+            <ProtectedRoute requiredRole="driver">
+              <DriverPersonal />
             </ProtectedRoute>
-          }>
-            <Route index element={<Dashboard />} />
-            <Route path="profile" element={<Profile />} />
+          } />
 
-            {/* Route driver personnalisée */}
-            <Route path="driver" element={
-              <ProtectedRoute requiredRole="driver">
-                <DriverPersonal />
-              </ProtectedRoute>
-            } />
+          {/* Routes avec restriction de rôle */}
+          <Route path="vehicles" element={
+            <ProtectedRoute requiredRole="manager">
+              <VehiclesList />
+            </ProtectedRoute>
+          } />
 
-            {/* Routes avec restriction de rôle */}
-            <Route path="vehicles" element={
-              <ProtectedRoute requiredRole="manager">
-                <VehiclesList />
-              </ProtectedRoute>
-            } />
+          <Route path="vehicles/:id" element={
+            <ProtectedRoute requiredRole="manager">
+              <VehicleDetail />
+            </ProtectedRoute>
+          } />
 
-            <Route path="vehicles/:id" element={
-              <ProtectedRoute requiredRole="manager">
-                <VehicleDetail />
-              </ProtectedRoute>
-            } />
+          <Route path="drivers" element={
+            <ProtectedRoute requiredRole="manager">
+              <DriversList />
+            </ProtectedRoute>
+          } />
 
-            <Route path="drivers" element={
-              <ProtectedRoute requiredRole="manager">
-                <DriversList />
-              </ProtectedRoute>
-            } />
+          <Route path="drivers/:id" element={
+            <ProtectedRoute requiredRole="manager">
+              <DriverDetail />
+            </ProtectedRoute>
+          } />
 
-            <Route path="drivers/:id" element={
-              <ProtectedRoute requiredRole="manager">
-                <DriverDetail />
-              </ProtectedRoute>
-            } />
+          <Route path="schedules" element={
+            <ProtectedRoute requiredRole="manager">
+              <SchedulesList />
+            </ProtectedRoute>
+          } />
 
-            <Route path="schedules" element={
-              <ProtectedRoute requiredRole="manager">
-                <SchedulesList />
-              </ProtectedRoute>
-            } />
+          <Route path="payments" element={
+            <ProtectedRoute requiredRole="manager">
+              <PaymentsList />
+            </ProtectedRoute>
+          } />
 
-            <Route path="payments" element={
-              <ProtectedRoute requiredRole="manager">
-                <PaymentsList />
-              </ProtectedRoute>
-            } />
+          <Route path="payments/:id" element={
+            <ProtectedRoute requiredRole="manager">
+              <PaymentDetail />
+            </ProtectedRoute>
+          } />
 
-            <Route path="payments/:id" element={
-              <ProtectedRoute requiredRole="manager">
-                <PaymentDetail />
-              </ProtectedRoute>
-            } />
+          <Route path="maintenances" element={
+            <ProtectedRoute requiredRole="manager">
+              <MaintenancesList />
+            </ProtectedRoute>
+          } />
 
-            <Route path="maintenances" element={
-              <ProtectedRoute requiredRole="manager">
-                <MaintenancesList />
-              </ProtectedRoute>
-            } />
+          <Route path="maintenances/:id" element={
+            <ProtectedRoute requiredRole="manager">
+              <MaintenanceDetail />
+            </ProtectedRoute>
+          } />
 
-            <Route path="maintenances/:id" element={
-              <ProtectedRoute requiredRole="manager">
-                <MaintenanceDetail />
-              </ProtectedRoute>
-            } />
+          <Route path="history" element={
+            <ProtectedRoute requiredRole="manager">
+              <HistoryList />
+            </ProtectedRoute>
+          } />
 
-            <Route path="history" element={
-              <ProtectedRoute requiredRole="manager">
-                <HistoryList />
-              </ProtectedRoute>
-            } />
+          <Route path="users" element={
+            <ProtectedRoute requiredRole="admin">
+              <UsersList />
+            </ProtectedRoute>
+          } />
 
-            <Route path="users" element={
-              <ProtectedRoute requiredRole="admin">
-                <UsersList />
-              </ProtectedRoute>
-            } />
+          <Route path="users/:id" element={
+            <ProtectedRoute requiredRole="admin">
+              <UserDetail />
+            </ProtectedRoute>
+          } />
 
-            <Route path="users/:id" element={
-              <ProtectedRoute requiredRole="admin">
-                <UserDetail />
-              </ProtectedRoute>
-            } />
+          <Route path="documents" element={
+            <ProtectedRoute requiredRole="manager">
+              <DocumentsList />
+            </ProtectedRoute>
+          } />
 
-            {/* Route des paramètres */}
-            <Route path="settings" element={
-              <ProtectedRoute requiredRole="admin">
-                <Settings />
-              </ProtectedRoute>
-            } />
 
-            {/* Fallback pour les routes non trouvées à l'intérieur de l'application */}
-            <Route path="*" element={<NotFound />} />
-          </Route>
 
-          {/* Fallback pour les routes non trouvées en dehors de l'application */}
-          <Route path="*" element={<Error404 />} />
-        </Routes>
-        <Toaster />
-      </ErrorBoundary>
-    </Router>
+          {/* Route des paramètres */}
+          <Route path="settings" element={
+            <ProtectedRoute requiredRole="admin">
+              <Settings />
+            </ProtectedRoute>
+          } />
+
+          {/* Fallback pour les routes non trouvées à l'intérieur de l'application */}
+          <Route path="*" element={<NotFound />} />
+        </Route>
+
+        {/* Fallback pour les routes non trouvées en dehors de l'application */}
+        <Route path="*" element={<Error404 />} />
+      </Routes>
+      <Toaster />
+    </ErrorBoundary>
+
   );
 }
 

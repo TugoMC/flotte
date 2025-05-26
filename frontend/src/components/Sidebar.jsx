@@ -19,22 +19,24 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 const Sidebar = ({ user }) => {
+    const location = useLocation(); // Ajout de cette ligne manquante
     const [sidebarTitle, setSidebarTitle] = useState('Gestion de Flotte');
 
     useEffect(() => {
         const loadSettings = async () => {
             try {
                 const response = await settingsService.getSettings();
-                setNavbarTitle(response.data.navbarTitle || 'Gestion de Flotte');
+                // Correction: utiliser sidebarTitle au lieu de navbarTitle
+                setSidebarTitle(response.data.sidebarTitle || 'Gestion de Flotte');
             } catch (error) {
                 console.error('Erreur lors du chargement des paramètres:', error);
             }
         };
 
         const handleSettingsUpdated = (e) => {
-            // Utiliser les données de l'événement ou recharger
-            if (e.detail?.navbarTitle) {
-                setNavbarTitle(e.detail.navbarTitle);
+            // Correction: utiliser sidebarTitle au lieu de navbarTitle
+            if (e.detail?.sidebarTitle) {
+                setSidebarTitle(e.detail.sidebarTitle);
             } else {
                 loadSettings(); // Fallback au chargement API
             }
@@ -105,6 +107,12 @@ const Sidebar = ({ user }) => {
             roles: ['admin', 'manager']
         },
         {
+            href: '/documents',
+            label: 'Documents',
+            icon: <FileText className="h-5 w-5" />,
+            roles: ['admin', 'manager']
+        },
+        {
             href: '/settings',
             label: 'Paramètres',
             icon: <Settings className="h-5 w-5" />,
@@ -168,7 +176,6 @@ const Sidebar = ({ user }) => {
             </div>
         </aside>
     );
-
 };
 
 export default Sidebar;

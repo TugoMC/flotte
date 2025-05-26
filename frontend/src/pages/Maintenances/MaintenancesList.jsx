@@ -5,6 +5,7 @@ import { AlertTriangleIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
 import { maintenanceService } from '@/services/api';
 import { vehicleService } from '@/services/api';
 import { toast } from 'sonner';
@@ -80,6 +81,7 @@ const MaintenancesList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterVehicle, setFilterVehicle] = useState('all');
     const [filterType, setFilterType] = useState('all');
+    const { user } = useAuth();
 
     const [conflicts, setConflicts] = useState([]);
     const [conflictsDialogOpen, setConflictsDialogOpen] = useState(false);
@@ -561,14 +563,16 @@ const MaintenancesList = () => {
                                                 >
                                                     <EditIcon className="h-4 w-4" />
                                                 </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    className="text-red-500"
-                                                    onClick={() => confirmDelete(maintenance)}
-                                                >
-                                                    <TrashIcon className="h-4 w-4" />
-                                                </Button>
+                                                {user?.role !== 'manager' && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className="text-red-500"
+                                                        onClick={() => confirmDelete(maintenance)}
+                                                    >
+                                                        <TrashIcon className="h-4 w-4" />
+                                                    </Button>
+                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>

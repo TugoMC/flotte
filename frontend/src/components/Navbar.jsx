@@ -125,6 +125,12 @@ const Navbar = ({ user }) => {
             roles: ['admin', 'manager']
         },
         {
+            href: '/documents',
+            label: 'Documents',
+            icon: <FileText className="h-5 w-5" />,
+            roles: ['admin', 'manager']
+        },
+        {
             href: '/settings',
             label: 'Paramètres',
             icon: <Settings className="h-5 w-5" />,

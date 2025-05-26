@@ -37,6 +37,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useAuth } from '@/contexts/AuthContext';
 import {
     Tabs,
     TabsList,
@@ -64,6 +65,7 @@ const DriversList = () => {
     const [activeTab, setActiveTab] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterVehicle, setFilterVehicle] = useState('all');
+    const { user } = useAuth();
 
     // États pour les modales
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -454,14 +456,16 @@ const DriversList = () => {
                                                 >
                                                     <EditIcon className="h-4 w-4" />
                                                 </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    className="text-red-500"
-                                                    onClick={() => confirmDelete(driver)}
-                                                >
-                                                    <TrashIcon className="h-4 w-4" />
-                                                </Button>
+                                                {user?.role !== 'manager' && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className="text-red-500"
+                                                        onClick={() => confirmDelete(driver)}
+                                                    >
+                                                        <TrashIcon className="h-4 w-4" />
+                                                    </Button>
+                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>

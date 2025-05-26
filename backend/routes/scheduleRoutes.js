@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const scheduleController = require('../controllers/scheduleController');
 const { protect } = require('../middlewares/authMiddleware'); // Add this line
-const { manager, driver } = require('../middlewares/roleMiddleware');
+const { manager, driver, admin } = require('../middlewares/roleMiddleware');
 
 // Routes spécifiques
 router.get('/current', protect, manager, scheduleController.getCurrent);
@@ -25,7 +25,7 @@ router.get('/driver/me/all', protect, driver, scheduleController.getAllSchedules
 
 // Routes réservées aux managers/admin
 router.put('/:id', protect, manager, scheduleController.update);
-router.delete('/:id', protect, manager, scheduleController.delete);
+router.delete('/:id', protect, admin, scheduleController.delete);
 router.put('/:id/status', protect, manager, scheduleController.changeStatus);
 
 module.exports = router;

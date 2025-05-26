@@ -48,7 +48,7 @@ const ErrorPage = ({ code = 500, message, details }) => {
     const IconComponent = config.icon;
 
     return (
-        <div className={`flex flex-col items-center justify-center min-h-screen px-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className={`flex flex-col items-center justify-center min-h-screen px-4 bg-background`}>
             {/* Ajoutez le bouton de changement de thème */}
             <div className="absolute top-4 right-4">
                 <ThemeToggle />
@@ -62,7 +62,7 @@ const ErrorPage = ({ code = 500, message, details }) => {
 
                 <h1 className="text-5xl font-bold tracking-tight">{code}</h1>
 
-                <div className="space-y-2">
+                <div className="space-y-2 text-center">
                     <h2 className="text-2xl font-semibold">{config.title}</h2>
                     <p className={`max-w-md ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>
                         {config.description}
@@ -77,7 +77,7 @@ const ErrorPage = ({ code = 500, message, details }) => {
                 <div className="pt-4 flex gap-3 justify-center">
                     <Button asChild>
                         <Link to="/">
-                            Retourner à l'accueil (Admin)
+                            Retourner à l'accueil (Admin, Manager)
                         </Link>
                     </Button>
                     <Button asChild>

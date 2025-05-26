@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Eye, EyeOff } from 'lucide-react';
 import { authService } from '@/services/api';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -219,37 +220,61 @@ const Register = () => {
                                         <FormField
                                             control={form.control}
                                             name="password"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Mot de passe</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="password"
-                                                            placeholder="Votre mot de passe"
-                                                            {...field}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
+                                            render={({ field }) => {
+                                                const [showPassword, setShowPassword] = useState(false);
+                                                return (
+                                                    <FormItem>
+                                                        <FormLabel>Mot de passe</FormLabel>
+                                                        <div className="relative">
+                                                            <FormControl>
+                                                                <Input
+                                                                    type={showPassword ? "text" : "password"}
+                                                                    placeholder="Votre mot de passe"
+                                                                    {...field}
+                                                                />
+                                                            </FormControl>
+                                                            <button
+                                                                type="button"
+                                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                                                onClick={() => setShowPassword(!showPassword)}
+                                                            >
+                                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                            </button>
+                                                        </div>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                );
+                                            }}
                                         />
 
                                         <FormField
                                             control={form.control}
                                             name="confirmPassword"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Confirmer le mot de passe</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="password"
-                                                            placeholder="Confirmer votre mot de passe"
-                                                            {...field}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
+                                            render={({ field }) => {
+                                                const [showPassword, setShowPassword] = useState(false);
+                                                return (
+                                                    <FormItem>
+                                                        <FormLabel>Confirmer le mot de passe</FormLabel>
+                                                        <div className="relative">
+                                                            <FormControl>
+                                                                <Input
+                                                                    type={showPassword ? "text" : "password"}
+                                                                    placeholder="Confirmer votre mot de passe"
+                                                                    {...field}
+                                                                />
+                                                            </FormControl>
+                                                            <button
+                                                                type="button"
+                                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                                                onClick={() => setShowPassword(!showPassword)}
+                                                            >
+                                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                            </button>
+                                                        </div>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                );
+                                            }}
                                         />
 
                                         <FormField

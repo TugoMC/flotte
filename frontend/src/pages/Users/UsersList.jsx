@@ -109,6 +109,8 @@ const UsersList = () => {
 
     // Ouvrir le formulaire
     const handleOpenForm = (user = null) => {
+
+
         if (user) {
             setSelectedUser(user);
             setFormData({
@@ -126,7 +128,7 @@ const UsersList = () => {
                 email: '',
                 firstName: '',
                 lastName: '',
-                role: 'driver',
+                role: 'manager',
                 isActive: true
             });
         }
@@ -427,6 +429,14 @@ const UsersList = () => {
                             </div>
                         )}
                     </div>
+                    {formData.role === 'driver' && (
+                        <div className="bg-yellow-50 p-3 rounded-md text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300">
+                            <p className="font-medium">En construction: comptes chauffeurs</p>
+                            <p className="text-sm">La création des comptes des chauffeurs sur cette page n'est pas disponible pour le moment.</p>
+                            <p className="text-sm">Néanmois, vous pouvez les modifier ici.</p>
+                            <p className="text-sm">Pour les créer, utilisez la page d'inscription.</p>
+                        </div>
+                    )}
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsFormOpen(false)}>
                             Annuler

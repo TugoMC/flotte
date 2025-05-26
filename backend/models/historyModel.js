@@ -2,11 +2,14 @@
 const mongoose = require('mongoose');
 
 const historySchema = new mongoose.Schema({
-    // Type d'événement (ex: "driver_creation", "payment_confirmation", "maintenance_completed")
     eventType: {
         type: String,
         required: true,
         enum: [
+            // Document events
+            'document_create', 'document_update', 'document_delete',
+            'document_pdf_add', 'document_pdf_delete', 'document_archive',
+
             // Driver events
             'driver_create', 'driver_update', 'driver_delete', 'driver_status_change',
             'driver_vehicle_assign', 'driver_vehicle_release', 'driver_photo_upload', 'driver_photo_delete',
@@ -32,11 +35,10 @@ const historySchema = new mongoose.Schema({
         ]
     },
 
-    // Module concerné
     module: {
         type: String,
         required: true,
-        enum: ['driver', 'vehicle', 'schedule', 'payment', 'maintenance']
+        enum: ['document', 'driver', 'vehicle', 'schedule', 'payment', 'maintenance', 'system']
     },
 
     // ID de l'entité concernée
