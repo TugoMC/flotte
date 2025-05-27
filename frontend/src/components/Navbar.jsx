@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '@/services/api';
-import { Bell, User, LogOut, Menu, X } from 'lucide-react';
+import { User, LogOut, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     LayoutDashboard,
@@ -12,7 +12,6 @@ import {
     CreditCard,
     Wrench,
     FileText,
-    BarChart2,
     Settings
 } from 'lucide-react';
 import {
@@ -24,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { settingsService } from '@/services/api';
+import NotificationBell from './NotificationBell';
 
 const Navbar = ({ user }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -42,11 +42,10 @@ const Navbar = ({ user }) => {
         };
 
         const handleSettingsUpdated = (e) => {
-            // Utiliser les données de l'événement ou recharger
             if (e.detail?.navbarTitle) {
                 setNavbarTitle(e.detail.navbarTitle);
             } else {
-                loadSettings(); // Fallback au chargement API
+                loadSettings();
             }
         };
 
@@ -74,7 +73,6 @@ const Navbar = ({ user }) => {
         }
     };
 
-    // Liens synchronisés avec la Sidebar
     const links = [
         {
             href: '/',
@@ -138,7 +136,6 @@ const Navbar = ({ user }) => {
         }
     ];
 
-    // Filtrer les liens selon le rôle de l'utilisateur
     const filteredLinks = links.filter(link =>
         user && link.roles.includes(user.role)
     );
@@ -163,9 +160,10 @@ const Navbar = ({ user }) => {
                     </div>
                     <div className="flex items-center">
                         <div className="ml-4 flex items-center">
-                            <Button variant="ghost" size="icon" className="mr-2">
-                                <Bell className="h-5 w-5" />
-                            </Button>
+                            {/* Remplacer le bouton Bell par le composant NotificationBell */}
+                            <div className="mr-2">
+                                <NotificationBell user={user} />
+                            </div>
 
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -194,7 +192,6 @@ const Navbar = ({ user }) => {
                 </div>
             </div>
 
-            {/* Menu mobile */}
             {isMobileMenuOpen && (
                 <div className="sm:hidden bg-card border-b border-border rounded-b-xl">
                     <div className="px-2 pt-2 pb-3 space-y-1">

@@ -2,6 +2,7 @@ const {
     generateDailyPayments,
     completeExpiredDriverSchedules
 } = require('./controllers/scheduleController');
+const NotificationService = require('./services/notificationService');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -13,6 +14,7 @@ const cron = require('node-cron');
 const Schedule = require('./models/scheduleModel');
 const setupUploadDirectories = require('./utils/setupUploadDirs');
 const historyRoutes = require('./routes/historyRoutes');
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -48,6 +50,7 @@ app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/maintenances', require('./routes/maintenanceRoutes'));
 app.use('/api/documents', require('./routes/documentRoutes'));
 app.use('/api', historyRoutes);
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -168,6 +171,39 @@ async function setupScheduleAutoCompletion() {
     console.log('✅ Cron job pour la vérification des plannings expirés configuré (exécution au démarrage + toutes les 30 minutes)');
 }
 
+async function setupDocumentExpiryNotifications() {
+    let isRunning = false;
+
+    const runCheck = async () => {
+        if (isRunning) {
+            console.log('Vérification des documents déjà en cours, skip...');
+            return;
+        }
+
+        try {
+            isRunning = true;
+            console.log('\n--- Vérification des documents expirants ---');
+            const now = new Date();
+            const result = await NotificationService.checkExpiringDocuments();
+            console.log(`[${now.toISOString()}] ${result.notificationsCreated} notifications créées, ${result.notificationsUpdated} mises à jour`);
+        } catch (err) {
+            console.error('Erreur lors de la vérification des documents:', err);
+        } finally {
+            isRunning = false;
+        }
+    };
+
+    // Exécution au démarrage
+    await runCheck();
+
+    // Planification quotidienne à 08:00 heure d'Abidjan (GMT+0)
+    cron.schedule('0 8 * * *', runCheck, {
+        scheduled: true,
+        timezone: 'Africa/Abidjan'
+    });
+
+    console.log('✅ Cron job pour les notifications de documents expirants configuré');
+}
 
 // Connexion MongoDB + démarrage serveur
 mongoose.connect(process.env.MONGODB_URI)
@@ -177,6 +213,8 @@ mongoose.connect(process.env.MONGODB_URI)
         // Initialise les cron jobs (attendre la fin pour éviter les conflits)
         await setupAutoPayments();
         await setupScheduleAutoCompletion();
+        await setupDocumentExpiryNotifications();
+        NotificationService.startPaymentCheckCron();
 
         app.listen(PORT, () => console.log(`🚀 Serveur démarré sur le port ${PORT}`));
     })

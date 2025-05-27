@@ -30,6 +30,7 @@ import HistoryList from '@/pages/History/HistoryList';
 import UsersList from './pages/Users/UsersList';
 import UserDetail from './pages/Users/UserDetail';
 import DocumentsList from './pages/Documents/DocumentList';
+import NotificationsList from './pages/Notifications/NotificationsList';
 
 // Pages d'erreur
 import ErrorPage from '@/pages/Error/ErrorPage';
@@ -149,6 +150,12 @@ function App() {
           <Route path="documents" element={
             <ProtectedRoute requiredRole="manager">
               <DocumentsList />
+            </ProtectedRoute>
+          } />
+
+          <Route path="notifications" element={
+            <ProtectedRoute requiredRole="manager">
+              <NotificationsList />
             </ProtectedRoute>
           } />
 

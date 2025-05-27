@@ -14,7 +14,7 @@ exports.protect = async (req, res, next) => {
 
 
             req.user = await User.findById(decoded.id).select('-password');
-            console.log('User found:', req.user);
+
 
             if (!req.user) {
                 return res.status(401).json({ message: 'Non autorisé, utilisateur non trouvé' });
