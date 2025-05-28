@@ -160,10 +160,12 @@ const Navbar = ({ user }) => {
                     </div>
                     <div className="flex items-center">
                         <div className="ml-4 flex items-center">
-                            {/* Remplacer le bouton Bell par le composant NotificationBell */}
-                            <div className="mr-2">
-                                <NotificationBell user={user} />
-                            </div>
+                            {/* Afficher la cloche de notification seulement pour admin et manager */}
+                            {user?.role !== 'driver' && (
+                                <div className="mr-2">
+                                    <NotificationBell user={user} />
+                                </div>
+                            )}
 
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
