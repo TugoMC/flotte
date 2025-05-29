@@ -33,6 +33,14 @@ const notificationSchema = new mongoose.Schema({
         type: String,
         enum: ['low', 'medium', 'high'],
         default: 'medium'
+    },
+
+    additionalData: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
+    },
+    readAt: {
+        type: Date
     }
 }, {
     timestamps: true
